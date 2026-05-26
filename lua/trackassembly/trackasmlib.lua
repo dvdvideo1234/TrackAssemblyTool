@@ -2451,11 +2451,11 @@ function LocatePOA(oRec, ivPoID)
   end; return stPOA, iPoID
 end
 
-function RegisterPOA(stData, ivID, sP, sO, sA)
+function RegisterPOA(stData, vID, sP, sO, sA)
   local sNu = GetOpVar("MISS_NOSQL"); if(not stData) then
     LogInstance("Cache record invalid"); return nil end
-  local iID = tonumber(ivID); if(not IsHere(iID)) then
-    LogInstance("Offset ID mismatch "..GetReport(ivID)); return nil end
+  local iID = tonumber(vID); if(not IsHere(iID)) then
+    LogInstance("Offset ID mismatch "..GetReport(vID)); return nil end
   local sP = (sP or sNu); if(not isstring(sP)) then
     LogInstance("Point mismatch "..GetReport(sP)); return nil end
   local sO = (sO or sNu); if(not isstring(sO)) then
@@ -3017,26 +3017,41 @@ function NewTable(sTable,defTab,bReload,bDelete)
   end
   --[[
    * Returns the row with swapped column names to indexes
-   * tR > Record being converted to array
-   * tO > Data output when provided (may have holes)
+   * tRec > Record being converted to array
+   * tO   > Data output when provided (may have holes)
   ]]
-  function self:GetArrayRow(tR, tO)
+  function self:GetRowToArray(tRec, tO)
     local tA = (tO or {}) -- Store it here
-    for key, val in pairs(tR) do -- Column name tables are not ordered
+    for key, val in pairs(tRec) do -- Column name tables are not ordered
       local iD = self:GetColumnID(key) -- Retrieve a valid column ID
       if(iD > 0) then tA[iD] = val end -- Validate and assign the array
     end; return tA -- Return pointer to the output (may have holes)
   end
   --[[
-   * Returns the row with swapped indexes to column names
-   * tR > Array being converted to record
-   * tO > Data output when provided
+   * Data matching wrapper that works on an array
+   * tArr > Array being converted to record
+   * tO   > Data output when provided
   ]]
-  function self:GetRecordRow(tR, tO)
-    local tA = (tO or {}) -- Store it here
-    for key, val in pairs(tR) do -- Record is not ordered so either way
-      local sN = self:GetColumnName(key) -- Get column name mapping
-      if(sN) then tA[sN] = val end
+  function self:ArrayMatch(tArr,bQ,sQ,bNo,bNo)
+    local qtDef = self:GetDefinition() -- Table definition index
+    for iC = 1, qtDef.Size do -- Record is not ordered so either way
+      local vM = self:Match(tArr[iC],iC,bQ,sQ,bRe,bNo)
+      if(not IsHere(vM)) then LogInstance("Matching failed "
+        ..GetReport(tArr[iC],iC,bQ,sQ,bRe,bNo), qtDef.Nick)
+        return false -- Matching for column has failed
+      end; tArr[iC] = vM -- Assign and check the next column
+    end; return true -- Matching is successful
+  end
+  --[[
+   * Returns the row with swapped indexes to column names
+   * tArr > Array being converted to record
+   * tO   > Data output when provided
+  ]]
+  function self:GetArrayToRow(tArr, tO)
+    local tA, qtDef = (tO or {}), self:GetDefinition() -- Store it here
+    for iC = 1, qtDef.Size do -- Record is not ordered so either way
+      local sN = self:GetColumnName(iC) -- Get column name mapping
+      if(sN) then tA[sN] = tArr[iC] end
     end; return tA
   end
   -- Removes the object from the list
@@ -3217,42 +3232,37 @@ function NewTable(sTable,defTab,bReload,bDelete)
     end; return self:GetFragment()
   end
   -- Internal type matching
-  function self:Match(snValue,ivID,bQuoted,sQuote,bNoRev,bNoNull)
+  function self:Match(snIn,vID,bQ,sQ,bRe,bNo)
     local qtDef, sNull = self:GetDefinition(), GetOpVar("MISS_NOSQL")
-    local nvID = tonumber(ivID); if(not IsHere(nvID)) then
-      LogInstance("Column ID mismatch "..GetReport(ivID),qtDef.Nick); return nil end
+    local nvID = tonumber(vID); if(not IsHere(nvID)) then
+      LogInstance("Column ID mismatch "..GetReport(vID),qtDef.Nick); return nil end
     local defCol = qtDef[nvID]; if(not IsHere(defCol)) then
       LogInstance("Invalid column "..GetReport(nvID),qtDef.Nick); return nil end
-    local tyCol, opCol = tostring(defCol[2]), defCol[3]
-    local sMoDB, snOut = GetOpVar("MODE_DATABASE") -- Read database mode
+    local tyCo, opCo = tostring(defCol[2] or ""), tostring(defCol[3] or "")
+    local sMoDB, snOu = GetOpVar("MODE_DATABASE") -- Read database mode
     local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
-      LogInstance("Unsupported mode "..GetReport(ivID,tyCol,opCol),qtDef.Nick); return nil end
-    if(tyCol == "TEXT") then snOut = tostring(snValue or "")
-      if(not bNoNull and IsBlank(snOut)) then
-        if    (sMoDB == "SQL") then snOut = sNull
-        elseif(sMoDB == "LUA") then snOut = sNull end
+      LogInstance("Unsupported mode "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil end
+    if(tyCo == "TEXT") then snOu = tostring(snIn or "")
+      if(not bNo and IsBlank(snOu)) then snOu = sNull end
+        snOu = (((opCo == "LOW") and snOu:lower()) or
+                ((opCo == "CAP") and snOu:upper()) or snOu)
+      if(not bRe and sMoDB == "SQL" and defCol[4] == "QMK") then
+        snOu = snOu:gsub("'","''") end
+      if(bQ) then
+        local sqCh = (sQ and tostring(sQ or ""):sub(1,1) or
+          (((sMoDB == "SQL") and "'") or
+           ((sMoDB == "LUA") and "\"") or ""))
+        snOu = GetConcat(sqCh, snOu, sqCh)
       end
-      if    (opCol == "LOW") then snOut = snOut:lower()
-      elseif(opCol == "CAP") then snOut = snOut:upper() end
-      if(not bNoRev and sMoDB == "SQL" and defCol[4] == "QMK") then
-        snOut = snOut:gsub("'","''") end
-      if(bQuoted) then local sqChar
-        if(sQuote) then
-          sqChar = tostring(sQuote or ""):sub(1,1)
-        else
-          if    (sMoDB == "SQL") then sqChar = "'"
-          elseif(sMoDB == "LUA") then sqChar = "\"" end
-        end; snOut = GetConcat(sqChar, snOut, sqChar)
+    elseif(tyCo == "REAL" or tyCo == "INTEGER") then
+      snOu = tonumber(snIn); if(not IsHere(snOu)) then
+        LogInstance("Invalid number "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil end
+      if(tyCo == "INTEGER") then
+        snOu = (((opCo == "FLR") and mathFloor(snOu)) or
+                ((opCo == "CEL") and mathCeil (snOu)) or snOu)
       end
-    elseif(tyCol == "REAL" or tyCol == "INTEGER") then
-      snOut = tonumber(snValue); if(not IsHere(snOut)) then
-        LogInstance("Invalid number "..GetReport(snValue, nvID),qtDef.Nick); return nil end
-      if(tyCol == "INTEGER") then
-        if    (opCol == "FLR") then snOut = mathFloor(snOut)
-        elseif(opCol == "CEL") then snOut = mathCeil (snOut) end
-      end
-    else LogInstance("Invalid type "..GetReport(tyCol),qtDef.Nick); return nil
-    end; return snOut
+    else LogInstance("Invalid type "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil
+    end; return snOu
   end
   function self:GetPrepare(tLine, sDelim, fFoo, ...)
     local qtDef = self:GetDefinition(); if(not istable(tLine)) then
@@ -4114,7 +4124,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance("No data found "..GetReport(sHew, fName, Q), sTable); return false end
     F:Write(tHea.Qry:format(#qData, Q))
-    for iR = 1, #qData do local aRow = makTab:GetArrayRow(qData[iR])
+    for iR = 1, #qData do local aRow = makTab:GetRowToArray(qData[iR])
       for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
       if(tTrig["Export"]) then
         local bS, sR = pcall(tTrig["Export"], aRow)
@@ -4242,22 +4252,26 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     local sRow, tCon = GetFileRow(I)
     while(sRow) do
       if((not IsBlank(sRow)) and (not IsDisable(sRow))) then
-        local tRow = sDelim:Explode(sRow)
-        if(tRow[1] == defTab.Name) then local nL = #tRow
-          for iCnt = 2, nL do local vV, iL = tRow[iCnt], (iCnt-1); vV = GetStrip(vV)
-            vM = makTab:Match(vV,iL,false,"",true,true)
-            if(not IsHere(vV)) then LogInstance("Read matching failed "
-              ..GetReport(sHew, vV, iL, defTab[iL][1], fName),sTable); tCon.ER = true; break end
-            tRow[iCnt] = vM -- Register the matched value
-          end -- Allocate table memory for the matched key
-          local vK = tRow[2]; if(not fData[vK]) then fData[vK] = {Size = 0} end
-          -- Where the line ID must be read from. Validate the value
-          local fRec, vID, nID = fData[vK], tRow[iD+1]; nID = (tonumber(vID) or 0)
-          if((fRec.Size < 0) or (nID <= fRec.Size) or ((nID - fRec.Size) ~= 1)) then
-            LogInstance("Scatter line ID "..GetReport(sHew, vID, vK, fName),sTable); tCon.ER = true; break end
-          fRec.Size = nID; fRec[nID] = {}; local fRow = fRec[nID] -- Register the new line
-          for iCnt = 3, nL do fRow[iCnt-2] = tRow[iCnt] end -- Transfer the extracted data
-        else LogInstance("Read table name mismatch "..GetReport(sHew, fName),sTable); tCon.ER = true; break end
+        local aRow = sDelim:Explode(sRow)
+        if(tableRemove(aRow, 1) ~= defTab.Name) then tCon.ER = true
+          LogInstance("Internal table mismatch "..GetReport(sHew, sRow, fName), sTable); break end
+        if(#aRow ~= defTab.Size) then tCon.ER = true
+          LogInstance("Internal data mismatch "..GetReport(sHew, sRow, fName), sTable); break end
+        if(tTrig and tTrig["Record"]) then
+          local bS, sR = pcall(tTrig["Record"], aRow, sFunc); if(not bS) then
+            LogInstance("Store manager fail: "..GetReport(sHew, nID, vK, sR),sTable); return false end
+          if(not sR) then -- Rise log error when something gets wrong inside the trigger routine
+            LogInstance("Store routine fail: "..GetReport(sHew, nID, vK),sTable); return false end
+        end; for iC = 1, defTab.Size do aRow[iC] = GetStrip(aRow[iC]) end
+        if(not makTab:ArrayMatch(aRow,false,"",true,true)) then
+          LogInstance("Read matching failed "..GetReport(sHew, fName),sTable); tCon.ER = true; break
+        end -- Where the line ID must be read from. Validate the value
+        local vK = aRow[1]; if(not fData[vK]) then fData[vK] = {Size = 0} end
+        local fRec, vID, nID = fData[vK], aRow[iD]; nID = (tonumber(vID) or 0)
+        if((fRec.Size < 0) or (nID <= fRec.Size) or ((nID - fRec.Size) ~= 1)) then
+          LogInstance("Scatter line ID "..GetReport(sHew, vID, vK, fName),sTable); tCon.ER = true; break end
+        fRec.Size = nID; fRec[nID] = {}; local fRow = fRec[nID] -- Register the new line
+        for iC = 2, defTab.Size do fRow[iC-1] = aRow[iC] end -- Transfer the extracted data
       end; sRow, tCon = GetFileRow(I, tCon) -- Read the next row
     end -- The file contents are read locally then converted
     if(tCon.ER) then if(not tCon.RO) then I:Close() end
@@ -4600,7 +4614,7 @@ function ExportContentsRUN(fF,sType,makB,qData,sName,sIn,qList)
     for iD = 1, #qData do
       local qRow = qData[iD]
       local mMod = qRow[coMo]
-      local aRow = makB:GetArrayRow(qRow)
+      local aRow = makB:GetRowToArray(qRow)
       for iA = 1, #aRow do local vA = aRow[iA]
         aRow[iA] = makB:Match(vA,iA,true,"\"",true,true); if(not IsHere(aRow[iA])) then
           LogInstance("Matching error "..GetReport(iA,vA,mMod)); return false end

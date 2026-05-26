@@ -1906,7 +1906,7 @@ asmlib.NewTable("PIECES",{
               if(tA and tA.Size and tA.Size > 0) then
                 local sH = asmlib.GetConcat(defA.Name, sDelim)
                 for iA = 1, tA.Size do fA:Write(sH)
-                  local aRow = makA:GetArrayRow(tA[iA]); aRow[1] = stRec.Key
+                  local aRow = makA:GetRowToArray(tA[iA]); aRow[1] = stRec.Key
                   for iC = 1, #aRow do aRow[iC] = makA:Match(aRow[iC],iC,true,"\"") end
                   if(tTrgA and tTrgA["Export"]) then
                     local bS, sR = pcall(tTrgA["Export"], aRow)
@@ -2033,7 +2033,7 @@ asmlib.NewTable("ADDITIONS",{
         local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
         for iRec = 1, #tRec do
-          local aRow = makTab:GetArrayRow(tRec[iRec]); aRow[1] = sKey
+          local aRow = makTab:GetRowToArray(tRec[iRec]); aRow[1] = sKey
           for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
           if(tTrig and tTrig["Export"]) then
             local bS, sR = pcall(tTrig["Export"], aRow)
