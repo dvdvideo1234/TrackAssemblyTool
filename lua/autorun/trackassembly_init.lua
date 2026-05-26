@@ -1910,11 +1910,10 @@ asmlib.NewTable("PIECES",{
                 for iA = 1, tA.Size do fA:Write(sH)
                   local aRow = makA:GetArrayRow(tA[iA]); aRow[1] = stRec.Key
                   for iC = 1, #aRow do aRow[iC] = makA:Match(aRow[iC],iC,true,"\"") end
-                  if(tTrgA and tTrgA["ExportDSV"]) then
-                    local bS, sR = pcall(tTrgA["ExportDSV"], aRow)
+                  if(tTrgA and tTrgA["Export"]) then
+                    local bS, sR = pcall(tTrgA["Export"], aRow)
                     if(not bS) then asmlib.LogInstance("Trigs manager fail: "..sR,defA.Nick); return false end
                     if(not sR) then asmlib.LogInstance("Trigs routine fail",defA.Nick); return false end
-                    for iT = 1, #aRow do aRow[iT] = tostring(aRow[iT]):Trim() end
                   end; fA:Write(tableConcat(aRow, sDelim)); fA:Write("\n")
                 end
               end
@@ -2030,7 +2029,7 @@ asmlib.NewTable("ADDITIONS",{
     end,
     ExportDSV = function(oF, makTab, tCache, fPref, sDelim, vSrc)
       local tSort = asmlib.Arrange(tCache, "Slot")
-      local defTab, sFunc = makTab:GetDefinition(), "ExportDSV"
+      local defTab = makTab:GetDefinition()
       local tTrig = (istable(defTab.Trigs) and defTab.Trigs or nil)
       for iRow = 1, tSort.Size do
         local tRow = tSort[iRow]
@@ -2038,11 +2037,10 @@ asmlib.NewTable("ADDITIONS",{
         for iRec = 1, #tRec do
           local aRow = makTab:GetArrayRow(tRec[iRec]); aRow[1] = sKey
           for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
-          if(tTrig and tTrig[sFunc]) then
-            local bS, sR = pcall(tTrig[sFunc], aRow)
+          if(tTrig and tTrig["Export"]) then
+            local bS, sR = pcall(tTrig["Export"], aRow)
             if(not bS) then asmlib.LogInstance("Trigs manager fail: "..sR,vSrc); return false end
             if(not sR) then asmlib.LogInstance("Trigs routine fail",vSrc); return false end
-            for iC = 1, #aRow do aRow[iC] = tostring(aRow[iC]):Trim() end
           end
           oF:Write(defTab.Name); oF:Write(sDelim)
           oF:Write(tableConcat(aRow, sDelim)); oF:Write("\n")

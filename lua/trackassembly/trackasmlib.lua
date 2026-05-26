@@ -347,10 +347,9 @@ end
  * Maps enums names to their values and back
  * sT > Enum set to use [value to name]. Disable for using [name to value]
  * vI > Key to search for in the set to map the value
- * bT > Trim the output. Do not align to the longest entry
  Returns: The mapped value
 ]]
-function GetEnumMap(sT, vI, bT)
+function GetEnumMap(sT, vI)
   local sD = GetOpVar("OPSYM_DISABLE")
   local sT = tostring(sT or sD)
   local tE = GetOpVar("TABLE_MAPENUM")[sT]
@@ -358,9 +357,7 @@ function GetEnumMap(sT, vI, bT)
   if(IsDisable(sT)) then return tE[vI] else
     local sE = tE[tostring(vI)]
     if(not sE) then return nil end
-    local sF = tE.Fme:format(sT, sE)
-    if(bT) then return sF end
-    return tE.Fmt:format(sF)
+    return tE.Fme:format(sT, sE)
   end
 end
 
@@ -671,7 +668,7 @@ function ComponentType(sType, ...)
   local sU, nT = GetTypeClean(sType), select("#", ...)
   local tA = tU[sU] -- Index the componet array
   if(not tA) then tA = {[sK] = 0}; tU[sU] = tA end
-  if(nT <= 0) then -- No conponents specified
+  if(nT <= 0) then -- No components specified
     local tA = tU[sU] -- Components index
     local nA = tA[sK] -- Component size
     return sU, tA, nA -- Return type info
@@ -4103,8 +4100,8 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     F:Write(tHea.Qry:format(#qData, Q))
     for iR = 1, #qData do local aRow = makTab:GetArrayRow(qData[iR])
       for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
-      if(tTrig[sFunc]) then
-        local bS, sR = pcall(tTrig[sFunc], aRow)
+      if(tTrig["Export"]) then
+        local bS, sR = pcall(tTrig["Export"], aRow)
         if(not bS) then F:Flush(); F:Close()
           LogInstance("Trigs manager error "..GetReport(sHew, fName, sR), sTable); return false end
         if(not sR) then F:Flush(); F:Close()
