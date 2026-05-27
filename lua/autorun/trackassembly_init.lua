@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.856")
+asmlib.SetOpVar("TOOL_VERSION","9.857")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -555,9 +555,9 @@ if(CLIENT) then
         table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
         table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
       else -- Remove the last node and reset the normal for (N-1)
-        tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
         table.remove(tC.Node); table.remove(tC.Norm)
         table.remove(tC.Base); table.remove(tC.Rays)
+        tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
       end
     end)
 

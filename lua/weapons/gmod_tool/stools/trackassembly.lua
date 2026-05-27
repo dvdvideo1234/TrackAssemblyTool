@@ -971,6 +971,7 @@ end
 --[[
  * Removes a node from the server and sends a message to update the client
  * iD    > Node index to remove. Defaults to the last node on the stack
+ *         It will remove the last node on (nil, N, N+K) provided
  * bMute > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveRemove(iD, bMute)
