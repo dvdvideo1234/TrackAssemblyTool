@@ -817,7 +817,7 @@ function InitBase(sName, sPurp)
     length = 0, -- Will store the trace length when needed
     start  = Vector(),    -- Start position of the trace
     endpos = Vector(),    -- End position of the trace
-    mask   = GENV.MASK_SOLID,  -- Mask telling it what to hit
+    mask   = GENV . MASK_SOLID,  -- Mask telling it what to hit
     filter = function(oEnt) -- Only valid props which are not the main entity, world or TRACE_FILTER
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
@@ -855,48 +855,48 @@ function InitBase(sName, sPurp)
     })
     SetOpVar("TABLE_MAPENUM", {
       ["MOVETYPE"] = { Fme = "%s_%s", Fmt = "%-19s",
-        [tostring(GENV.MOVETYPE_NONE      )] = "NONE",
-        [tostring(GENV.MOVETYPE_ISOMETRIC )] = "ISOMETRIC",
-        [tostring(GENV.MOVETYPE_WALK      )] = "WALK",
-        [tostring(GENV.MOVETYPE_STEP      )] = "STEP",
-        [tostring(GENV.MOVETYPE_FLY       )] = "FLY",
-        [tostring(GENV.MOVETYPE_FLYGRAVITY)] = "FLYGRAVITY",
-        [tostring(GENV.MOVETYPE_VPHYSICS  )] = "VPHYSICS",
-        [tostring(GENV.MOVETYPE_PUSH      )] = "PUSH",
-        [tostring(GENV.MOVETYPE_NOCLIP    )] = "NOCLIP",
-        [tostring(GENV.MOVETYPE_LADDER    )] = "LADDER",
-        [tostring(GENV.MOVETYPE_OBSERVER  )] = "OBSERVER",
-        [tostring(GENV.MOVETYPE_CUSTOM    )] = "CUSTOM"
+        [tostring(GENV . MOVETYPE_NONE      )] = "NONE",
+        [tostring(GENV . MOVETYPE_ISOMETRIC )] = "ISOMETRIC",
+        [tostring(GENV . MOVETYPE_WALK      )] = "WALK",
+        [tostring(GENV . MOVETYPE_STEP      )] = "STEP",
+        [tostring(GENV . MOVETYPE_FLY       )] = "FLY",
+        [tostring(GENV . MOVETYPE_FLYGRAVITY)] = "FLYGRAVITY",
+        [tostring(GENV . MOVETYPE_VPHYSICS  )] = "VPHYSICS",
+        [tostring(GENV . MOVETYPE_PUSH      )] = "PUSH",
+        [tostring(GENV . MOVETYPE_NOCLIP    )] = "NOCLIP",
+        [tostring(GENV . MOVETYPE_LADDER    )] = "LADDER",
+        [tostring(GENV . MOVETYPE_OBSERVER  )] = "OBSERVER",
+        [tostring(GENV . MOVETYPE_CUSTOM    )] = "CUSTOM"
       },
       ["SOLID"] = { Fme = "%s_%s", Fmt = "%-14s",
-        [tostring(GENV.SOLID_NONE    )] = "NONE",
-        [tostring(GENV.SOLID_BSP     )] = "BSP",
-        [tostring(GENV.SOLID_BBOX    )] = "BBOX",
-        [tostring(GENV.SOLID_OBB     )] = "OBB",
-        [tostring(GENV.SOLID_OBB_YAW )] = "OBB_YAW",
-        [tostring(GENV.SOLID_CUSTOM  )] = "CUSTOM",
-        [tostring(GENV.SOLID_VPHYSICS)] = "VPHYSICS"
+        [tostring(GENV . SOLID_NONE    )] = "NONE",
+        [tostring(GENV . SOLID_BSP     )] = "BSP",
+        [tostring(GENV . SOLID_BBOX    )] = "BBOX",
+        [tostring(GENV . SOLID_OBB     )] = "OBB",
+        [tostring(GENV . SOLID_OBB_YAW )] = "OBB_YAW",
+        [tostring(GENV . SOLID_CUSTOM  )] = "CUSTOM",
+        [tostring(GENV . SOLID_VPHYSICS)] = "VPHYSICS"
       },
       ["#"] = {
-        ["MOVETYPE_NONE"      ] = GENV.MOVETYPE_NONE,
-        ["MOVETYPE_ISOMETRIC" ] = GENV.MOVETYPE_ISOMETRIC,
-        ["MOVETYPE_WALK"      ] = GENV.MOVETYPE_WALK,
-        ["MOVETYPE_STEP"      ] = GENV.MOVETYPE_STEP,
-        ["MOVETYPE_FLY"       ] = GENV.MOVETYPE_FLY,
-        ["MOVETYPE_FLYGRAVITY"] = GENV.MOVETYPE_FLYGRAVITY,
-        ["MOVETYPE_VPHYSICS"  ] = GENV.MOVETYPE_VPHYSICS,
-        ["MOVETYPE_PUSH"      ] = GENV.MOVETYPE_PUSH,
-        ["MOVETYPE_NOCLIP"    ] = GENV.MOVETYPE_NOCLIP,
-        ["MOVETYPE_LADDER"    ] = GENV.MOVETYPE_LADDER,
-        ["MOVETYPE_OBSERVER"  ] = GENV.MOVETYPE_OBSERVER,
-        ["MOVETYPE_CUSTOM"    ] = GENV.MOVETYPE_CUSTOM,
-        ["SOLID_NONE"         ] = GENV.SOLID_NONE,
-        ["SOLID_BSP"          ] = GENV.SOLID_BSP,
-        ["SOLID_BBOX"         ] = GENV.SOLID_BBOX,
-        ["SOLID_OBB"          ] = GENV.SOLID_OBB,
-        ["SOLID_OBB_YAW"      ] = GENV.SOLID_OBB_YAW,
-        ["SOLID_CUSTOM"       ] = GENV.SOLID_CUSTOM,
-        ["SOLID_VPHYSICS"     ] = GENV.SOLID_VPHYSICS
+        ["MOVETYPE_NONE"      ] = GENV . MOVETYPE_NONE,
+        ["MOVETYPE_ISOMETRIC" ] = GENV . MOVETYPE_ISOMETRIC,
+        ["MOVETYPE_WALK"      ] = GENV . MOVETYPE_WALK,
+        ["MOVETYPE_STEP"      ] = GENV . MOVETYPE_STEP,
+        ["MOVETYPE_FLY"       ] = GENV . MOVETYPE_FLY,
+        ["MOVETYPE_FLYGRAVITY"] = GENV . MOVETYPE_FLYGRAVITY,
+        ["MOVETYPE_VPHYSICS"  ] = GENV . MOVETYPE_VPHYSICS,
+        ["MOVETYPE_PUSH"      ] = GENV . MOVETYPE_PUSH,
+        ["MOVETYPE_NOCLIP"    ] = GENV . MOVETYPE_NOCLIP,
+        ["MOVETYPE_LADDER"    ] = GENV . MOVETYPE_LADDER,
+        ["MOVETYPE_OBSERVER"  ] = GENV . MOVETYPE_OBSERVER,
+        ["MOVETYPE_CUSTOM"    ] = GENV . MOVETYPE_CUSTOM,
+        ["SOLID_NONE"         ] = GENV . SOLID_NONE,
+        ["SOLID_BSP"          ] = GENV . SOLID_BSP,
+        ["SOLID_BBOX"         ] = GENV . SOLID_BBOX,
+        ["SOLID_OBB"          ] = GENV . SOLID_OBB,
+        ["SOLID_OBB_YAW"      ] = GENV . SOLID_OBB_YAW,
+        ["SOLID_CUSTOM"       ] = GENV . SOLID_CUSTOM,
+        ["SOLID_VPHYSICS"     ] = GENV . SOLID_VPHYSICS
       }
     })
     SetOpVar("TOOL_DEFMODE","gmod_tool")
@@ -934,18 +934,18 @@ function UpdateColor(oEnt, sVar, sCol, bSet)
   local sPrf = GetOpVar("TOOLNAME_PL")..sVar
   if(IsHere(bSet)) then
     if(bSet) then
-      oEnt:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
+      oEnt:SetRenderMode(GENV . RENDERMODE_TRANSALPHA)
       oEnt:SetColor(cPal:Select(sCol))
       oEnt:SetNWBool(sPrf, true)
     else
-      oEnt:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
+      oEnt:SetRenderMode(GENV . RENDERMODE_TRANSALPHA)
       oEnt:SetColor(cPal:Select("w"))
       oEnt:SetNWBool(sPrf, false)
     end
   else
     local bNow = oEnt:GetNWBool(sPrf, false)
     if(bNow) then
-      oEnt:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
+      oEnt:SetRenderMode(GENV . RENDERMODE_TRANSALPHA)
       oEnt:SetColor(cPal:Select(sCol))
     end
   end
@@ -1823,7 +1823,7 @@ function ExportAttachToMenu(pnMenu, sType, bDisp)
   pSe:SetIcon(ToIcon(sI.."exru"))
   pSe:SetTooltip(language.GetPhrase(sT.."exru_tp"))
   pSe = pIn:AddOption(language.GetPhrase(sT.."extr"),
-    function() ExportTypeTRN(sType, input.IsKeyDown(GENV.KEY_LSHIFT)) end)
+    function() ExportTypeTRN(sType, input.IsKeyDown(GENV . KEY_LSHIFT)) end)
   pSe:SetIcon(ToIcon(sI.."extr"))
   pSe:SetTooltip(language.GetPhrase(sT.."extr_tp"))
   pSe = pIn:AddOption(language.GetPhrase(sT.."catg"),
@@ -1896,7 +1896,7 @@ function SetNodeExpand(pnBase)
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return nil end
   local bEx = pnBase:GetExpanded()
-  if(input.IsKeyDown(GENV.KEY_LSHIFT)) then
+  if(input.IsKeyDown(GENV . KEY_LSHIFT)) then
     pnBase:ExpandRecurse(not bEx)
   else
     pnBase:SetExpanded(not bEx)
@@ -2024,7 +2024,7 @@ function SetComboBoxList(cPanel, sVar)
     local sName = GetAsmConvar(sVar, "NAM")
     local sMenu, sTtip = language.GetPhrase(sBase.."_con"), language.GetPhrase(sBase)
     pItem = cPanel:ComboBox(sMenu, sName)
-    pItem:SetSortItems(false); pItem:Dock(GENV.TOP); pItem:SetTall(25)
+    pItem:SetSortItems(false); pItem:Dock(GENV . TOP); pItem:SetTall(25)
     pItem:SetTooltip(sTtip); pItem:UpdateColours(tSkin)
     pItem:SetValue(GetAsmConvar(sVar, "STR"))
     pItem.DoRightClick = function(pnSelf)
@@ -2288,8 +2288,8 @@ function NewEntityNone(sModel, vPos, aAng) local eNone
   local aAng =  Angle(aAng or GetOpVar("ANG_ZERO"))
   eNone:SetPos(vPos); eNone:SetAngles(aAng)
   eNone.DoNotDuplicate = true -- Disable duping
-  eNone:SetCollisionGroup(GENV.COLLISION_GROUP_NONE)
-  eNone:SetSolid(GENV.SOLID_NONE); eNone:SetMoveType(GENV.MOVETYPE_NONE)
+  eNone:SetCollisionGroup(GENV . COLLISION_GROUP_NONE)
+  eNone:SetSolid(GENV . SOLID_NONE); eNone:SetMoveType(GENV . MOVETYPE_NONE)
   eNone:SetNotSolid(true); eNone:SetNoDraw(true); eNone:SetModel(sModel)
   LogInstance("Create "..GetReport(eNone:EntIndex(),sModel)); return eNone
 end
@@ -4835,13 +4835,11 @@ function ExportTypeCAT(sType)
   local sPref, tCax = GetTypePrefix(sType), {} -- Convert type to prefix
   local sName = GetConcat("[", sMoDB, "-cat]", sPref):lower()
   local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
-  local ssLog = "*"..fsLog:format("DB",sFunc,"%s")
-  if(not RunComponentType(sType, function(iTy, sTy)
-    tCax[sTy] = tCat[sTy]; return true -- Add a pointer to the type
+  local ssLog = "*"..fsLog:format("DB",sFunc,"%s") -- Just copy the reference
+  if(not RunComponentType(sType, function(iTy, sTy) tCax[sTy] = tCat[sTy]; return true
   end, ssLog:format("Assign"))) then LogInstance("Component routine error"); return end
   ExportCategory(3, tCax, sName, true)
 end
-
 
 ----------------------------- SNAPPING ------------------------------
 
@@ -5478,9 +5476,9 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local sClass = GetEmpty(stData.Unit, nil, GetOpVar("ENTITY_DEFCLASS"))
   local ePiece = ents.Create(sClass); if(not (ePiece and ePiece:IsValid())) then
     LogInstance("Piece invalid "..GetReport(sClass, sModel)); return nil end
-  ePiece:SetCollisionGroup(GENV.COLLISION_GROUP_NONE)
-  ePiece:SetSolid(GENV.SOLID_VPHYSICS)
-  ePiece:SetMoveType(GENV.MOVETYPE_VPHYSICS)
+  ePiece:SetCollisionGroup(GENV . COLLISION_GROUP_NONE)
+  ePiece:SetSolid(GENV . SOLID_VPHYSICS)
+  ePiece:SetMoveType(GENV . MOVETYPE_VPHYSICS)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
   if(not SetPosBound(ePiece,vPos,pPly,sMode)) then
@@ -5489,7 +5487,7 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece:SetCreator(pPly) -- Who spawned the sandbox track
   ePiece:Spawn()
   ePiece:Activate()
-  ePiece:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
+  ePiece:SetRenderMode(GENV . RENDERMODE_TRANSALPHA)
   ePiece:SetColor(clColor or GetColor(255,255,255,255))
   ePiece:DrawShadow(false)
   ePiece:PhysWake()
@@ -5538,7 +5536,7 @@ function ApplyPhysicalSettings(ePiece,bPi,bFr,bGr,sPh)
   ePiece.PhysgunDisabled = bPi          -- If enabled stop the player from grabbing the track piece
   ePiece:SetNWBool(sToolPrefL.."physgundisabled", bPi) -- Disable drawing physgun grab and move
   ePiece:SetUnFreezable(bPi)            -- If enabled stop the player from hitting reload to mess it all up
-  ePiece:SetMoveType(GENV.MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
+  ePiece:SetMoveType(GENV . MOVETYPE_VPHYSICS) -- Moves and behaves like a normal prop
   -- Delay the freeze by a tiny amount because on physgun snap the piece
   -- is unfrozen automatically after physgun drop hook call
   timer.Simple(GetOpVar("DELAY_ACTION"), function() -- If frozen motion is disabled
@@ -5892,10 +5890,10 @@ function NewEntityGhost(sModel, vPos, aAng)
   eGho:SetNoDraw(true)
   eGho:SetNotSolid(true)
   eGho:DrawShadow(false)
-  eGho:SetSolid(GENV.SOLID_NONE)
-  eGho:SetMoveType(GENV.MOVETYPE_NONE)
-  eGho:SetCollisionGroup(GENV.COLLISION_GROUP_NONE)
-  eGho:SetRenderMode(GENV.RENDERMODE_TRANSALPHA)
+  eGho:SetSolid(GENV . SOLID_NONE)
+  eGho:SetMoveType(GENV . MOVETYPE_NONE)
+  eGho:SetCollisionGroup(GENV . COLLISION_GROUP_NONE)
+  eGho:SetRenderMode(GENV . RENDERMODE_TRANSALPHA)
   eGho:SetColor(cPal:Select("gh"))
   eGho:Spawn()
   return eGho
