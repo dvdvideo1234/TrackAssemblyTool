@@ -7,20 +7,8 @@ E2Lib.RegisterExtension("trackassembly", true,
 
 --[[ **************************** MODULE **************************** ]]
 
-local asmlib = trackasmlib
-
---[[ **************************** LOCALIZATION **************************** ]]
-
-local Vector    = Vector
-local Angle     = Angle
-local Color     = Color
-local tonumber  = tonumber
-local tostring  = tostring
-local istable   = istable
-local isnumber  = isnumber
-local mathClamp = math and math.Clamp
-local cvarsAddChangeCallback = cvars and cvars.AddChangeCallback
-local cvarsRemoveChangeCallback = cvars and cvars.RemoveChangeCallback
+local asmlib = trackasmlib; if(not asmlib) then -- Module present
+  ErrorNoHaltWithStack("E2: Track assembly tool module fail!\n"); return end
 
 --[[ **************************** CONFIGURATION **************************** ]]
 
@@ -39,18 +27,18 @@ local gsVarName -- This stores current variable name
 local gsCbcHash = "_wire" -- This keeps suffix related to the file
 
 gsVarName = asmlib.GetAsmConvar("enwiremod", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sV, vO, vN)
+cvars.RemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvars.AddChangeCallback(gsVarName, function(sV, vO, vN)
   enFlag = ((tonumber(vN) or 0) ~= 0) end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("bnderrmod", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sV, vO, vN)
+cvars.RemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvars.AddChangeCallback(gsVarName, function(sV, vO, vN)
   gsBErr = tostring(vN) end, gsVarName..gsCbcHash)
 
 gsVarName = asmlib.GetAsmConvar("maxmass", "NAM")
-cvarsRemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
-cvarsAddChangeCallback(gsVarName, function(sV, vO, vN)
+cvars.RemoveChangeCallback(gsVarName, gsVarName..gsCbcHash)
+cvars.AddChangeCallback(gsVarName, function(sV, vO, vN)
   local nM = (tonumber(vN) or 0) -- Zero is invalid mass
   gnMaxMass = ((nM > 0) and nM or 1) -- Apply mass clamp
 end, gsVarName..gsCbcHash)
@@ -293,7 +281,7 @@ local function newPiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, n
                            (oCol[3] or oCol["b"]), -- Numerical indices are with priority to hash
                      nA or (oCol[4] or oCol["a"])) -- Use argument alpha with priority
   else oCol = asmlib.GetColor(255,255,255,nA) end -- Use white for default color value
-  return asmlib.NewPiece(oPly,stRec.Slot,vPos,aAng,mathClamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
+  return asmlib.NewPiece(oPly,stRec.Slot,vPos,aAng,math.Clamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
 end
 
 __e2setcost(50)

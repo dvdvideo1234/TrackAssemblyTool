@@ -1,61 +1,3 @@
----------------- Localizing Libraries ---------------
-local type                             = type
-local pcall                            = pcall
-local pairs                            = pairs
-local print                            = print
-local Angle                            = Angle
-local Color                            = Color
-local Vector                           = Vector
-local IsValid                          = IsValid
-local EntityID                         = Entity
-local tostring                         = tostring
-local tonumber                         = tonumber
-local istable                          = istable
-local GetConVar                        = GetConVar
-local LocalPlayer                      = LocalPlayer
-local SetClipboardText                 = SetClipboardText
-local osDate                           = os and os.date
-local guiOpenURL                       = gui and gui.OpenURL
-local netSend                          = net and net.Send
-local netStart                         = net and net.Start
-local netReceive                       = net and net.Receive
-local netWriteUInt                     = net and net.WriteUInt
-local netWriteBool                     = net and net.WriteBool
-local netWriteAngle                    = net and net.WriteAngle
-local netWriteEntity                   = net and net.WriteEntity
-local netWriteVector                   = net and net.WriteVector
-local netWriteNormal                   = net and net.WriteNormal
-local vguiCreate                       = vgui and vgui.Create
-local stringUpper                      = string and string.upper
-local mathAbs                          = math and math.abs
-local mathMin                          = math and math.min
-local mathMax                          = math and math.max
-local mathSqrt                         = math and math.sqrt
-local mathClamp                        = math and math.Clamp
-local mathAtan2                        = math and math.atan2
-local mathRound                        = math and math.Round
-local mathFloor                        = math and math.floor
-local gameGetWorld                     = game and game.GetWorld
-local tableInsert                      = table and table.insert
-local tableRemove                      = table and table.remove
-local tableEmpty                       = table and table.Empty
-local tableGetKeys                     = table and table.GetKeys
-local tableConcat                      = table and table.concat
-local hookAdd                          = hook and hook.Add
-local inputIsKeyDown                   = input and input.IsKeyDown
-local cleanupRegister                  = cleanup and cleanup.Register
-local stringGetFileName                = string and string.GetFileFromFilename
-local surfaceScreenWidth               = surface and surface.ScreenWidth
-local surfaceScreenHeight              = surface and surface.ScreenHeight
-local languageAdd                      = language and language.Add
-local languageGetPhrase                = language and language.GetPhrase
-local concommandAdd                    = concommand and concommand.Add
-local cvarsAddChangeCallback           = cvars and cvars.AddChangeCallback
-local cvarsRemoveChangeCallback        = cvars and cvars.RemoveChangeCallback
-local duplicatorRegisterEntityModifier = duplicator and duplicator.RegisterEntityModifier
-
------------------ TOOL Global Parameters ----------------
---- Because VEC[1] is actually faster than VEC.X
 --- Store a pointer to our module
 local asmlib = trackasmlib; if(not asmlib) then -- Module present
   ErrorNoHaltWithStack("TOOL: Track assembly tool module fail!\n"); return end
@@ -73,7 +15,7 @@ local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
-local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", stringUpper)..": "
+local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", string.upper)..": "
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV") -- Not available
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
@@ -92,7 +34,7 @@ if(not asmlib.ProcessDSV()) then -- Default tab delimiter
   asmlib.LogInstance("Processing DSV fail <"..sDSV..">")
 end
 
-cleanupRegister(gsLimitName)
+cleanup.Register(gsLimitName)
 
 TOOL.ClientConVar = {
   [ "weld"       ] = 1,
@@ -148,30 +90,30 @@ TOOL.ClientConVar = {
 }
 
 if(CLIENT) then
-  languageAdd("tool."..gsToolNameL..".category", "Construction")
+  language.Add("tool."..gsToolNameL..".category", "Construction")
 
   -- https://wiki.facepunch.com/gmod/Tool_Information_Display
   TOOL.Information = asmlib.GetToolInformation()
 
-  concommandAdd(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
+  concommand.Add(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
 
-  netReceive(gsLibName.."SendDeleteGhosts"   , asmlib.GetActionCode("CLEAR_GHOSTS"))
-  netReceive(gsLibName.."SendIntersectClear" , asmlib.GetActionCode("CLEAR_RELATION"))
-  netReceive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
-  netReceive(gsLibName.."SendInsertCurveNode", asmlib.GetActionCode("INSERT_CURVE_NODE"))
-  netReceive(gsLibName.."SendUpdateCurveNode", asmlib.GetActionCode("UPDATE_CURVE_NODE"))
-  netReceive(gsLibName.."SendRemoveCurveNode", asmlib.GetActionCode("REMOVE_CURVE_NODE"))
-  netReceive(gsLibName.."SendClearCurveNode" , asmlib.GetActionCode("CLEAR_CURVE_NODE"))
+  net.Receive(gsLibName.."SendDeleteGhosts"   , asmlib.GetActionCode("CLEAR_GHOSTS"))
+  net.Receive(gsLibName.."SendIntersectClear" , asmlib.GetActionCode("CLEAR_RELATION"))
+  net.Receive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
+  net.Receive(gsLibName.."SendInsertCurveNode", asmlib.GetActionCode("INSERT_CURVE_NODE"))
+  net.Receive(gsLibName.."SendUpdateCurveNode", asmlib.GetActionCode("UPDATE_CURVE_NODE"))
+  net.Receive(gsLibName.."SendRemoveCurveNode", asmlib.GetActionCode("REMOVE_CURVE_NODE"))
+  net.Receive(gsLibName.."SendClearCurveNode" , asmlib.GetActionCode("CLEAR_CURVE_NODE"))
 
-  hookAdd("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
-  hookAdd("PreDrawHalos", gsToolPrefL.."update_contextval", asmlib.GetActionCode("UPDATE_CONTEXTVAL"))
-  hookAdd("PostDrawHUD", gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
-  hookAdd("PostDrawHUD", gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("DRAW_PHYSGUN"))
-  hookAdd("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
-  hookAdd("OnContextMenuOpen", gsToolPrefL.."ctxmenu_open", asmlib.GetActionCode("CTXMENU_OPEN"))
-  hookAdd("OnContextMenuClose", gsToolPrefL.."ctxmenu_close", asmlib.GetActionCode("CTXMENU_CLOSE"))
+  hook.Add("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
+  hook.Add("PreDrawHalos", gsToolPrefL.."update_contextval", asmlib.GetActionCode("UPDATE_CONTEXTVAL"))
+  hook.Add("PostDrawHUD", gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
+  hook.Add("PostDrawHUD", gsToolPrefL.."physgun_drop_draw", asmlib.GetActionCode("DRAW_PHYSGUN"))
+  hook.Add("PlayerBindPress", gsToolPrefL.."player_bind_press", asmlib.GetActionCode("BIND_PRESS"))
+  hook.Add("OnContextMenuOpen", gsToolPrefL.."ctxmenu_open", asmlib.GetActionCode("CTXMENU_OPEN"))
+  hook.Add("OnContextMenuClose", gsToolPrefL.."ctxmenu_close", asmlib.GetActionCode("CTXMENU_CLOSE"))
 
-  concommandAdd(gsToolPrefL.."resetvars",
+  concommand.Add(gsToolPrefL.."resetvars",
     function(oPly, oCom, oArgs)
       asmlib.SetAsmConvar(oPly,"nextx"  , 0)
       asmlib.SetAsmConvar(oPly,"nexty"  , 0)
@@ -191,22 +133,22 @@ if(SERVER) then
   local vsHash  = "_"..poQueue:GetKey():lower()
   local varEn   = asmlib.GetAsmConvar("enmultask", "OBJ")
   local gbMen, svName = varEn:GetBool(), varEn:GetName()
-  cvarsRemoveChangeCallback(svName, svName..vsHash)
-  cvarsAddChangeCallback(svName, function(sV, vO, vN)
+  cvars.RemoveChangeCallback(svName, svName..vsHash)
+  cvars.AddChangeCallback(svName, function(sV, vO, vN)
     gbMen = ((tonumber(vN) or 0) ~= 0) end, svName..vsHash)
-  hookAdd("Think", gsToolPrefL.."think_task", function() poQueue:Work():Next(gbMen) end)
-  hookAdd("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
-  hookAdd("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
-  duplicatorRegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
+  hook.Add("Think", gsToolPrefL.."think_task", function() poQueue:Work():Next(gbMen) end)
+  hook.Add("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
+  hook.Add("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
+  duplicator.RegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 end
 
-TOOL.Name       = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".name")
-TOOL.Category   = languageGetPhrase and languageGetPhrase("tool."..gsToolNameL..".category")
+TOOL.Name       = language.GetPhrase and language.GetPhrase("tool."..gsToolNameL..".name")
+TOOL.Category   = language.GetPhrase and language.GetPhrase("tool."..gsToolNameL..".category")
 TOOL.Command    = nil -- Command on click (nil for default)
 TOOL.ConfigName = nil -- Configure file name (nil for default)
 
 function TOOL:GetSuperElevation()
-  return mathClamp(self:GetClientNumber("crvsuprev", 0), -2, 2)
+  return math.Clamp(self:GetClientNumber("crvsuprev", 0), -2, 2)
 end
 
 function TOOL:GetCurveFactor()
@@ -234,11 +176,11 @@ function TOOL:GetRadialMenu()
 end
 
 function TOOL:GetRadialSegm()
-  return mathClamp(self:GetClientNumber("sgradmenu", 1), 1, 16)
+  return math.Clamp(self:GetClientNumber("sgradmenu", 1), 1, 16)
 end
 
 function TOOL:GetRadialAngle()
-  return mathClamp(self:GetClientNumber("rtradmenu", 0), -gnMaxRot, gnMaxRot)
+  return math.Clamp(self:GetClientNumber("rtradmenu", 0), -gnMaxRot, gnMaxRot)
 end
 
 function TOOL:ApplyLinearFirst()
@@ -255,7 +197,7 @@ end
 
 function TOOL:GetStackCount()
   local nMax = asmlib.GetAsmConvar("maxstcnt", "INT")
-  return mathClamp(self:GetClientNumber("stackcnt", 0), 0, nMax)
+  return math.Clamp(self:GetClientNumber("stackcnt", 0), 0, nMax)
 end
 
 function TOOL:GetSpawnRate()
@@ -264,12 +206,12 @@ end
 
 function TOOL:GetMass()
   local nMax = asmlib.GetAsmConvar("maxmass","FLT")
-  return mathClamp(self:GetClientNumber("mass", 0), 0, nMax)
+  return math.Clamp(self:GetClientNumber("mass", 0), 0, nMax)
 end
 
 function TOOL:GetSizeUCS()
   local nMax = asmlib.GetAsmConvar("maxlinear","FLT")
-  return mathClamp(self:GetClientNumber("sizeucs", 0), 0, nMax)
+  return math.Clamp(self:GetClientNumber("sizeucs", 0), 0, nMax)
 end
 
 function TOOL:GetDeveloperMode()
@@ -278,15 +220,15 @@ end
 
 function TOOL:GetPosOffsets()
   local nMax = asmlib.GetAsmConvar("maxlinear","FLT")
-  return mathClamp(self:GetClientNumber("nextx", 0), -nMax, nMax),
-         mathClamp(self:GetClientNumber("nexty", 0), -nMax, nMax),
-         mathClamp(self:GetClientNumber("nextz", 0), -nMax, nMax)
+  return math.Clamp(self:GetClientNumber("nextx", 0), -nMax, nMax),
+         math.Clamp(self:GetClientNumber("nexty", 0), -nMax, nMax),
+         math.Clamp(self:GetClientNumber("nextz", 0), -nMax, nMax)
 end
 
 function TOOL:GetAngOffsets()
-  return mathClamp(self:GetClientNumber("nextpic", 0), -gnMaxRot, gnMaxRot),
-         mathClamp(self:GetClientNumber("nextyaw", 0), -gnMaxRot, gnMaxRot),
-         mathClamp(self:GetClientNumber("nextrol", 0), -gnMaxRot, gnMaxRot)
+  return math.Clamp(self:GetClientNumber("nextpic", 0), -gnMaxRot, gnMaxRot),
+         math.Clamp(self:GetClientNumber("nextyaw", 0), -gnMaxRot, gnMaxRot),
+         math.Clamp(self:GetClientNumber("nextrol", 0), -gnMaxRot, gnMaxRot)
 end
 
 function TOOL:GetElevation()
@@ -323,7 +265,7 @@ end
 
 function TOOL:GetGhostsCount()
   local nMax = asmlib.GetAsmConvar("maxghcnt", "INT")
-  return mathClamp(self:GetClientNumber("ghostcnt", 0), 0, nMax)
+  return math.Clamp(self:GetClientNumber("ghostcnt", 0), 0, nMax)
 end
 
 function TOOL:GetUpSpawnAnchor()
@@ -360,16 +302,16 @@ end
 
 function TOOL:GetActiveRadius()
   local nMax = asmlib.GetAsmConvar("maxactrad", "FLT")
-  return mathClamp(self:GetClientNumber("activrad", 0), 0, nMax)
+  return math.Clamp(self:GetClientNumber("activrad", 0), 0, nMax)
 end
 
 function TOOL:GetAngSnap()
-  return mathClamp(self:GetClientNumber("angsnap", 0), 0, gnMaxRot)
+  return math.Clamp(self:GetClientNumber("angsnap", 0), 0, gnMaxRot)
 end
 
 function TOOL:GetForceLimit()
   local nMax = asmlib.GetAsmConvar("maxforce" ,"FLT")
-  return mathClamp(self:GetClientNumber("forcelim", 0), 0, nMax)
+  return math.Clamp(self:GetClientNumber("forcelim", 0), 0, nMax)
 end
 
 function TOOL:GetWeld()
@@ -385,11 +327,11 @@ function TOOL:GetSpawnCenter()
 end
 
 function TOOL:GetStackAttempts()
-  return (mathClamp(self:GetClientNumber("maxstatts", 0), 0, 10))
+  return (math.Clamp(self:GetClientNumber("maxstatts", 0), 0, 10))
 end
 
 function TOOL:GetGhostBlend()
-  return (mathClamp(self:GetClientNumber("ghostblnd", 0), 0, 1))
+  return (math.Clamp(self:GetClientNumber("ghostblnd", 0), 0, 1))
 end
 
 function TOOL:GetPhysMeterial()
@@ -431,10 +373,10 @@ function TOOL:IntersectClear(bMute)
   local stRay = asmlib.IntersectRayRead(user, "relate")
   if(stRay) then asmlib.IntersectRayClear(user, "relate")
     if(SERVER) then local ryEnt, sRe = stRay.Ent, nil
-      netStart(gsLibName.."SendIntersectClear"); netWriteEntity(user); netSend(user)
+      net.Start(gsLibName.."SendIntersectClear"); net.WriteEntity(user); net.Send(user)
       if(not (ryEnt and ryEnt:IsValid())) then sRe = gsNoID..gsSymRev..gsNoMD else
         asmlib.UpdateColor(ryEnt, "intersect", "ry", false)
-        sRe = ryEnt:EntIndex()..gsSymRev..stringGetFileName(ryEnt:GetModel())
+        sRe = ryEnt:EntIndex()..gsSymRev..string.GetFileFromFilename(ryEnt:GetModel())
       end -- If the entity is not valid show legend is unavailable
       if(not bMute) then
         asmlib.LogInstance("Relation cleared "..sRe, gtLogs)
@@ -450,10 +392,10 @@ function TOOL:IntersectRelate(oEnt, vHit)
   if(not stRay) then -- Create/update the ray in question
     asmlib.LogInstance("Update fail",gtLogs); return false end
   if(SERVER) then -- Only the server is allowed to define relation ray
-    netStart(gsLibName.."SendIntersectRelate")
-    netWriteEntity(oEnt); netWriteVector(vHit); netWriteEntity(user); netSend(user)
+    net.Start(gsLibName.."SendIntersectRelate")
+    net.WriteEntity(oEnt); net.WriteVector(vHit); net.WriteEntity(user); net.Send(user)
     if(not (oEnt and oEnt:IsValid())) then sRe = gsNoID..gsSymRev..gsNoMD else
-      sRe = oEnt:EntIndex()..gsSymRev..stringGetFileName(oEnt:GetModel())
+      sRe = oEnt:EntIndex()..gsSymRev..string.GetFileFromFilename(oEnt:GetModel())
       asmlib.UpdateColor(oEnt, "intersect", "ry", true)
     end; asmlib.Notify(user,("Intersect relation set: %s !"):format(sRe),"UNDO")
   end return true
@@ -485,10 +427,10 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
     local dy = Vector(); dy:Set(o2); dy:Rotate(stSpawn.SAng)
           dy:Add(stSpawn.SPos); dy:Sub(stRay2.Orw)
     local dz = 0.5 * (stRay2.Orw - stRay1.Orw)
-    local lx = mathAbs(dx:Dot(aOrg:Forward()))
-    local ly = mathAbs(dy:Dot(aOrg:Right()))
-    local lz = mathAbs(dz:Dot(aOrg:Up()))
-    vx, vy, vz = mathClamp(vx, -lx, lx), mathClamp(vy, -ly, ly), mathClamp(vz, -lz, lz)
+    local lx = math.abs(dx:Dot(aOrg:Forward()))
+    local ly = math.abs(dy:Dot(aOrg:Right()))
+    local lz = math.abs(dz:Dot(aOrg:Up()))
+    vx, vy, vz = math.Clamp(vx, -lx, lx), math.Clamp(vy, -ly, ly), math.Clamp(vz, -lz, lz)
   end; cx:Mul(vx); cy:Mul(vy); cz:Mul(vz)
   stSpawn.SPos:Add(cx); stSpawn.SPos:Add(cy); stSpawn.SPos:Add(cz)
   return xx, x1, x2, stRay1, stRay2
@@ -515,7 +457,7 @@ function TOOL:SetAnchor(stTrace)
   local user = self:GetOwner(); if(not (user and user:IsValid())) then
     asmlib.LogInstance("Player invalid",gtLogs); return false end
   if(stTrace.HitWorld) then
-    local trEnt = gameGetWorld()
+    local trEnt = game.GetWorld()
     local phEnt = trEnt:GetPhysicsObject()
     local sAnchor = "0"..gsSymRev.."worldspawn.mdl"
     self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
@@ -527,7 +469,7 @@ function TOOL:SetAnchor(stTrace)
       asmlib.LogInstance("Trace no entity",gtLogs); return false end
     local phEnt = trEnt:GetPhysicsObject(); if(not (phEnt and phEnt:IsValid())) then
       asmlib.LogInstance("Trace no physics",gtLogs); return false end
-    local sAnchor = trEnt:EntIndex()..gsSymRev..stringGetFileName(trEnt:GetModel())
+    local sAnchor = trEnt:EntIndex()..gsSymRev..string.GetFileFromFilename(trEnt:GetModel())
     asmlib.UpdateColor(trEnt, "anchor", "an", true)
     self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
     asmlib.SetAsmConvar(user,"anchor",sAnchor)
@@ -548,7 +490,7 @@ end
 
 function TOOL:GetWorkingMode()
   local nWork = self:GetClientNumber("workmode", 0)
-  local cWork = mathClamp(nWork or 0, 1, conWorkMode:GetSize())
+  local cWork = math.Clamp(nWork or 0, 1, conWorkMode:GetSize())
   local sWork = tostring(conWorkMode:Select(cWork) or gsNoAV):sub(1,6)
   if(SERVER) then -- Change the operation mode for tool information
     if(self:GetOperation() ~= cWork) then -- Only when different
@@ -562,13 +504,13 @@ function TOOL:GetGhostsDepth()
   local ghostcnt = self:GetGhostsCount() -- The base control value
   local stackcnt = self:GetStackCount()
   if(workmode == 1) then -- Defined by the stack count otherwise 1
-    return mathMin(ghostcnt, mathMax(stackcnt, 1))
+    return math.min(ghostcnt, math.max(stackcnt, 1))
   elseif(workmode == 2) then -- Intersection. Force lower bound here
-    return mathMin(ghostcnt, 1) -- Force lower bound one otherwise ghosts
+    return math.min(ghostcnt, 1) -- Force lower bound one otherwise ghosts
   elseif(workmode == 3 or workmode == 5) then -- Track curving interpolation
-    return (stackcnt > 0 and mathMin(stackcnt, ghostcnt) or ghostcnt)
+    return (stackcnt > 0 and math.min(stackcnt, ghostcnt) or ghostcnt)
   elseif(workmode == 4) then local tArr = self:GetFlipOver() -- Read flip array
-    return mathMin(ghostcnt, (tArr and #tArr or 1)) -- Disable via ghosts count
+    return math.min(ghostcnt, (tArr and #tArr or 1)) -- Disable via ghosts count
   end; return 0
 end
 
@@ -607,12 +549,12 @@ function TOOL:LogStatus(stTr,vMsg,hdEnt)
   asmlib.LogInstance("    TR.HitW:        <"..tostring(stTr and stTr.HitWorld or gsNoAV)..">", gtLogs)
   asmlib.LogInstance("    TR.ENT:         <"..tostring(stTr and stTr.Entity or gsNoAV)..">", gtLogs)
   asmlib.LogInstance("    TR.Model:       <"..tostring(trModel or gsNoAV)..">["..tostring(trRec and trRec.Size or gsNoID).."]", gtLogs)
-  asmlib.LogInstance("    TR.File:        <"..tostring(trModel and stringGetFileName(trModel) or gsNoAV)..">", gtLogs)
+  asmlib.LogInstance("    TR.File:        <"..tostring(trModel and string.GetFileFromFilename(trModel) or gsNoAV)..">", gtLogs)
   asmlib.LogInstance("  Dumping console variables state:", gtLogs)
   asmlib.LogInstance("    HD.Workmode:    ["..tostring(workmode or gsNoAV).."]<"..tostring(workname or gsNoAV)..">", gtLogs)
   asmlib.LogInstance("    HD.Entity:      {"..tostring(hdEnt or gsNoAV).."}", gtLogs)
   asmlib.LogInstance("    HD.Model:       <"..tostring(hdModel or gsNoAV)..">["..tostring(hdRec and hdRec.Size or gsNoID).."]", gtLogs)
-  asmlib.LogInstance("    HD.File:        <"..tostring(hdModel and stringGetFileName(hdModel) or gsNoAV)..">", gtLogs)
+  asmlib.LogInstance("    HD.File:        <"..tostring(hdModel and string.GetFileFromFilename(hdModel) or gsNoAV)..">", gtLogs)
   asmlib.LogInstance("    HD.ModDataBase: <"..gsModeDataB..","..tostring(asmlib.GetAsmConvar("modedb" ,"STR"))..">", gtLogs)
   asmlib.LogInstance("    HD.Anchor:      {"..tostring(anEnt or gsNoAV).."}<"..tostring(siAnc)..">", gtLogs)
   asmlib.LogInstance("    HD.PointID:     ["..tostring(pointid).."] >> ["..tostring(pnextid).."]", gtLogs)
@@ -676,7 +618,7 @@ function TOOL:GetFlipOver(bEnt, bMute)
   for iD = 1, nF do
     tF[iD] = (tonumber(tF[iD]) or 0)
     if(bEnt) then
-      local eID = EntityID(tF[iD])
+      local eID = Entity(tF[iD])
       if(eID and eID:IsValid()) then
         local bID = (not asmlib.IsOther(eID))
         local bMR = eID:GetNWBool(gsToolPrefL.."flipover")
@@ -714,23 +656,23 @@ function TOOL:SetFlipOver(trEnt, bBrs)
     else -- Remove entity from the convar
       for iD = 1, nF do nID = tF[iD]
         if(nID == iID) then bBr = true
-          local eID = EntityID(nID)
+          local eID = Entity(nID)
           asmlib.UpdateColor(eID, "flipover", "fo", false)
-          tableRemove(tF, iD); break
+          table.remove(tF, iD); break
         end
       end
     end
-    if(not bBr) then tableInsert(tF, tostring(iID))
+    if(not bBr) then table.insert(tF, tostring(iID))
       asmlib.UpdateColor(trEnt, "flipover", "fo", true)
     end
-    asmlib.SetAsmConvar(user, "flipoverid", tableConcat(tF, sYm))
+    asmlib.SetAsmConvar(user, "flipoverid", table.concat(tF, sYm))
   end
 end
 
 function TOOL:ClearFlipOver(bMute)
   local user = self:GetOwner()
   local tF, nF = self:GetFlipOver()
-  for iD = 1, nF do local eID = EntityID(tF[iD])
+  for iD = 1, nF do local eID = Entity(tF[iD])
     asmlib.UpdateColor(eID, "flipover", "fo", false)
   end; asmlib.SetAsmConvar(user, "flipoverid", "")
   if(not bMute) then
@@ -782,7 +724,7 @@ end
 function TOOL:SelectModel(sModel)
   local trRec = asmlib.CacheQueryPiece(sModel); if(not asmlib.IsHere(trRec)) then
     self:LogStatus(stTrace,"Model not piece "..asmlib.GetReport(sModel)); return false end
-  local user, namo = self:GetOwner(), stringGetFileName(sModel)
+  local user, namo = self:GetOwner(), string.GetFileFromFilename(sModel)
   local pointid, pnextid = self:GetPointID()
         pointid, pnextid = asmlib.SnapReview(pointid, pnextid, trRec.Size)
   asmlib.Notify(user,("Model selected: %s !"):format(namo),"UNDO")
@@ -943,7 +885,7 @@ function TOOL:CheckCurveNode(vPos, iID)
   local user = self:GetOwner()
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
-  local iID = mathFloor(mathMax(tonumber(iID) or 0, 0))
+  local iID = math.floor(math.max(tonumber(iID) or 0, 0))
   local nM, sN = asmlib.GetOpVar("CURVE_NODEMR"), user:Nick()
   local iPr, iNx = (iID - 1), (iID + 1)
   local vPr, vNx = tC.Node[iPr], tC.Node[iNx]
@@ -966,7 +908,7 @@ end
  * bMute   > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
-  local user, iD = self:GetOwner(), mathFloor(mathMax(tonumber(iD) or 0, 0))
+  local user, iD = self:GetOwner(), math.floor(math.max(tonumber(iD) or 0, 0))
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
@@ -980,48 +922,48 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
       local vDN = Vector(tData.Org); vDN:Sub(tC.Node[iC])
       local vDP = Vector(tC.Node[iB]); vDP:Sub(tC.Node[iC])
       if(vDN:Dot(vDP) > 0) then -- We have to insert at the middle of the stack
-        tableInsert(tC.Node, iC, Vector(tData.Org))
-        tableInsert(tC.Norm, iC, tData.Ang:Up())
-        tableInsert(tC.Base, iC, Vector(tData.Hit))
-        tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+        table.insert(tC.Node, iC, Vector(tData.Org))
+        table.insert(tC.Norm, iC, tData.Ang:Up())
+        table.insert(tC.Base, iC, Vector(tData.Hit))
+        table.insert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
       else iC, iD = iF, iF -- Insert in the middle. Use the next point not to twist the curve
-        tableInsert(tC.Node, iC, Vector(tData.Org))
-        tableInsert(tC.Norm, iC, tData.Ang:Up())
-        tableInsert(tC.Base, iC, Vector(tData.Hit))
-        tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+        table.insert(tC.Node, iC, Vector(tData.Org))
+        table.insert(tC.Norm, iC, tData.Ang:Up())
+        table.insert(tC.Base, iC, Vector(tData.Hit))
+        table.insert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
       end
     elseif(iC == 1) then
-      tableInsert(tC.Node, iC, Vector(tData.Org))
-      tableInsert(tC.Norm, iC, tData.Ang:Up())
-      tableInsert(tC.Base, iC, Vector(tData.Hit))
-      tableInsert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+      table.insert(tC.Node, iC, Vector(tData.Org))
+      table.insert(tC.Norm, iC, tData.Ang:Up())
+      table.insert(tC.Base, iC, Vector(tData.Hit))
+      table.insert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
     else iC, iD = (tC.Size + 1), 0 -- The insert is at the beginning or at the end
-      tableInsert(tC.Node, Vector(tData.Org))
-      tableInsert(tC.Norm, tData.Ang:Up())
-      tableInsert(tC.Base, Vector(tData.Hit))
-      tableInsert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+      table.insert(tC.Node, Vector(tData.Org))
+      table.insert(tC.Norm, tData.Ang:Up())
+      table.insert(tC.Base, Vector(tData.Hit))
+      table.insert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
     end -- Insert at the node stack end. Send the end to the client
   else iC, iD = (tC.Size + 1), 0 -- Client insertion ID is not provided
-    tableInsert(tC.Node, Vector(tData.Org))
-    tableInsert(tC.Norm, tData.Ang:Up())
-    tableInsert(tC.Base, Vector(tData.Hit))
-    tableInsert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
+    table.insert(tC.Node, Vector(tData.Org))
+    table.insert(tC.Norm, tData.Ang:Up())
+    table.insert(tC.Base, Vector(tData.Hit))
+    table.insert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
   end
   tC.Size = (tC.Size + 1) -- Increment stack size. Adding stuff
   if(not bMute) then
     asmlib.Notify(user, ("Node inserted [%d] !"):format(iC), "CLEANUP")
-    netStart(gsLibName.."SendInsertCurveNode")
-      netWriteEntity(user)
-      netWriteVector(tC.Node[iC])
-      netWriteNormal(tC.Norm[iC])
-      netWriteVector(tC.Base[iC])
-      netWriteVector(tC.Rays[iC][1])
-      netWriteAngle (tC.Rays[iC][2])
-      netWriteBool  (tC.Rays[iC][3])
-      netWriteUInt  (iD, 16)
-      netWriteUInt  (iN, 16)
-      if(iN > 0) then netWriteNormal(vN) end
-    netSend(user)
+    net.Start(gsLibName.."SendInsertCurveNode")
+      net.WriteEntity(user)
+      net.WriteVector(tC.Node[iC])
+      net.WriteNormal(tC.Norm[iC])
+      net.WriteVector(tC.Base[iC])
+      net.WriteVector(tC.Rays[iC][1])
+      net.WriteAngle (tC.Rays[iC][2])
+      net.WriteBool  (tC.Rays[iC][3])
+      net.WriteUInt  (iD, 16)
+      net.WriteUInt  (iN, 16)
+      if(iN > 0) then net.WriteNormal(vN) end
+    net.Send(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
   end; return tC -- Returns the updated curve nodes table
 end
@@ -1033,21 +975,21 @@ end
 ]]
 function TOOL:CurveRemove(iD, bMute)
   local user = self:GetOwner()
-  local iD = mathFloor(mathMax(tonumber(iD) or 0, 0))
+  local iD = math.floor(math.max(tonumber(iD) or 0, 0))
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   if(tC.Size <= 0) then
     asmlib.LogInstance("Curve empty", gtLogs); return nil end
   local iC = ((iD > 0 and iD <= tC.Size) and iD or nil)
-  tableRemove(tC.Node, iC); tableRemove(tC.Norm, iC)
-  tableRemove(tC.Base, iC); tableRemove(tC.Rays, iC)
+  table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
+  table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
   tC.Size = (tC.Size - 1) -- Increment stack size. Adding stuff
   if(not bMute) then
     asmlib.Notify(user, "Node removed ["..tC.Size.."] !", "CLEANUP")
-    netStart(gsLibName.."SendRemoveCurveNode")
-      netWriteEntity(user)
-      netWriteUInt  (iD, 16)
-    netSend(user)
+    net.Start(gsLibName.."SendRemoveCurveNode")
+      net.WriteEntity(user)
+      net.WriteUInt  (iD, 16)
+    net.Send(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
   end; return tC -- Returns the updated curve nodes table
 end
@@ -1116,16 +1058,16 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
   end
   if(not bMute) then
     asmlib.Notify(user, "Node ["..mD.."] updated !", "CLEANUP")
-    netStart(gsLibName.."SendUpdateCurveNode")
-      netWriteEntity(user)
-      netWriteVector(tC.Node[mD])
-      netWriteNormal(tC.Norm[mD])
-      netWriteVector(tC.Base[mD])
-      netWriteVector(tC.Rays[mD][1])
-      netWriteAngle (tC.Rays[mD][2])
-      netWriteBool  (tC.Rays[mD][3])
-      netWriteUInt(mD, 16)
-    netSend(user)
+    net.Start(gsLibName.."SendUpdateCurveNode")
+      net.WriteEntity(user)
+      net.WriteVector(tC.Node[mD])
+      net.WriteNormal(tC.Norm[mD])
+      net.WriteVector(tC.Base[mD])
+      net.WriteVector(tC.Rays[mD][1])
+      net.WriteAngle (tC.Rays[mD][2])
+      net.WriteBool  (tC.Rays[mD][3])
+      net.WriteUInt(mD, 16)
+    net.Send(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
   end; return tC -- Returns the updated curve nodes table
 end
@@ -1140,17 +1082,17 @@ function TOOL:CurveClear(bMute)
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   if(not bMute) then
     asmlib.Notify(user, "Nodes cleared ["..tC.Size.."] !", "CLEANUP")
-    netStart(gsLibName.."SendClearCurveNode")
-    netWriteEntity(user); netSend(user)
+    net.Start(gsLibName.."SendClearCurveNode")
+    net.WriteEntity(user); net.Send(user)
     user:SetNWBool(gsToolPrefL.."engcurve", false)
   end -- Show how many nodes are deleted then delete them
-  tableEmpty(tC.Snap); tC.SSize = 0
-  tableEmpty(tC.Node)
-  tableEmpty(tC.Norm)
-  tableEmpty(tC.Rays)
-  tableEmpty(tC.Base); tC.Size = 0
-  tableEmpty(tC.CNode)
-  tableEmpty(tC.CNorm); tC.CSize = 0
+  table.Empty(tC.Snap); tC.SSize = 0
+  table.Empty(tC.Node)
+  table.Empty(tC.Norm)
+  table.Empty(tC.Rays)
+  table.Empty(tC.Base); tC.Size = 0
+  table.Empty(tC.CNode)
+  table.Empty(tC.CNorm); tC.CSize = 0
   return tC -- Returns the updated curve nodes table
 end
 
@@ -1161,7 +1103,7 @@ end
 function TOOL:CurveCheck()
   local user = self:GetOwner()
   local model = self:GetModel()
-  local fnmodel = stringGetFileName(model)
+  local fnmodel = string.GetFileFromFilename(model)
   local pointid, pnextid = self:GetPointID()
   local nEps = asmlib.GetOpVar("EPSILON_ZERO")
   -- Check the model in the database
@@ -1214,7 +1156,7 @@ function TOOL:CurveCheck()
     asmlib.Notify(user,"Segment gradient "..fnmodel.." !","ERROR")
     asmlib.LogInstance("Segment gradient: "..fnmodel, gtLogs); return nil
   end
-  return tC, mathSqrt(nD) -- Returns the updated curve nodes table
+  return tC, math.sqrt(nD) -- Returns the updated curve nodes table
 end
 
 function TOOL:NormalSpawn(stTrace, oPly)
@@ -1236,7 +1178,7 @@ function TOOL:NormalSpawn(stTrace, oPly)
   local forcelim   = self:GetForceLimit()
   local elevpnt    = self:GetElevation()
   local upspanchor = self:GetUpSpawnAnchor()
-  local fnmodel    = stringGetFileName(model)
+  local fnmodel    = string.GetFileFromFilename(model)
   local siAnc  , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
@@ -1324,7 +1266,7 @@ function TOOL:LeftClick(stTrace)
   local bnderrmod  = self:GetBoundErrorMode()
   local appangfst  = self:ApplyAngularFirst()
   local nocollidew = self:GetNocollideWorld()
-  local fnmodel    = stringGetFileName(model)
+  local fnmodel    = string.GetFileFromFilename(model)
   local siAnc  , anEnt   = self:GetAnchor()
   local pointid, pnextid = self:GetPointID()
   local workmode, workname = self:GetWorkingMode()
@@ -1351,7 +1293,7 @@ function TOOL:LeftClick(stTrace)
       stark = 1,
       itrys = 0,
       istck = 0,
-      wname = workname:lower():gsub("^%l", stringUpper),
+      wname = workname:lower():gsub("^%l", string.upper),
       imake = 0,
       spawn = {},
       srate = spawnrate
@@ -1386,7 +1328,7 @@ function TOOL:LeftClick(stTrace)
             if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
               self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply no-collide fail"); return false end
             oArg.itrys, oArg.srate, oArg.entpo = 0, (oArg.srate - 1), ePiece -- When the routine item is still busy
-            tableInsert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
+            table.insert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
             if(oArg.srate <= 0) then oArg.srate = spawnrate -- Renew the spawn rate
               if(iK == tS.Size) then -- When current snap end is reached
                 oArg.stard, oArg.stark = (oArg.stard + 1), 1 -- Index the next snap
@@ -1453,7 +1395,7 @@ function TOOL:LeftClick(stTrace)
           if(ePiece) then
             asmlib.RegConstraintOver(oArg.tcons, oArg.munid, ePiece)
             oArg.itrys, oArg.srate = 0, (oArg.srate - 1) -- When the routine item is still busy
-            tableInsert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
+            table.insert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
             if(oArg.srate <= 0) then -- Renew the spawn rate and prepare for next spawn
               oArg.start, oArg.srate = (iD + 1), spawnrate
               asmlib.LogInstance("(Over) Next "..asmlib.GetReport(oArg.stard, oArg.stark), gtLogs)
@@ -1541,7 +1483,7 @@ function TOOL:LeftClick(stTrace)
       local IDs = gsSymDir:Explode(bgskids)
       if(not asmlib.ApplyBodyGroups(trEnt,IDs[1] or "")) then
         self:LogStatus(stTrace,"(Bodygroup/Skin) Failed",trEnt); return false end
-      trEnt:SetSkin(mathClamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
+      trEnt:SetSkin(math.Clamp(tonumber(IDs[2]) or 0,0,trEnt:SkinCount()-1))
       asmlib.LogInstance("(Bodygroup/Skin) Success",gtLogs)
     end; return true
   end
@@ -1589,7 +1531,7 @@ function TOOL:LeftClick(stTrace)
           oArg.sppos:Set(oArg.spawn.SPos); oArg.spang:Set(oArg.spawn.SAng)
           oArg.itrys, oArg.srate, oArg.entpo = 0, (oArg.srate - 1), ePiece
           -- Add the entity to the undo list created at the end
-          tableInsert(oArg.eundo, ePiece)
+          table.insert(oArg.eundo, ePiece)
           -- Check whenever the routine item is still busy
           if(oArg.srate <= 0) then
             oArg.start, oArg.srate = (iD + 1), spawnrate
@@ -1759,8 +1701,8 @@ function TOOL:ReleaseGhostEntity()
   else
     local user = self:GetOwner()
     if(not asmlib.IsPlayer(user)) then return end
-    netStart(gsLibName.."SendDeleteGhosts")
-    netSend(user)
+    net.Start(gsLibName.."SendDeleteGhosts")
+    net.Send(user)
   end
 end
 
@@ -1775,7 +1717,7 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
     local nextx  , nexty  , nextz   = self:GetPosOffsets()
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
     for iD = 1, nE do
-      local bPK = inputIsKeyDown(KEY_LSHIFT)
+      local bPK = input.IsKeyDown(KEY_LSHIFT)
       local eID, gID = tE[iD], atGho[iD]
       if(not asmlib.IsOther(eID) and gID and gID:IsValid()) then
         local wOver, wNorm = self:GetFlipOverOrigin(stTrace, bPK)
@@ -1890,7 +1832,7 @@ function TOOL:UpdateGhost(oPly)
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(stSpawn) then
       if(workmode == 1) then
-        if(stackcnt > 0 and inputIsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
+        if(stackcnt > 0 and input.IsKeyDown(KEY_LSHIFT) and (tonumber(stSpawn.HRec.Size) or 0) > 1) then
           local vTemp, hdOffs = Vector(), asmlib.LocatePOA(stSpawn.HRec, pnextid)
           if(not hdOffs) then return end -- Validated existent next point ID
           for iNdex = 1, atGho.Size do ePiece = atGho[iNdex]
@@ -1946,8 +1888,8 @@ function TOOL:Think()
   local model = self:GetModel()
   if(not asmlib.IsModel(model)) then return end
   local bO = asmlib.IsFlag("old_close_frame", asmlib.IsFlag("new_close_frame"))
-  local bN = asmlib.IsFlag("new_close_frame", inputIsKeyDown(KEY_E))
-  if(not bO and bN and inputIsKeyDown(KEY_LALT)) then
+  local bN = asmlib.IsFlag("new_close_frame", input.IsKeyDown(KEY_E))
+  if(not bO and bN and input.IsKeyDown(KEY_LALT)) then
     local tP = conElements:Pull() -- Retrieve a panel from the stack
     if(istable(tP)) then local oP, sF = tP[1], tP[2] -- Extract panel
       if(IsValid(oP) and isfunction(oP[sF])) then -- Validate the control entry
@@ -2085,12 +2027,12 @@ function TOOL:DrawPillarIntersection(oScreen, vX, vX1, vX2)
 end
 
 function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
-  local bPnt = inputIsKeyDown(KEY_E)
+  local bPnt = input.IsKeyDown(KEY_E)
   local tData = self:GetCurveTransform(stTrace, bPnt)
   if(not tData) then asmlib.LogInstance("Transform missing", gtLogs); return end
   local tC, nS = asmlib.GetCacheCurve(oPly), self:GetSizeUCS()
   if(not tC) then asmlib.LogInstance("Curve missing", gtLogs); return end
-  local bSh, bCt = inputIsKeyDown(KEY_LSHIFT), inputIsKeyDown(KEY_LCONTROL)
+  local bSh, bCt = input.IsKeyDown(KEY_LSHIFT), input.IsKeyDown(KEY_LCONTROL)
   local nrB, nrS, nrA, mD, mL = 1.5, 1.5, self:GetActiveRadius()
   local xyO, xyH = tData.Org:ToScreen(), tData.Hit:ToScreen()
   local xyZ = (tData.Org + nS * tData.Ang:Up()):ToScreen()
@@ -2185,7 +2127,7 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   if(not self:GetPointAssist()) then return end
   local model, trEnt = self:GetModel(), stTrace.Entity
   local actrad, vT = self:GetActiveRadius(), Vector()
-  local bAct, xH = inputIsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
+  local bAct, xH = input.IsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
   local wOv, wNr, wOr, wO1, wO2  = self:GetFlipOverOrigin(stTrace, bAct)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
@@ -2268,7 +2210,7 @@ end
 function TOOL:DrawHUD()
   if(SERVER) then return end
   if(not asmlib.IsInit()) then return end
-  local scrW, scrH = surfaceScreenWidth(), surfaceScreenHeight()
+  local scrW, scrH = surface.ScreenWidth(), surface.ScreenHeight()
   local hudMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
   if(not hudMonitor) then return end
   if(not self:GetAdviser()) then return end
@@ -2427,15 +2369,15 @@ function TOOL:DrawToolScreen(w, h)
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(stSpawn) then
       trOID  = stSpawn.TID
-      trRLen = mathRound(stSpawn.RLen,2)
+      trRLen = math.Round(stSpawn.RLen,2)
     end
     if(asmlib.IsHere(trRec)) then
       trMID = trRec.Size
-      trModel = stringGetFileName(trModel)
-    else trModel = "["..gsNoMD.."]"..stringGetFileName(trModel) end
+      trModel = string.GetFileFromFilename(trModel)
+    else trModel = "["..gsNoMD.."]"..string.GetFileFromFilename(trModel) end
   end
-  model  = stringGetFileName(model)
-  actrad = mathRound(actrad,2)
+  model  = string.GetFileFromFilename(model)
+  actrad = math.Round(actrad,2)
   maxrad = asmlib.GetAsmConvar("maxactrad", "FLT")
   scrTool:DrawText("TM: " ..(trModel    or gsNoAV),"y")
   scrTool:DrawText("HM: " ..(model      or gsNoAV),"m")
@@ -2449,14 +2391,14 @@ function TOOL:DrawToolScreen(w, h)
   local txsX, txsY = scrTool:GetTextStLast()
   scrTool:DrawText("Work: ["..workmode.."] "..workname, "wm")
   scrTool:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
-  local nRad = mathClamp(h - txH  - txsY / 1.2,0,h) / 2
-  local cPos = mathClamp(h - nRad - txsY / 2.5,0,h)
+  local nRad = math.Clamp(h - txH  - txsY / 1.2,0,h) / 2
+  local cPos = math.Clamp(h - nRad - txsY / 2.5,0,h)
   local xyPs = asmlib.NewXY(cPos, cPos)
-  scrTool:DrawCircle(xyPs, mathClamp(actrad/maxrad,0,1)*nRad, "c","SURF")
+  scrTool:DrawCircle(xyPs, math.Clamp(actrad/maxrad,0,1)*nRad, "c","SURF")
   scrTool:DrawCircle(xyPs, nRad, "m")
   scrTool:DrawText("Date: "..asmlib.GetDate(),"w")
   scrTool:DrawText("Time: "..asmlib.GetTime())
-  if(trRLen) then scrTool:DrawCircle(xyPs, nRad * mathClamp(trRLen/maxrad,0,1),"y") end
+  if(trRLen) then scrTool:DrawCircle(xyPs, nRad * math.Clamp(trRLen/maxrad,0,1),"y") end
 end
 
 -- Enter `spawnmenu_reload` in the console to reload the panel
@@ -2467,13 +2409,13 @@ function TOOL.BuildCPanel(CPanel)
   local nMaxLin = asmlib.GetAsmConvar("maxlinear","FLT")
   local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
   local sCall, pItem, sName, aData = "_cpan" -- pItem is the current panel created
-          CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".name"))
-  pItem = CPanel:Help   (languageGetPhrase("tool."..gsToolNameL..".desc"))
+          CPanel:SetName(language.GetPhrase("tool."..gsToolNameL..".name"))
+  pItem = CPanel:Help   (language.GetPhrase("tool."..gsToolNameL..".desc"))
 
-  local pComboPresets = vguiCreate("ControlPresets", CPanel)
+  local pComboPresets = vgui.Create("ControlPresets", CPanel)
         pComboPresets:SetPreset(gsToolNameL)
         pComboPresets:AddOption("Default", asmlib.GetOpVar("STORE_CONVARS"))
-        for key, val in pairs(tableGetKeys(asmlib.GetOpVar("STORE_CONVARS"))) do
+        for key, val in pairs(table.GetKeys(asmlib.GetOpVar("STORE_CONVARS"))) do
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets)
 
@@ -2481,11 +2423,11 @@ function TOOL.BuildCPanel(CPanel)
     asmlib.LogInstance("Panel population empty",sLog); return end
   local makTab = asmlib.GetBuilderNick("PIECES"); if(not asmlib.IsHere(makTab)) then
     asmlib.LogInstance("Missing builder table",sLog); return end
-  local pTree  = vguiCreate("DTree", CPanel); if(not pTree) then
+  local pTree  = vgui.Create("DTree", CPanel); if(not pTree) then
     asmlib.LogInstance("Database tree empty",sLog); return end
   pTree:Dock(TOP) -- Initialize to fill left and right bounds
   pTree:SetTall(400) -- Make it quite large
-  pTree:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".model"))
+  pTree:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".model"))
   pTree:SetIndentSize(0) -- All track types are closed
   pTree:UpdateColours(drmSkin) -- Apply current skin
   CPanel:AddItem(pTree) -- Register it to the panel
@@ -2497,7 +2439,7 @@ function TOOL.BuildCPanel(CPanel)
     if(asmlib.IsModel(sMod)) then
       if(not (asmlib.IsBlank(sTyp) or tType[sTyp])) then
         local pRoot = pTree:AddNode(sTyp) -- No type folder made already
-              pRoot:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".type"))
+              pRoot:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".type"))
               pRoot.Icon:SetImage(asmlib.ToIcon(defTable.Name))
               pRoot.DoClick = function() asmlib.SetNodeExpand(pRoot) end
               pRoot.Expander.DoClick = function() asmlib.SetNodeExpand(pRoot) end
@@ -2524,7 +2466,7 @@ function TOOL.BuildCPanel(CPanel)
         end -- When the category has at least one element
       else -- Panel cannot categorize the entry add it to the list
         tRoot.Size = tRoot.Size + 1 -- Increment count to avoid calling #
-        tableInsert(tRoot, iC); bNow = false -- Attach row ID to rooted items
+        table.insert(tRoot, iC); bNow = false -- Attach row ID to rooted items
       end -- When needs to be processed now just attach it to the tree
       if(bNow) then asmlib.SetNodeContent(pItem, sNam, sMod) end
       -- SnapReview is ignored because a query must be executed for points count
@@ -2543,9 +2485,9 @@ function TOOL.BuildCPanel(CPanel)
   -- http://wiki.garrysmod.com/page/Category:DComboBox
   local sName = asmlib.GetAsmConvar("workmode", "NAM")
   local aData = asmlib.GetAsmConvar("workmode", "INT")
-  local pComboToolMode = CPanel:ComboBox(languageGetPhrase("tool."..gsToolNameL..".workmode_con"), sName)
+  local pComboToolMode = CPanel:ComboBox(language.GetPhrase("tool."..gsToolNameL..".workmode_con"), sName)
         pComboToolMode:SetSortItems(false)
-        pComboToolMode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".workmode"))
+        pComboToolMode:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".workmode"))
         pComboToolMode:UpdateColours(drmSkin)
         pComboToolMode:Dock(TOP) -- Setting tallness gets ignored otherwise
         pComboToolMode:SetTall(22)
@@ -2553,23 +2495,23 @@ function TOOL.BuildCPanel(CPanel)
         for iD = 1, conWorkMode:GetSize() do
           local sW = tostring(conWorkMode:Select(iD) or gsNoAV):lower()
           local sI = asmlib.ToIcon("workmode_"..sW)
-          local sT = languageGetPhrase("tool."..gsToolNameL..".workmode."..iD)
+          local sT = language.GetPhrase("tool."..gsToolNameL..".workmode."..iD)
           pComboToolMode:AddChoice(sT, iD, (iD == aData), sI)
         end
 
   local sName = asmlib.GetAsmConvar("physmater", "NAM")
-  local pComboPhysType = CPanel:ComboBox(languageGetPhrase("tool."..gsToolNameL..".phytype_con"))
-        pComboPhysType:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phytype"))
-        pComboPhysType:SetValue(languageGetPhrase("tool."..gsToolNameL..".phytype_def"))
+  local pComboPhysType = CPanel:ComboBox(language.GetPhrase("tool."..gsToolNameL..".phytype_con"))
+        pComboPhysType:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".phytype"))
+        pComboPhysType:SetValue(language.GetPhrase("tool."..gsToolNameL..".phytype_def"))
         pComboPhysType.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         pComboPhysType:Dock(TOP) -- Setting tallness gets ignored otherwise
         pComboPhysType:SetTall(22)
         pComboPhysType:UpdateColours(drmSkin)
 
-  local pComboPhysName = CPanel:ComboBox(languageGetPhrase("tool."..gsToolNameL..".phyname_con"), sName)
-        pComboPhysName:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".phyname"))
+  local pComboPhysName = CPanel:ComboBox(language.GetPhrase("tool."..gsToolNameL..".phyname_con"), sName)
+        pComboPhysName:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".phyname"))
         pComboPhysName:SetValue(asmlib.GetEmpty(asmlib.GetAsmConvar("physmater","STR"), nil,
-                                languageGetPhrase("tool."..gsToolNameL..".phyname_def")))
+                                language.GetPhrase("tool."..gsToolNameL..".phyname_def")))
         pComboPhysName.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
         pComboPhysName:Dock(TOP) -- Setting tallness gets ignored otherwise
         pComboPhysName:SetTall(22)
@@ -2586,7 +2528,7 @@ function TOOL.BuildCPanel(CPanel)
   pComboPhysType.OnSelect = function(pnSelf, nInd, sVal, anyData)
     local qNames = asmlib.CacheQueryProperty(sVal)
     if(qNames) then pComboPhysName:Clear()
-      pComboPhysName:SetValue(languageGetPhrase("tool."..gsToolNameL..".phyname_def"))
+      pComboPhysName:SetValue(language.GetPhrase("tool."..gsToolNameL..".phyname_def"))
       for iNam = 1, qNames.Size do
         local sN, sI = qNames[iNam], asmlib.ToIcon("property_name")
         pComboPhysName:AddChoice(sN, sN, false, sI)
@@ -2594,22 +2536,22 @@ function TOOL.BuildCPanel(CPanel)
     else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
   end
 
-  cvarsRemoveChangeCallback(sName, sName..sCall)
-  cvarsAddChangeCallback(sName, function(sV, vO, vN)
+  cvars.RemoveChangeCallback(sName, sName..sCall)
+  cvars.AddChangeCallback(sName, function(sV, vO, vN)
     pComboPhysName:SetValue(vN) end, sName..sCall);
   asmlib.LogTable(qProperty, "Property", sLog)
 
   -- http://wiki.garrysmod.com/page/Category:DTextEntry
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
-  local pText = CPanel:TextEntry(languageGetPhrase("tool."..gsToolNameL..".bgskids_con"), sName)
-        pText:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".bgskids"))
+  local pText = CPanel:TextEntry(language.GetPhrase("tool."..gsToolNameL..".bgskids_con"), sName)
+        pText:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".bgskids"))
         pText:SetText(asmlib.GetEmpty(asmlib.GetAsmConvar("bgskids", "STR"), nil,
-                      languageGetPhrase("tool."..gsToolNameL..".bgskids_def")))
+                      language.GetPhrase("tool."..gsToolNameL..".bgskids_def")))
         pText:SetEnabled(false); pText:SetTall(22)
 
   local sName = asmlib.GetAsmConvar("bgskids", "NAM")
-  cvarsRemoveChangeCallback(sName, sName..sCall)
-  cvarsAddChangeCallback(sName, function(sV, vO, vN)
+  cvars.RemoveChangeCallback(sName, sName..sCall)
+  cvars.AddChangeCallback(sName, function(sV, vO, vN)
     pText:SetText(vN); pText:SetValue(vN) end, sName..sCall);
   asmlib.SetNumSlider(CPanel, "mass"    , iMaxDec, 0, asmlib.GetAsmConvar("maxmass"  , "FLT"))
   asmlib.SetNumSlider(CPanel, "activrad", iMaxDec, 0, asmlib.GetAsmConvar("maxactrad", "FLT"))
@@ -2657,8 +2599,8 @@ if(CLIENT) then
     local sLog = "*TOOL.UserSettings"
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
-    CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".utilities_user"))
-    CPanel:Help(languageGetPhrase("tool."..gsToolNameL..".client_var"))
+    CPanel:SetName(language.GetPhrase("tool."..gsToolNameL..".utilities_user"))
+    CPanel:Help(language.GetPhrase("tool."..gsToolNameL..".client_var"))
     asmlib.SetNumSlider(CPanel, "sizeucs"  , iMaxDec)
     asmlib.SetNumSlider(CPanel, "incsnplin", 0)
     asmlib.SetNumSlider(CPanel, "incsnpang", 0)
@@ -2683,8 +2625,8 @@ if(CLIENT) then
     local drmSkin, pItem = CPanel:GetSkin()
     local iMaxDec = asmlib.GetAsmConvar("maxmenupr","INT")
     CPanel:ClearControls(); CPanel:DockPadding(5, 0, 5, 10)
-    CPanel:SetName(languageGetPhrase("tool."..gsToolNameL..".utilities_admin"))
-    CPanel:Help(languageGetPhrase("tool."..gsToolNameL..".nonrep_var"))
+    CPanel:SetName(language.GetPhrase("tool."..gsToolNameL..".utilities_admin"))
+    CPanel:Help(language.GetPhrase("tool."..gsToolNameL..".nonrep_var"))
     asmlib.SetNumSlider(CPanel, "logsmax", 0)
     asmlib.SetNumSlider(CPanel, "logsbrs", 0)
     asmlib.SetCheckBox(CPanel, "devmode")
@@ -2692,7 +2634,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "maxtrmarg", iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxspmarg", iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxmenupr", 0)
-    CPanel:ControlHelp(languageGetPhrase("tool."..gsToolNameL..".relica_var"))
+    CPanel:ControlHelp(language.GetPhrase("tool."..gsToolNameL..".relica_var"))
     asmlib.SetNumSlider(CPanel, "spawnrate", 0)
     asmlib.SetNumSlider(CPanel, "maxmass"  , iMaxDec)
     asmlib.SetNumSlider(CPanel, "maxlinear", iMaxDec)
@@ -2713,7 +2655,7 @@ if(CLIENT) then
     asmlib.SetNumSlider(CPanel, "*sbox_max"..gsLimitName, 0)
     asmlib.SetComboBoxList(CPanel, "modedb")
     asmlib.SetComboBoxList(CPanel, "bnderrmod")
-    pItem = vguiCreate("DCategoryList", CPanel); if(not IsValid(pItem)) then
+    pItem = vgui.Create("DCategoryList", CPanel); if(not IsValid(pItem)) then
       asmlib.LogInstance("Category list invalid", sLog); return end
     CPanel:AddItem(pItem)
     pItem:Dock(TOP); pItem:SetTall(340)
@@ -2724,23 +2666,23 @@ if(CLIENT) then
     while(mkTab) do tPan[iD] = {}
       local vPan, pDef = tPan[iD], mkTab:GetDefinition()
       local tSet = sRev:Explode(tostring(tVar[iD] or ""))
-      local sMem = languageGetPhrase("tool."..gsToolNameL..".timermode_mem")
+      local sMem = language.GetPhrase("tool."..gsToolNameL..".timermode_mem")
       local pMem = pItem:Add(sMem.." "..pDef.Nick)
             pMem:SetTooltip(sMem.." "..pDef.Nick)
-      local pMode = vguiCreate("DComboBox", pItem); if(not IsValid(pMode)) then
+      local pMode = vgui.Create("DComboBox", pItem); if(not IsValid(pMode)) then
         asmlib.LogInstance("Timer mode invalid", sLog); return end
       pMode:Dock(TOP); pMode:SetTall(25)
       pMode:UpdateColours(drmSkin)
       pMode:SetSortItems(false)
-      pMode:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".timermode_md"))
+      pMode:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".timermode_md"))
       pMode.DoRightClick = function(pnSelf) asmlib.SetComboBoxClipboard(pnSelf) end
       for iK = 1, #tMod do local sK = tMod[iK]
         local bSel = (tostring(tSet[1]) == sK)
         local sIco = asmlib.ToIcon("timermode_"..sK:lower())
         local sKey = ("tool."..gsToolNameL..".timermode_"..sK:lower())
-        pMode:AddChoice(languageGetPhrase(sKey), sK, bSel, sIco)
+        pMode:AddChoice(language.GetPhrase(sKey), sK, bSel, sIco)
       end
-      local pLife = vguiCreate("DNumSlider", pItem); if(not IsValid(pLife)) then
+      local pLife = vgui.Create("DNumSlider", pItem); if(not IsValid(pLife)) then
         asmlib.LogInstance("Record life invalid", sLog); return end
       pLife:Dock(TOP); pLife:SetTall(25)
       pLife:SetMin(0); pLife:SetMax(3600)
@@ -2748,19 +2690,19 @@ if(CLIENT) then
       pLife:SetValue(tonumber(tSet[2]) or 0)
       pLife:SetDefaultValue(tonumber(tSet[2]) or 0)
       pLife:SizeToContents()
-      pLife:SetText(languageGetPhrase("tool."..gsToolNameL..".timermode_lf_con"))
-      pLife:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".timermode_lf"))
-      local pCler = vguiCreate("DCheckBoxLabel", pItem); if(not IsValid(pCler)) then
+      pLife:SetText(language.GetPhrase("tool."..gsToolNameL..".timermode_lf_con"))
+      pLife:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".timermode_lf"))
+      local pCler = vgui.Create("DCheckBoxLabel", pItem); if(not IsValid(pCler)) then
         asmlib.LogInstance("Force clear invalid", sLog); return end
       pCler:Dock(TOP); pCler:SetTall(25)
       pCler:SetValue((tonumber(tSet[3]) or 0) ~= 0)
-      pCler:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".timermode_rd"))
-      pCler:SetText(languageGetPhrase("tool."..gsToolNameL..".timermode_rd_con"))
-      local pColl = vguiCreate("DCheckBoxLabel", pItem); if(not IsValid(pColl)) then
+      pCler:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".timermode_rd"))
+      pCler:SetText(language.GetPhrase("tool."..gsToolNameL..".timermode_rd_con"))
+      local pColl = vgui.Create("DCheckBoxLabel", pItem); if(not IsValid(pColl)) then
         asmlib.LogInstance("Collect invalid", sLog); return end
       pColl:SetValue((tonumber(tSet[4]) or 0) ~= 0)
-      pColl:SetTooltip(languageGetPhrase("tool."..gsToolNameL..".timermode_ct"))
-      pColl:SetText(languageGetPhrase("tool."..gsToolNameL..".timermode_ct_con"))
+      pColl:SetTooltip(language.GetPhrase("tool."..gsToolNameL..".timermode_ct"))
+      pColl:SetText(language.GetPhrase("tool."..gsToolNameL..".timermode_ct_con"))
       pColl:Dock(TOP); pColl:SetTall(25)
       iD = (iD + 1); mkTab = asmlib.GetBuilderID(iD)
       vPan["MODE"], vPan["LIFE"] = pMode, pLife
@@ -2779,18 +2721,18 @@ if(CLIENT) then
         tS[2] = tostring(tonumber(pL:GetValue() or 0))
         tS[3] = tostring(pC:GetChecked() and 1 or 0)
         tS[4] = tostring(bG:GetChecked() and 1 or 0)
-        tTim[iD] = tableConcat(tS, sRev)
+        tTim[iD] = table.concat(tS, sRev)
       end
-      local sTim = tableConcat(tTim, gsSymDir)
+      local sTim = table.concat(tTim, gsSymDir)
       asmlib.LogInstance("Memory manager "..asmlib.GetReport(sTim))
       asmlib.SetAsmConvar(nil, "timermode", sTim)
     end
     pItem.DoRightClick = function(pnSelf)
-      if(inputIsKeyDown(KEY_LSHIFT)) then
+      if(input.IsKeyDown(KEY_LSHIFT)) then
         asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logsbrs","INT"))
       else
         local fW = asmlib.GetOpVar("FORM_GITWIKI")
-        guiOpenURL(fW:format("Memory-manager-configuration"))
+        gui.OpenURL(fW:format("Memory-manager-configuration"))
       end
     end
     pItem:Dock(TOP); pItem:SetTall(30)
@@ -2836,7 +2778,7 @@ if(CLIENT) then
     end
     pItem.DoRightClick = function(pnSelf)
       local fW = asmlib.GetOpVar("FORM_GITWIKI")
-      guiOpenURL(fW:format("Factory-reset"))
+      gui.OpenURL(fW:format("Factory-reset"))
     end
     pItem:Dock(TOP); pItem:SetTall(30)
     asmlib.LogInstance("Registered as "..asmlib.GetReport(CPanel.Name), sLog)
