@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.855")
+asmlib.SetOpVar("TOOL_VERSION","9.856")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -549,12 +549,13 @@ if(CLIENT) then
   asmlib.SetAction("REMOVE_CURVE_NODE",
     function(nLen) local oPly, sLog = net.ReadEntity(), "*REMOVE_CURVE_NODE"
       local iD, tC = net.ReadUInt(16), asmlib.GetCacheCurve(oPly)
-      local iC = ((iD > 0 and iD <= tC.Size) and iD or nil) -- Read the curve index
+      local iC = ((iD > 0 and iD < tC.Size) and iD or nil)
       tC.Size = (tC.Size - 1) -- Register the index
-      if(iC) then
+      if(iC) then -- Removing node that is not the last
         table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
         table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
-      else
+      else -- Remove the last node and reset the normal for (N-1)
+        tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
         table.remove(tC.Node); table.remove(tC.Norm)
         table.remove(tC.Base); table.remove(tC.Rays)
       end

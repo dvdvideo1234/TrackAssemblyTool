@@ -975,12 +975,12 @@ end
 ]]
 function TOOL:CurveRemove(iD, bMute)
   local user = self:GetOwner()
-  local iD = math.floor(math.max(tonumber(iD) or 0, 0))
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
-  if(tC.Size <= 0) then
+  if(tC.Size <= 0) then -- Remove iD = Size will remove the last
     asmlib.LogInstance("Curve empty", gtLogs); return nil end
-  local iC = ((iD > 0 and iD <= tC.Size) and iD or nil)
+  local iD = math.floor(math.max(tonumber(iD) or 0, 0))
+  local iC = ((iD > 0 and iD < tC.Size) and iD or nil)
   table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
   table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
   tC.Size = (tC.Size - 1) -- Increment stack size. Adding stuff
@@ -988,7 +988,7 @@ function TOOL:CurveRemove(iD, bMute)
     asmlib.Notify(user, "Node removed ["..tC.Size.."] !", "CLEANUP")
     net.Start(gsLibName.."SendRemoveCurveNode")
       net.WriteEntity(user)
-      net.WriteUInt  (iD, 16)
+      net.WriteUInt(iD, 16)
     net.Send(user)
     user:SetNWBool(gsToolPrefL.."engcurve", true)
   end; return tC -- Returns the updated curve nodes table
