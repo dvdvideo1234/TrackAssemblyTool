@@ -3934,9 +3934,9 @@ function ExportCategory(vEq, tData, sPref, bExp)
     LogInstance("Open fail "..GetReport(sHew,fName)); return false end
   local sEq, nLen, tHea = ("="):rep(nEq), (nEq+2), GetOpVar("FORM_HEADEREXP")
   local tCat = (istable(tData) and tData or GetOpVar("TABLE_CATEGORIES"))
-  LogInstance("Source "..GetReport(sHew, (tCat == tData)))
+  LogInstance("Source "..GetReport(sHew, (tCat == tData), fName))
   local tSort = Arrange(tCat); if(not tSort) then
-    LogInstance("Sorting keys fail "..GetReport(sHew)); return false end
+    LogInstance("Sorting keys fail "..GetReport(sHew, fName)); return false end
   F:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
   for iS = 1, tSort.Size do local rec, cat = tSort[iS]
     rec, cat = rec.Rec, rec.Key -- Record is the structure and key is the type
@@ -3944,7 +3944,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
       F:Write("["); F:Write(sEq); F:Write("["); F:Write(cat); F:Write(sEq)
       F:Write(rec.Txt:Trim()); F:Write("]"); F:Write(sEq); F:Write("]\n");
     else F:Flush(); F:Close(); LogInstance("Category code mismatch "..GetReport(sHew, cat, rec.Txt)); return false end
-  end; F:Flush(); F:Close(); LogInstance("Success "..GetReport(sHew)); return true
+  end; F:Flush(); F:Close(); LogInstance("Success "..GetReport(sHew, fName)); return true
 end
 
 --[[
