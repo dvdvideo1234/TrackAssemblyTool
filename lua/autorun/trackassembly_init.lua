@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.857")
+asmlib.SetOpVar("TOOL_VERSION","9.858")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -533,11 +533,11 @@ if(CLIENT) then
     function(nLen) local oPly, sLog = net.ReadEntity(), "*INSERT_CURVE_NODE"
       local vNode, vNorm, vBase = net.ReadVector(), net.ReadNormal(), net.ReadVector()
       local vOrgw, aAngw, bRayw = net.ReadVector(), net.ReadAngle() , net.ReadBool()
-      local iD, iN, tC = net.ReadUInt(16), net.ReadUInt(16), asmlib.GetCacheCurve(oPly)
-      local iC = ((iD > 0 and iD <= tC.Size) and iD or nil) -- Read the curve index
+      local iD, iC, iN = net.ReadUInt(16), net.ReadUInt(16), net.ReadUInt(16)
+      local tC = asmlib.GetCacheCurve(oPly)
       if(iN > 0) then tC.Norm[iN]:Set(net.ReadNormal()) end
       tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
-      if(iC) then -- We have to insert at the middle of the stack
+      if(iD > 0) then -- We have to insert at the middle of the stack
         table.insert(tC.Node, iC, vNode); table.insert(tC.Norm, iC, vNorm)
         table.insert(tC.Base, iC, vBase); table.insert(tC.Rays, iC, {vOrgw, aAngw, bRayw})
       else -- Insert at the node stack end. Send the end to the client
@@ -548,10 +548,10 @@ if(CLIENT) then
 
   asmlib.SetAction("REMOVE_CURVE_NODE",
     function(nLen) local oPly, sLog = net.ReadEntity(), "*REMOVE_CURVE_NODE"
-      local iD, tC = net.ReadUInt(16), asmlib.GetCacheCurve(oPly)
-      local iC = ((iD > 0 and iD < tC.Size) and iD or nil)
+      local iD, iC = net.ReadUInt(16), net.ReadUInt(16)
+      local tC = asmlib.GetCacheCurve(oPly)
       tC.Size = (tC.Size - 1) -- Register the index
-      if(iC) then -- Removing node that is not the last
+      if(iD > 0) then -- Removing node that is not the last
         table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
         table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
       else -- Remove the last node and reset the normal for (N-1)
