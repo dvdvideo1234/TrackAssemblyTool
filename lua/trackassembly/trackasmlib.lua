@@ -818,10 +818,9 @@ function InitBase(sName, sPurp)
     start  = Vector(),    -- Start position of the trace
     endpos = Vector(),    -- End position of the trace
     mask   = GENV . MASK_SOLID,  -- Mask telling it what to hit
-    filter = function(oEnt) -- Only valid props which are not the main entity, world or TRACE_FILTER
+    filter = function(oEnt) -- Valid but not the main entity, world or TRACE_FILTER
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
-  SetOpVar("CONSTRAINT_LIST", {"Weld", "AdvBallsocket", "NoCollide"})
   SetOpVar("PATTEM_NEWLINE" , "[\n\r]+")
   SetOpVar("PATTEM_EXDSVHED", {
     Sym = GetOpVar("OPSYM_REVISION"),
