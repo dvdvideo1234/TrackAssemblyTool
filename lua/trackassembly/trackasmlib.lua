@@ -3943,7 +3943,7 @@ function ExportCategory(vEq, tData, sPref, bExp)
     if(isstring(rec.Txt)) then -- In case there is something for compilation
       F:Write("["); F:Write(sEq); F:Write("["); F:Write(cat); F:Write(sEq)
       F:Write(rec.Txt:Trim()); F:Write("]"); F:Write(sEq); F:Write("]\n");
-    else F:Flush(); F:Close(); LogInstance("Category code mismatch "..GetReport(sHew, cat, rec.Txt)); return false end
+    else F:Flush(); F:Close(); LogInstance("Category code mismatch "..GetReport(sHew, cat, fName, rec.Txt)); return false end
   end; F:Flush(); F:Close(); LogInstance("Success "..GetReport(sHew, fName)); return true
 end
 
@@ -3999,14 +3999,14 @@ function ImportCategory(vEq, sPref, bExp)
               tCat[key].Cmp = CompileString(com, key)
               local bS, vO = pcall(tCat[key].Cmp)
               if(bS) then tCat[key].Cmp = vO else tCat[key].Cmp = nil
-                LogInstance("Compilation fail "..GetReport(sHew, key, vO))
+                LogInstance("Compilation fail "..GetReport(sHew, key, vO, fName))
               end -- Compilation is successful and assigned to the track type
-            else LogInstance("Key skipped "..GetReport(sHew, key)) end
-          else LogInstance("Function missing "..GetReport(sHew, key)) end
-        else LogInstance("Name missing "..GetReport(sHew, txt)) end
+            else LogInstance("Key skipped "..GetReport(sHew, key, ,fName)) end
+          else LogInstance("Function missing "..GetReport(sHew, key ,fName)) end
+        else LogInstance("Name missing "..GetReport(sHew, txt, fName)) end
       else sPar = GetConcat(sPar, sRow, "\n") end
     end; sRow, tCon = GetFileRow(F, tCon)
-  end; LogInstance("Success "..GetReport(sHew,fName)); return true
+  end; LogInstance("Success "..GetReport(sHew, fName)); return true
 end
 
 --[[
@@ -4436,14 +4436,14 @@ function ProcessDSV(sDelim)
         local fPrf = GetStrip(tostring(tInf[1] or ""):Trim())
         local fSrc = GetStrip(tostring(tInf[2] or ""):Trim())
         if(not IsBlank(fPrf)) then -- Is there something
-          local tStore = tProc[fPrf]
-          if(not tStore) then -- Allocate
+          local tStor = tProc[fPrf]
+          if(not tStor) then -- Allocate
             tProc[fPrf] = {Size = 1}
-            tStore = tProc[fPrf]
-            table.insert(tStore, fSrc)
+            tStor = tProc[fPrf]
+            table.insert(tStor, fSrc)
           else -- Prefix is processed already
-            tStore.Size = tStore.Size + 1 -- Store prefixes count
-            table.insert(tStore, fSrc) -- Register the prefix
+            tStor.Size = tStor.Size + 1 -- Store prefixes count
+            table.insert(tStor, fSrc) -- Register the prefix
           end -- What user puts there is a problem of his own
         end -- If the line is disabled/comment
       else LogInstance("Skipped "..GetReport(sRow)) end
@@ -4454,27 +4454,33 @@ function ProcessDSV(sDelim)
       LogInstance("Prefix clones "..GetReport(prf, tab.Size, fName))
       for iD = 1, tab.Size do LogInstance("Prefix "..GetReport(iD, prf, tab[iD])) end
     else
-      if(CLIENT) then local srNam = (sPL.."CATEGORY"):lower()
-        if(not file.Exists(GetConcat(sDsv, sFms:format(sGen, srNam):lower()), "DATA")) then
-          if(file.Exists(GetConcat(sDsv, sFms:format(prf, srNam):lower()), "DATA")) then
+      if(CLIENT) then
+        local sNick = "CATEGORY"
+        local srNam = (sPL..sNick):lower()
+        local srGen = sFms:format(sGen, srNam):lower()
+        local srDsv = sFms:format(prf, srNam):lower()
+        if(not file.Exists(GetConcat(sDsv, srGen), "DATA")) then
+          if(file.Exists(GetConcat(sDsv, srDsv), "DATA")) then
             if(not ImportCategory(3, prf)) then
-              LogInstance("Failed "..GetReport(prf, "CATEGORY")) end
-          else LogInstance("Missing "..GetReport(prf, "CATEGORY")) end
-        else LogInstance("Generic "..GetReport(prf, "CATEGORY")) end
+              LogInstance("Failed "..GetReport(prf, srDsv), sNick) end
+          else LogInstance("Missing "..GetReport(prf, srDsv), sNick) end
+        else LogInstance("Generic "..GetReport(prf, srGen), sNick) end
       end
       for iD = 1, #libQTable do
         local makTab = GetBuilderID(iD)
         local defTab = makTab:GetDefinition()
-        local srNam  = (sPL..defTab.Nick):lower()
-        if(not file.Exists(GetConcat(sDsv, sFms:format(sGen, srNam):lower()), "DATA")) then
-          if(file.Exists(GetConcat(sDsv, sFms:format(prf, srNam):lower()), "DATA")) then
+        local srNam = (sPL..defTab.Nick):lower()
+        local srGen = sFms:format(sGen, srNam):lower()
+        local srDsv = sFms:format(prf, srNam):lower()
+        if(not file.Exists(GetConcat(sDsv, srGen), "DATA")) then
+          if(file.Exists(GetConcat(sDsv, srDsv), "DATA")) then
             if(not ImportDSV(defTab.Nick, true, prf)) then
-              LogInstance("Failed "..GetReport(prf, defTab.Nick)) end
-          else LogInstance("Missing "..GetReport(prf, defTab.Nick)) end
-        else LogInstance("Generic "..GetReport(prf, defTab.Nick)) end
+              LogInstance("Failed "..GetReport(prf, srDsv), defTab.Nick) end
+          else LogInstance("Missing "..GetReport(prf, srDsv), defTab.Nick) end
+        else LogInstance("Generic "..GetReport(prf, srGen), defTab.Nick) end
       end
     end
-  end; LogInstance("Success"); return true
+  end; LogInstance("Success "..GetReport(fName)); return true
 end
 
 --[[

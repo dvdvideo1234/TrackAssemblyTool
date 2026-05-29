@@ -281,13 +281,13 @@ asmlib.SetAction("REFRESH_ITEM_LIST", -- Duplicator wrapper
   function(tData, sPref)
     asmlib.RunBuilderCount(function(makTab, iD)
       local defTab = makTab:GetDefinition()
-      local sFile = tData.fDSV:format(sPref, defTab.Nick)
+      local sFile = tData.fDSV:format(sPref, defTab.Nick):lower()
       if(file.Exists(sFile, "DATA")) then
         asmlib.ImportDSV(defTab.Nick, true, sPref, nil, nil, true)
       end
     end, "REFRESH_ITEM_LIST"); return true
   end, {
-    fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt")
+    fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt"):lower()
   })
 
 if(SERVER) then
@@ -717,8 +717,8 @@ if(CLIENT) then
         if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
-      local fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt")
-      local sNam = asmlib.GetConcat(gsDrcSET, gsLibName, "_dsv.txt")
+      local fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt"):lower()
+      local sNam = asmlib.GetConcat(gsDrcSET, gsLibName, "_dsv.txt"):lower()
       local nW, nH = pnFrame:GetSize()
       local sDel, nB, nT = "\t", 22, 23
       xyPos.x, xyPos.y = xyDsz.x, (xyDsz.y + nT)
@@ -944,7 +944,7 @@ if(CLIENT) then
         -- Populate the sub-menu with all table nicknames
         local pIn, pOp = nil, nil; asmlib.RunBuilderCount(function(makTab, iD)
           local defTab = makTab:GetDefinition()
-          local sFile = fDSV:format(sP, defTab.Nick)
+          local sFile = fDSV:format(sP, defTab.Nick):lower()
           if(file.Exists(sFile, "DATA")) then
             if(not (pIn and pOp)) then
               -- Manipulate content local settings related to the line
