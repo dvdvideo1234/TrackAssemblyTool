@@ -33,50 +33,50 @@ local duplicator = duplicator
 
 local next                    = next
 local type                    = type
-local select                  = select
+local print                   = print
 local pcall                   = pcall
 local Angle                   = Angle
 local Color                   = Color
 local pairs                   = pairs
-local print                   = print
+local select                  = select
 local tobool                  = tobool
 local isbool                  = isbool
-local istable                 = istable
-local isnumber                = isnumber
-local isstring                = isstring
-local isvector                = isvector
-local isangle                 = isangle
-local ismatrix                = ismatrix
-local isentity                = isentity
-local isfunction              = isfunction
 local Vector                  = Vector
 local Matrix                  = Matrix
 local unpack                  = unpack
+local Entity                  = Entity
+local istable                 = istable
+local isangle                 = isangle
 local include                 = include
-local IsEntity                = IsEntity
-local IsValid                 = IsValid
-local Material                = Material
 local require                 = require
 local CurTime                 = CurTime
 local SysTime                 = SysTime
-local Entity                  = Entity
+local IsValid                 = IsValid
+local isnumber                = isnumber
+local isstring                = isstring
+local isvector                = isvector
+local ismatrix                = ismatrix
+local isentity                = isentity
+local IsEntity                = IsEntity
+local Material                = Material
 local tonumber                = tonumber
 local tostring                = tostring
 local GetConVar               = GetConVar
 local DermaMenu               = DermaMenu
+local isfunction              = isfunction
 local LocalPlayer             = LocalPlayer
-local CreateConVar            = CreateConVar
-local RunConsoleCommand       = RunConsoleCommand
-local SetClipboardText        = SetClipboardText
-local CompileString           = CompileString
+local ErrorNoHalt             = ErrorNoHalt
 local CompileFile             = CompileFile
+local CreateConVar            = CreateConVar
 local getmetatable            = getmetatable
 local setmetatable            = setmetatable
-local collectgarbage          = collectgarbage
 local LocalToWorld            = LocalToWorld
+local CompileString           = CompileString
+local collectgarbage          = collectgarbage
 local IsUselessModel          = IsUselessModel
+local SetClipboardText        = SetClipboardText
+local RunConsoleCommand       = RunConsoleCommand
 local SafeRemoveEntityDelayed = SafeRemoveEntityDelayed
-local ErrorNoHalt             = ErrorNoHalt
 
 ---------------- CACHES SPACE --------------------
 
@@ -699,7 +699,8 @@ function InitBase(sName, sPurp)
   SetOpVar("FORMAT_DTTM","%y-%m-%d %H:%M:%S")
   SetOpVar("NAME_INIT",sName:lower())
   SetOpVar("NAME_PERP",sPurp:lower())
-  SetOpVar("NAME_LIBRARY", GetOpVar("NAME_INIT").."asmlib")
+  SetOpVar("NAME_LIBSUFX", "asmlib")
+  SetOpVar("NAME_LIBRARY", GetOpVar("NAME_INIT")..GetOpVar("NAME_LIBSUFX"))
   SetOpVar("TOOLNAME_NL",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):lower())
   SetOpVar("TOOLNAME_NU",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):upper())
   SetOpVar("TOOLNAME_PL",GetOpVar("TOOLNAME_NL").."_")
@@ -804,7 +805,7 @@ function InitBase(sName, sPurp)
   SetOpVar("ARRAY_BNDERRMOD",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
   SetOpVar("ARRAY_MODEDB",{"LUA", "SQL", ["LUA"] = true, ["SQL"] = true})
   SetOpVar("ARRAY_MODETM",{"CQT", "OBJ", ["CQT"] = true, ["OBJ"] = true})
-  SetOpVar("TABLE_FREQUENT_MODELS",{})
+  SetOpVar("TABLE_FREQUENTS",{})
   SetOpVar("ENTITY_DEFCLASS", "prop_physics")
   SetOpVar("KEY_DEFAULT","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
   SetOpVar("KEY_FLIPOVER", "FLIPOVER")
@@ -836,7 +837,7 @@ function InitBase(sName, sPurp)
     })
     SetOpVar("PATTEX_AUTORUN", {
       Cax = "%s*local%s+myCategory.*%s*=%s*",
-      Wrs = "%s*asmlib%.WorkshopID%s*",
+      Wrs = GetConcat("%s*",GetOpVar("NAME_LIBSUFX"),"%.WorkshopID%s*"),
       Tps = "%s*local%s+myPieces.*%s*=%s*",
       Tad = "%s*local%s+myAdditions.*%s*=%s*",
       Tpp = "%s*local%s+myPhysproperties.*%s*=%s*",
@@ -1959,7 +1960,7 @@ function GetFrequentPieces(vCnt)
     LogInstance("Missing table definition "..GetReport(iCnt,vCnt)); return nil end
   local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
     LogInstance("Missing cache space "..GetReport(iCnt,vCnt)); return nil end
-  local tmNow, frUsed = CurTime(), GetOpVar("TABLE_FREQUENT_MODELS")
+  local tmNow, frUsed = CurTime(), GetOpVar("TABLE_FREQUENTS")
   local tSort = Arrange(tCache, "Used"); if(not tSort) then
     LogInstance("Arrange cache mismatch "..GetReport(iCnt,vCnt)); return nil end
   table.Empty(frUsed); frUsed.Size = 0; frUsed.Need = iCnt
@@ -2336,7 +2337,7 @@ function GetAttachmentByID(vSrc, sID)
       LogInstance("[F] Results missing "..GetReport(sID, vSrc)); return nil, sSrc end
     return GetAttachmentByID(fSrc, (IsHere(fID) and fID or sID))
   elseif(istable(vSrc)) then local tSrc, tID = vSrc[1], vSrc[2] -- Try the array keys
-     -- Handle various table key here. Use for whatever. Extract and valide the index
+     -- Handle various table key here. Use for whatever. Extract and validate the index
     tSrc, tID = (IsHere(tSrc) and tSrc or vSrc.SRC)   , ((IsHere(tID) and isstring(tID)) and tID or vSrc.ID)
     tSrc, tID = (IsHere(tSrc) and tSrc or vSrc.Source), ((IsHere(tID) and isstring(tID)) and tID or vSrc.Index)
     tSrc, tID = (IsHere(tSrc) and tSrc or vSrc.Entity), ((IsHere(tID) and isstring(tID)) and tID or vSrc.Point)
@@ -2375,9 +2376,9 @@ function LocatePOA(oRec, ivPoID)
       local tPOA = tOffs[ID] -- Extract current offset and localize raw values
       local oP, oO, oA = tPOA.P, tPOA.O, tPOA.A -- POA object pointers
       local sP, sO, sA = oP:Raw(), oO:Raw(), oA:Raw() -- POA raw values
-      if(sO) then oO:Decode(sO, sMo, "Pos") end -- Process origin
-      if(sA) then oA:Decode(sA, sMo, "Ang") end -- Process angle
-      if(sP) then oP:Decode(sP, sMo, "Pos", oO:Get()) end
+      if(sO) then oO:Decode(sO, sMo, "Pos") end -- Process origin on this slot
+      if(sA) then oA:Decode(sA, sMo, "Ang") end -- Process angle on this slot
+      if(sP) then oP:Decode(sP, sMo, "Pos", oO:Get()) end -- Defaults to origin
       LogInstance("Spawn "..GetReport(ID, oP:String(), oO:String(), oA:String()))
     end -- Loop and transform all the POA configuration at once. Game model slot will be taken
   end; return stPOA, iPoID
@@ -4001,7 +4002,7 @@ function ImportCategory(vEq, sPref, bExp)
               if(bS) then tCat[key].Cmp = vO else tCat[key].Cmp = nil
                 LogInstance("Compilation fail "..GetReport(sHew, key, vO, fName))
               end -- Compilation is successful and assigned to the track type
-            else LogInstance("Key skipped "..GetReport(sHew, key, ,fName)) end
+            else LogInstance("Key skipped "..GetReport(sHew, key, fName)) end
           else LogInstance("Function missing "..GetReport(sHew, key ,fName)) end
         else LogInstance("Name missing "..GetReport(sHew, txt, fName)) end
       else sPar = GetConcat(sPar, sRow, "\n") end
@@ -4601,7 +4602,7 @@ function ExportTypeRUN(sType)
   local sPref, sFunc = GetTypePrefix(sType), debug.getinfo(1).name
   local noSQL, sTool = GetOpVar("MISS_NOSQL"), GetOpVar("TOOLNAME_NL")
   local sForm, fMon = GetOpVar("FORM_FILENAMEAR"), GetConcat("[", sMoDB:lower(), "-run]")
-  local qPieces, qAdditions
+  local sSufx, qPieces, qAdditions = GetOpVar("NAME_LIBSUFX")
   local sS = GetLibraryPath(GetOpVar("DIRPATH_SET"), sForm:format(sTool))
   local sN = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon, sForm:format(sPref))
   local makP = GetBuilderNick("PIECES"); if(not makP) then
@@ -4647,7 +4648,7 @@ function ExportTypeRUN(sType)
   local isSkip, sIn, qAdditions = false, "  ", {}
   while(sRow) do sRow = sRow:gsub("%s*$", "")
     if(sRow:find(tPat.Var)) then isSkip = true
-      fE:Write("local myAddon, myGroup = asmlib.ComponentType(\"")
+      fE:Write("local myAddon, myGroup = "); fE:Write(sSufx); fE:Write(".ComponentType(\"")
       if(not RunComponentType(sType, function(iTy, sTy)
         if(iTy == 0) then
           fE:Write(sTy); fE:Write("\"")
@@ -4660,10 +4661,10 @@ function ExportTypeRUN(sType)
     elseif(sRow:find(tPat.Typ)) then isSkip = true
       if(not RunComponentType(sType, function(iTy, sTy)
         if(iTy == 0) then
-          fE:Write("local myType0 = asmlib.GetTypeClean(myAddon)\n")
+          fE:Write("local myType0 = "); fE:Write(sSufx); fE:Write(".GetTypeClean(myAddon)\n")
         else
           fE:Write("local myType"); fE:Write(tostring(iTy)); fE:Write(" = ")
-          fE:Write("asmlib.GetTypeClean(myGroup and myGroup[");
+          fE:Write(sSufx); fE:Write(".GetTypeClean(myGroup and myGroup[");
           fE:Write(tostring(iTy)); fE:Write("] or myAddon)"); fE:Write("\n")
         end; return true
       end, ssLog:format("Type"))) then LogInstance("Component routine error", defP.Nick); end
@@ -4681,9 +4682,9 @@ function ExportTypeRUN(sType)
     elseif(sRow:find(tPat.Wrs)) then isSkip = true
       local sID = WorkshopID(sType)
       if(sID and sID:len() > 0) then
-        fE:Write("asmlib.WorkshopID(myType0, \""); fE:Write(sID); fE:Write("\")\n")
+        fE:Write(sSufx); fE:Write(".WorkshopID(myType0, \""); fE:Write(sID); fE:Write("\")\n")
       else
-        fE:Write("asmlib.WorkshopID(myType0)\n")
+        fE:Write(sSufx); fE:Write(".WorkshopID(myType0)\n")
       end
     elseif(sRow:find(tPat.Tps)) then isSkip = true
       if(not ExportContentsRUN(fE, sType, makP, qPieces, "myPieces", sIn, qAdditions)) then

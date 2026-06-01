@@ -22,7 +22,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
  * myType3, ... myType/n as variable arguments when your
  * addon contains multiple model packs.
 ]]
-local myAddon, myGroup = asmlib.ComponentType("SligWolf's Minitrains") -- Your addon name
+local myAddon, myGroup = asmlib.ComponentType("Test's track pack") -- Your addon name
 
 --[[
  * If you have passed a vararg above you will have a type group that
@@ -35,7 +35,7 @@ local myType = myAddon -- The type your addon resides in the tool with
 --[[
  * This is the beautifier object if you need to apply name beautifier rules
 ]]
-BEAUTY = asmlib.GetBeautify()
+local BEAUTY = asmlib.GetBeautify()
 
 -- This is used for addon relation prefix. Fingers away from it
 local myPrefix = asmlib.GetTypePrefix(myAddon) -- Addon prefix
@@ -45,7 +45,7 @@ local myPrefix = asmlib.GetTypePrefix(myAddon) -- Addon prefix
 local myScript = tostring(debug.getinfo(1).source or "N/A")
       myScript = "@"..myScript:gsub("^%W+", ""):gsub("\\","/")
       mySource = tostring(mySource or ""):gsub("^%W+", "")
-      mySource = (asmlib.IsBlank(mySource) and "DSV" or mySource)
+      mySource = (asmlib.IsBlank(mySource) and "SET" or mySource)
 
 --[[
  * This function defines what happens when there is an error present
@@ -54,10 +54,10 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
  * have to change the function name in lots of places
  * when you need it to do something else.
 --]]
-local function myThrowError(vMesg)
-  local sMesg = tostring(vMesg)                    -- Make sure the message is string
-  if(asmlib) then asmlib.LogInstance(sMesg) end    -- Output the message into the logs
-  ErrorNoHaltWithStack(myScript.." > ("..myAddon.."): "..sMesg) -- Generate an error in the console ( optional )
+local function ThrowError(vMesg)
+  local sMesg = (myScript.." > ("..myAddon.."): "..tostring(vMesg)) -- Convert to string
+  if(asmlib) then asmlib.LogInstance(sMesg, mySource) end -- Update the tool logs
+  ErrorNoHaltWithStack(sMesg.."\n") -- Produce an error without breaking the stack
 end
 
 -- Store a reference to disable symbol
@@ -69,232 +69,147 @@ local gsModeDB = asmlib.GetOpVar("MODE_DATABASE")
 local gsPrfGen = asmlib.GetOpVar("DBEXP_PREFGEN")
 
 local myPath = { -- This contains the path to generic DSV
-  asmlib.GetLibraryPath(gsDirDSV, gsPrfGen, gsToolPF.."PIECES"),
-  asmlib.GetLibraryPath(gsDirDSV, gsPrfGen, gsToolPF.."CATEGORY"),
-  asmlib.GetLibraryPath(gsDirDSV, gsPrfGen, gsToolPF.."ADDITIONS"),
-  asmlib.GetLibraryPath(gsDirDSV, gsPrfGen, gsToolPF.."PHYSPROPERTIES")
+  PIECES         = asmlib.GetLibraryPath(gsDirDSV, gsPrfGen, gsToolPF.."PIECES"),
+  ADDITIONS      = asmlib.GetLibraryPath(gsDirDSV, gsPrfGen, gsToolPF.."ADDITIONS"),
+  PHYSPROPERTIES = asmlib.GetLibraryPath(gsDirDSV, gsPrfGen, gsToolPF.."PHYSPROPERTIES")
 }
-
 -- Tell TA what custom script we just called don't touch it
 asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..", "..myPrefix.."}", mySource)
 
--- Check for exported generic database for PIECES
--- Evaluated to TRUE when the generic database is exported
-if(not file.Exists(myPath[1], "DATA")) then
+-- Register the workshop ID
+asmlib.WorkshopID(myAddon, "287012681")
 
+--[[
+ * Create a table and populate it as shown below
+ * In the square brackets goes your MODEL,
+ * and then for every active point, you must have one array of
+ * strings, where the elements match the following data settings.
+ * You can use the disable event /#/ to make TA auto-fill
+ * the value provided and you can also add multiple track types myType[1-n].
+ * If you need to use piece origin/angle with model attachment, you must use
+ * the attachment extraction event /!/. The model attachment format is
+ * /!<attachment_name>/ and it depends what attachment name you gave it when you
+ * created the model. If you need TA to extract the origin/angle from an attachment named
+ * /test/ for example, you just need to put the string /!test/ in the origin/angle column for that model.
+ * {MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
+ * MODEL  > This string contains the path to your /*.mdl/ file. It is mandatory and
+ *          taken in pairs with LINEID, it forms the unique identifier of every record.
+ *          When used in /DSV/ mode ( like seen below ) it is used as a hash index.
+ * TYPE   > This string is the name of the type your stuff will reside in the panel.
+ *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable.
+ *          If it is empty uses the string /TYPE/, so make sure you fill this.
+ * NAME   > This is the name of your track piece. Put /#/ here to be auto-generated from
+ *          the model ( from the last slash to the file extension ).
+ * LINEID > This is the ID of the point that can be selected for building. They must be
+ *          sequential and mandatory. If provided, the ID must the same as the row index under
+ *          a given model key. Disabling this, makes it use the index of the current line.
+ *          Use that to swap the active points around by only moving the desired row up or down.
+ *          For the example table definition below, the line ID in the database will be the same.
+ * POINT  > This is the location vector that TA searches and selects the related ORIGIN for.
+ *          An empty string is treated as taking the ORIGIN when assuming player traces can hit the origin
+ *          Disabling via /#/ makes it take the ORIGIN. Used to disable a point but keep original data
+ *          You can also fill it with attachment event /!/ followed by your attachment name.
+ * ORIGIN > This is the origin relative to which the next track piece position is calculated
+ *          An empty string is treated as {0,0,0}. Disabling via /#/ also makes it use {0,0,0}
+ *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
+ * ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
+ *          An empty string is treated as {0,0,0}. Disabling via /#/ also makes it use {0,0,0}
+ *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
+ * CLASS  > This string is populated up when your entity class is not /prop_physics/ but something else
+ *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
+ *          Disabling via /#/ makes it take the NULL value. In this case the model is spawned as a prop
+ * The persistence of the table builder triggers the type export.
+ * For every component type there is one categorize function if present.
+ * The actual data comes after the categorize call bordered with SQL begin/commit.
+]]--
+if(not file.Exists(myPath.PIECES, "DATA")) then
   local PIECES = asmlib.GetBuilderNick("PIECES")
-
-  -- Check for exported generic database for CATEGORY
-  -- Evaluated to TRUE when the generic category is exported
-  if(not file.Exists(myPath[2], "DATA")) then
-    asmlib.Categorize(myAddon, [[
-      function(m)
-        local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
-        local s = r:find("/"); r = s and r:sub(1,s-1) or nil
-        local n = nil
-        if(r) then
-          if(r ==  "metal" ) then n = "My metal plate" end
-          if(r == "windows") then n = "My glass plate" end
-        end
-        r = r and r:gsub("^%l", string.upper) or nil
-        p = r and {r} or nil
-        return p, n
+  asmlib.Categorize(myAddon, [[
+    function(m)
+      local r = m:gsub("models/props_phx/construct/",""):gsub("_","/")
+      local s = r:find("/"); r = s and r:sub(1,s-1) or nil
+      local n = nil
+      if(r) then
+        if(r ==  "metal" ) then n = "My metal plate" end
+        if(r == "windows") then n = "My glass plate" end
       end
-    ]])
-  end
+      r = r and r:gsub("^%l", string.upper) or nil
+      p = r and {r} or nil
+      return p, n
+    end
+  ]])
+  if(gsModeDB == "SQL") then sql.Begin() end
+  PIECES:Record({"models/props_phx/construct/metal_plate1x2.mdl"   , gsMissDB, "Metal Plate1x2",1 "NULL","0,-47.455105,1.482965","0,-90,0" "NULL"})
+  PIECES:Record({"models/props_phx/construct/metal_plate1x2.mdl"   , gsMissDB, "Metal Plate1x2",2 "NULL","0, 47.455105,1.482965","0, 90,0" "NULL"})
+  PIECES:Record({"models/props_phx/construct/windows/window1x2.mdl", gsMissDB, "Window1x2"     ,1,"NULL","0,-23.732480,1.482965","0,-90,0" "NULL"})
+  PIECES:Record({"models/props_phx/construct/windows/window1x2.mdl", gsMissDB, "Window1x2"     ,2,"NULL","0, 71.177730,1.482965","0, 90,0" "NULL"})
+  if(gsModeDB == "SQL") then sql.Commit() end
+end
 
-  asmlib.WorkshopID(myAddon, "287012681")
+--[[
+ * Create a table and populate it as shown below
+ * In the square brackets goes your MODELBASE,
+ * and then for every active point, you must have one array of
+ * strings and numbers, where the elements match the following data settings.
+ * {MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID}
+ * MODELBASE > This string contains the path to your base /*.mdl/ file the additions will be attached to.
+ *             It is mandatory and taken in pairs with LINEID, it forms the unique identifier of every record.
+ *             When used in /DSV/ mode ( like seen below ) it is used as a hash index.
+ * MODELADD  > This is the /*.mdl/ path of the addition entity. It is mandatory and cannot be disabled.
+ * ENTCLASS  > This is the class of the addition entity. When disabled or missing it defaults to a normal prop.
+ * LINEID    > This is the ID of the point that can be selected for building. They must be
+ *             sequential and mandatory. If provided, the ID must the same as the row index under
+ *             a given model key. Disabling this, makes it use the index of the current line.
+ *             Use that to swap the active points around by only moving the desired row up or down.
+ *             For the example table definition below, the line ID in the database will be the same.
+ * POSOFF    > This is the local position vector offset that TA uses to place the addition relative to MODELBASE.
+ *             A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
+ * ANGOFF    > This is the local angle offset that TA uses to place the addition.
+ *             A NULL, empty, disabled or not available string is treated as taking {0,0,0}.
+ * MOVETYPE  > This internally calls /Entity:SetMoveType/ if the database parameter is zero or greater.
+ * PHYSINIT  > This internally calls /Entity:PhysicsInit/ if the database parameter is zero or greater.
+ * DRSHADOW  > This internally calls /Entity:DrawShadow/ if the database parameter is not zero.
+ *             The call evaluates to /true/ for positive numbers and /false/ for negative.
+ *             When the parameter is equal to zero skips the call of /Entity:DrawShadow/
+ * PHMOTION  > This internally calls /PhysObj:EnableMotion/ if the database parameter is not zero on the validated physics object.
+ *             The call evaluates to /true/ for positive numbers and /false/ for negative.
+ *             When the parameter is equal to zero skips the call of /Entity:EnableMotion/
+ * PHYSLEEP  > This internally calls /PhysObj:Sleep/ if the database parameter is grater than zero on the validated physics object.
+ *             When the parameter is equal or less than zero skips the call of /Entity:Sleep/
+ * SETSOLID  > This internally calls /Entity:SetSolid/ if the database parameter is zero or greater.
+ * The persistence of the table builder triggers the type export.
+ * For every component type there is one categorize function if present.
+ * The actual data comes after the categorize call bordered with SQL begin/commit.
+]]--
+if(not file.Exists(myPath.ADDITIONS, "DATA")) then
+  local ADDITIONS = asmlib.GetBuilderNick("ADDITIONS")
+  if(gsModeDB == "SQL") then sql.Begin() end
+  if(gsModeDB == "SQL") then sql.Commit() end
+end
 
-  if(gsModeDB == "SQL") then sqlBegin() end
-
-  --[[
-   * Create a table and populate it as shown below
-   * In the square brackets goes your MODEL,
-   * and then for every active point, you must have one array of
-   * strings, where the elements match the following data settings.
-   * You can use the disable event /#/ to make TA auto-fill
-   * the value provided and you can also add multiple track types myType[1-n].
-   * If you need to use piece origin/angle with model attachment, you must use
-   * the attachment extraction event /!/. The model attachment format is
-   * /!<attachment_name>/ and it depends what attachment name you gave it when you
-   * created the model. If you need TA to extract the origin/angle from an attachment named
-   * /test/ for example, you just need to put the string /!test/ in the origin/angle column for that model.
-   * {MODEL, TYPE, NAME, LINEID, POINT, ORIGIN, ANGLE, CLASS}
-   * MODEL  > This string contains the path to your /*.mdl/ file. It is mandatory and
-   *          taken in pairs with LINEID, it forms the unique identifier of every record.
-   *          When used in /DSV/ mode ( like seen below ) it is used as a hash index.
-   * TYPE   > This string is the name of the type your stuff will reside in the panel.
-   *          Disabling this, makes it use the value of the /DEFAULT_TYPE/ variable.
-   *          If it is empty uses the string /TYPE/, so make sure you fill this.
-   * NAME   > This is the name of your track piece. Put /#/ here to be auto-generated from
-   *          the model ( from the last slash to the file extension ).
-   * LINEID > This is the ID of the point that can be selected for building. They must be
-   *          sequential and mandatory. If provided, the ID must the same as the row index under
-   *          a given model key. Disabling this, makes it use the index of the current line.
-   *          Use that to swap the active points around by only moving the desired row up or down.
-   *          For the example table definition below, the line ID in the database will be the same.
-   * POINT  > This is the location vector that TA searches and selects the related ORIGIN for.
-   *          An empty string is treated as taking the ORIGIN when assuming player traces can hit the origin
-   *          Disabling via /#/ makes it take the ORIGIN. Used to disable a point but keep original data
-   *          You can also fill it with attachment event /!/ followed by your attachment name.
-   * ORIGIN > This is the origin relative to which the next track piece position is calculated
-   *          An empty string is treated as {0,0,0}. Disabling via /#/ also makes it use {0,0,0}
-   *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
-   * ANGLE  > This is the angle relative to which the forward and up vectors are calculated.
-   *          An empty string is treated as {0,0,0}. Disabling via /#/ also makes it use {0,0,0}
-   *          You can also fill it with attachment event /!/ followed by your attachment name. It's mandatory
-   * CLASS  > This string is populated up when your entity class is not /prop_physics/ but something else
-   *          used by ents.Create of the gmod ents API library. Keep this empty if your stuff is a normal prop.
-   *          Disabling via /#/ makes it take the NULL value. In this case the model is spawned as a prop
-  ]]--
-  PIECES:Record({"models/minitrains/straight_16.mdl",   "#", "#", 1, "", "0, -8.507, 1"})
-  PIECES:Record({"models/minitrains/straight_16.mdl",   "#", "#", 2, "", "-16, -8.507, 1", "0,-180,0"})
-  PIECES:Record({"models/minitrains/straight_32.mdl",   "#", "#", 1, "", "0, -8.507, 1"})
-  PIECES:Record({"models/minitrains/straight_32.mdl",   "#", "#", 2, "", "-32, -8.507, 1", "0,-180,0"})
-  PIECES:Record({"models/minitrains/straight_64.mdl",   "#", "#", 1, "", "0, -8.507, 1"})
-  PIECES:Record({"models/minitrains/straight_64.mdl",   "#", "#", 2, "", "-64, -8.507, 1", "0,-180,0"})
-  PIECES:Record({"models/minitrains/straight_128.mdl",  "#", "#", 1, "", "0, -8.507, 1"})
-  PIECES:Record({"models/minitrains/straight_128.mdl",  "#", "#", 2, "", "-128, -8.507, 1", "0,-180,0"})
-  PIECES:Record({"models/minitrains/straight_256.mdl",  "#", "#", 1, "", "0, -8.507, 1"})
-  PIECES:Record({"models/minitrains/straight_256.mdl",  "#", "#", 2, "", "-256, -8.507, 1", "0,-180,0"})
-  PIECES:Record({"models/minitrains/straight_512.mdl",  "#", "#", 1, "", "0, -8.507, 1"})
-  PIECES:Record({"models/minitrains/straight_512.mdl",  "#", "#", 2, "", "-512, -8.507, 1", "0,-180,0"})
-  PIECES:Record({"models/minitrains/straight_1024.mdl", "#", "#", 1, "", "0, -8.507, 1"})
-  PIECES:Record({"models/minitrains/straight_1024.mdl", "#", "#", 2, "", "-1024, -8.507, 1", "0,-180,0"})
-  BEAUTY:SetRule(nil, {"diagonal_","ramp_"}, nil)
-  PIECES:Record({"models/minitrains/straight_diagonal_128.mdl", "#", "#", 1, "", "8, -8.508, 1"})
-  PIECES:Record({"models/minitrains/straight_diagonal_128.mdl", "#", "#", 2, "", "-136, -8.506, 33", "0,-180,0"})
-  PIECES:Record({"models/minitrains/straight_diagonal_256.mdl", "#", "#", 1, "", "8, -8.508, 1"})
-  PIECES:Record({"models/minitrains/straight_diagonal_256.mdl", "#", "#", 2, "", "-264, -8.506, 33", "0,-180,0"})
-  PIECES:Record({"models/minitrains/straight_diagonal_512.mdl", "#", "#", 1, "", "8, -8.508, 1"})
-  PIECES:Record({"models/minitrains/straight_diagonal_512.mdl", "#", "#", 2, "", "-520, -8.506, 33", "0,-180,0"})
-  BEAUTY:SetRule()
-  PIECES:Record({"models/minitrains/curve_1_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1"})
-  PIECES:Record({"models/minitrains/curve_1_90.mdl", "#", "#", 2, "", "-138.51, 130, 1", "0,90,0"})
-  PIECES:Record({"models/minitrains/curve_2_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1"})
-  PIECES:Record({"models/minitrains/curve_2_90.mdl", "#", "#", 2, "", "-168.51, 160, 0.996", "0,90,0"})
-  PIECES:Record({"models/minitrains/curve_3_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1"})
-  PIECES:Record({"models/minitrains/curve_3_90.mdl", "#", "#", 2, "", "-198.51, 190, 0.995", "0,90,0"})
-  PIECES:Record({"models/minitrains/curve_4_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1"})
-  PIECES:Record({"models/minitrains/curve_4_90.mdl", "#", "#", 2, "", "-228.51, 220, 0.994", "0,90,0"})
-  PIECES:Record({"models/minitrains/curve_5_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1"})
-  PIECES:Record({"models/minitrains/curve_5_90.mdl", "#", "#", 2, "", "-258.51, 250, 0.994", "0,90,0"})
-  PIECES:Record({"models/minitrains/curve_6_90.mdl", "#", "#", 1, "", "-0.011, -8.5, 1"})
-  PIECES:Record({"models/minitrains/curve_6_90.mdl", "#", "#", 2, "", "-288.51, 280, 0.993", "0,90,0"})
-  PIECES:Record({"models/minitrains/curve_1_45.mdl", "#", "#", 1, "", "-0.004, -8.506, 1"})
-  PIECES:Record({"models/minitrains/curve_1_45.mdl", "#", "#", 2, "", "-97.956, 32.044, 1", "0,135,0"})
-  PIECES:Record({"models/minitrains/curve_2_45.mdl", "#", "#", 1, "", "-0.004, -8.506, 1"})
-  PIECES:Record({"models/minitrains/curve_2_45.mdl", "#", "#", 2, "", "-119.15, 40.853, 1", "0,135,0"})
-  PIECES:Record({"models/minitrains/curve_3_45.mdl", "#", "#", 1, "", "-0.004, -8.506, 1"})
-  PIECES:Record({"models/minitrains/curve_3_45.mdl", "#", "#", 2, "", "-140.368, 49.631, 1", "0,135,0"})
-  PIECES:Record({"models/minitrains/curve_4_45.mdl", "#", "#", 1, "", "-0.004, -8.506, 1"})
-  PIECES:Record({"models/minitrains/curve_4_45.mdl", "#", "#", 2, "", "-161.567, 58.434, 1", "0,135,0"})
-  PIECES:Record({"models/minitrains/curve_5_45.mdl", "#", "#", 1, "", "-0.004, -8.506, 1"})
-  PIECES:Record({"models/minitrains/curve_5_45.mdl", "#", "#", 2, "", "-182.769, 67.232, 1", "0,135,0"})
-  PIECES:Record({"models/minitrains/curve_6_45.mdl", "#", "#", 1, "", "-0.004, -8.506, 1"})
-  PIECES:Record({"models/minitrains/curve_6_45.mdl", "#", "#", 2, "", "-203.983, 76.019, 1", "0,135,0"})
-  PIECES:Record({"models/minitrains/curve_1_22-5.mdl", "#", "#", 1, "", "-0.005, -8.505, 1"})
-  PIECES:Record({"models/minitrains/curve_1_22-5.mdl", "#", "#", 2, "", "-53.014, 2.013, 1", "0,157.5,0"})
-  PIECES:Record({"models/minitrains/curve_2_22-5.mdl", "#", "#", 1, "", "-0.005, -8.505, 1"})
-  PIECES:Record({"models/minitrains/curve_2_22-5.mdl", "#", "#", 2, "", "-64.492, 4.307, 1", "0,157.5,0"})
-  PIECES:Record({"models/minitrains/curve_3_22-5.mdl", "#", "#", 1, "", "-0.005, -8.505, 1"})
-  PIECES:Record({"models/minitrains/curve_3_22-5.mdl", "#", "#", 2, "", "-75.965, 6.599, 1", "0,157.5,0"})
-  PIECES:Record({"models/minitrains/curve_4_22-5.mdl", "#", "#", 1, "", "-0.005, -8.505, 1"})
-  PIECES:Record({"models/minitrains/curve_4_22-5.mdl", "#", "#", 2, "", "-87.437, 8.904, 1", "0,157.5,0"})
-  PIECES:Record({"models/minitrains/curve_5_22-5.mdl", "#", "#", 1, "", "-0.005, -8.505, 1"})
-  PIECES:Record({"models/minitrains/curve_5_22-5.mdl", "#", "#", 2, "", "-98.913, 11.205,1", "0,157.5,0"})
-  PIECES:Record({"models/minitrains/curve_6_22-5.mdl", "#", "#", 1, "", "-0.005, -8.505, 1"})
-  PIECES:Record({"models/minitrains/curve_6_22-5.mdl", "#", "#", 2, "", "-110.405, 13.455, 1", "0,157.5,0"})
-  PIECES:Record({"models/minitrains/curve_1_s_small.mdl", "#", "#", 1, "", "-0.007, -8.507, 1"})
-  PIECES:Record({"models/minitrains/curve_1_s_small.mdl", "#", "#", 2, "", "-105.994, 12.497, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_2_s_small.mdl", "#", "#", 1, "", "-0.007, -8.507, 1"})
-  PIECES:Record({"models/minitrains/curve_2_s_small.mdl", "#", "#", 2, "", "-128.994, 17.497, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_3_s_small.mdl", "#", "#", 1, "", "-0.007, -8.507, 1"})
-  PIECES:Record({"models/minitrains/curve_3_s_small.mdl", "#", "#", 2, "", "-151.994, 21.497, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_4_s_small.mdl", "#", "#", 1, "", "-0.007, -8.507, 1"})
-  PIECES:Record({"models/minitrains/curve_4_s_small.mdl", "#", "#", 2, "", "-174.994, 26.497, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_5_s_small.mdl", "#", "#", 1, "", "-0.007, -8.507, 1"})
-  PIECES:Record({"models/minitrains/curve_5_s_small.mdl", "#", "#", 2, "", "-197.994, 31.497, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_6_s_small.mdl", "#", "#", 1, "", "-0.007, -8.507, 1"})
-  PIECES:Record({"models/minitrains/curve_6_s_small.mdl", "#", "#", 2, "", "-220.994, 35.497, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_1_s_medium.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_1_s_medium.mdl", "#", "#", 2, "", "-195.966, 72.51, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_2_s_medium.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_2_s_medium.mdl", "#", "#", 2, "", "-237.966, 90.51, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_3_s_medium.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_3_s_medium.mdl", "#", "#", 2, "", "-280.966, 107.51, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_4_s_medium.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_4_s_medium.mdl", "#", "#", 2, "", "-322.966, 125.51, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_5_s_medium.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_5_s_medium.mdl", "#", "#", 2, "", "-365.991, 142.507, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_6_s_medium.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_6_s_medium.mdl", "#", "#", 2, "", "-407.99, 160.51, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_1_s_big.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_1_s_big.mdl", "#", "#", 2, "", "-277.01, 268.511, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_2_s_big.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_2_s_big.mdl", "#", "#", 2, "", "-336.99, 328.521, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_3_s_big.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_3_s_big.mdl", "#", "#", 2, "", "-397.033, 388.521, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_4_s_big.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_4_s_big.mdl", "#", "#", 2, "", "-456.991, 448.521, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_5_s_big.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_5_s_big.mdl", "#", "#", 2, "", "-516.985, 508.521, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/curve_6_s_big.mdl", "#", "#", 1, "", "-0.007, -8.504, 1"})
-  PIECES:Record({"models/minitrains/curve_6_s_big.mdl", "#", "#", 2, "", "-576.985, 568.521, 1", "0,180,0"})
-  PIECES:Record({"models/minitrains/rerailer.mdl", "#", "Rerailer Double", 1, "", "190, 0, 1.01758"})
-  PIECES:Record({"models/minitrains/rerailer.mdl", "#", "Rerailer Double", 2, "", "-190, 0, 1.01758", "0,180,0"})
-  PIECES:Record({"models/minitrains/sw_buffer_stop.mdl", "#", "Buffer Stop", 1, "", "9.43, -8.011, -1", "0,-180,0"})
-  PIECES:Record({"models/minitrains/switch.mdl", "#", "Switch Y", 1, "", "0, -8.509, 1", "", "gmod_sw_minitrain_switch"})
-  PIECES:Record({"models/minitrains/switch.mdl", "#", "Switch Y", 2, "", "-128, 6.493, 1", "0,-180,0", "gmod_sw_minitrain_switch"})
-  PIECES:Record({"models/minitrains/switch.mdl", "#", "Switch Y", 3, "", "-128, -23.512, 1", "0,-180,0","gmod_sw_minitrain_switch"})
-  PIECES:Record({"models/minitrains/switch_double.mdl", "#", "#", 1, "", "16, 21.512, 1", "", "gmod_sw_minitrain_doubleswitch"})
-  PIECES:Record({"models/minitrains/switch_double.mdl", "#", "#", 2, "", "-144, 21.513, 1", "0,-180,0", "gmod_sw_minitrain_doubleswitch"})
-  PIECES:Record({"models/minitrains/switch_double.mdl", "#", "#", 3, "", "16, -8.515, 1", "", "gmod_sw_minitrain_doubleswitch"})
-  PIECES:Record({"models/minitrains/switch_double.mdl", "#", "#", 4, "", "-144, -8.514, 1", "0,-180,0", "gmod_sw_minitrain_doubleswitch"})
-  PIECES:Record({"models/minitrains/switch_w_1_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_w1"})
-  PIECES:Record({"models/minitrains/switch_w_1_128.mdl", "#", "#", 2, "", "-97.94826,32.05148,1", "0,135,0", "gmod_sw_minitrain_switch_w1"})
-  PIECES:Record({"models/minitrains/switch_w_1_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_w1"})
-  PIECES:Record({"models/minitrains/switch_w_1_128.mdl", "#", "#", 4, "", "-97.94826,-49.05152,1", "0,-135,0", "gmod_sw_minitrain_switch_w1"})
-  PIECES:Record({"models/minitrains/switch_w_2_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_w2"})
-  PIECES:Record({"models/minitrains/switch_w_2_128.mdl", "#", "#", 2, "", "-119.15060, 40.84935,1", "0, 135,0", "gmod_sw_minitrain_switch_w2"})
-  PIECES:Record({"models/minitrains/switch_w_2_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,-180,0", "gmod_sw_minitrain_switch_w2"})
-  PIECES:Record({"models/minitrains/switch_w_2_128.mdl", "#", "#", 4, "", "-119.15061,-57.84934,1", "0,-135,0", "gmod_sw_minitrain_switch_w2"})
-  PIECES:Record({"models/minitrains/switch_w_3_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_w3"})
-  PIECES:Record({"models/minitrains/switch_w_3_128.mdl", "#", "#", 2, "", "-140.36781,49.63218,1", "0,135,0", "gmod_sw_minitrain_switch_w3"})
-  PIECES:Record({"models/minitrains/switch_w_3_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_w3"})
-  PIECES:Record({"models/minitrains/switch_w_3_128.mdl", "#", "#", 4, "", "-140.36781,-66.63219,1", "0,-135,0", "gmod_sw_minitrain_switch_w3"})
-  PIECES:Record({"models/minitrains/switch_w_4_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_w4"})
-  PIECES:Record({"models/minitrains/switch_w_4_128.mdl", "#", "#", 2, "", "-87.45033,8.87626,1", "0,157.5,0", "gmod_sw_minitrain_switch_w4"})
-  PIECES:Record({"models/minitrains/switch_w_4_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_w4"})
-  PIECES:Record({"models/minitrains/switch_w_4_128.mdl", "#", "#", 4, "", "-87.45378,-25.86791,1", "0,-157.5,0", "gmod_sw_minitrain_switch_w4"})
-  PIECES:Record({"models/minitrains/switch_w_5_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_w5"})
-  PIECES:Record({"models/minitrains/switch_w_5_128.mdl", "#", "#", 2, "", "-98.92384,11.17581,1", "0,157.5,0", "gmod_sw_minitrain_switch_w5"})
-  PIECES:Record({"models/minitrains/switch_w_5_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_w5"})
-  PIECES:Record({"models/minitrains/switch_w_5_128.mdl", "#", "#", 4, "", "-98.92188,-28.17954,1", "0,-157.5,0", "gmod_sw_minitrain_switch_w5"})
-  PIECES:Record({"models/minitrains/switch_w_6_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_w6"})
-  PIECES:Record({"models/minitrains/switch_w_6_128.mdl", "#", "#", 2, "", "-110.40305,13.45934,1", "0,157.5,0", "gmod_sw_minitrain_switch_w6"})
-  PIECES:Record({"models/minitrains/switch_w_6_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_w6"})
-  PIECES:Record({"models/minitrains/switch_w_6_128.mdl", "#", "#", 4, "", "-110.40065,-30.46272,1", "0,-157.5,0", "gmod_sw_minitrain_switch_w6"})
-  PIECES:Record({"models/minitrains/switch_y_1_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_y1"})
-  PIECES:Record({"models/minitrains/switch_y_1_128.mdl", "#", "#", 2, "", "-97.94826,32.05148,1", "0,135,0", "gmod_sw_minitrain_switch_y1"})
-  PIECES:Record({"models/minitrains/switch_y_1_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_y1"})
-  PIECES:Record({"models/minitrains/switch_y_2_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_y2"})
-  PIECES:Record({"models/minitrains/switch_y_2_128.mdl", "#", "#", 2, "", "-119.15060, 40.84935,1", "0, 135,0", "gmod_sw_minitrain_switch_y2"})
-  PIECES:Record({"models/minitrains/switch_y_2_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,-180,0", "gmod_sw_minitrain_switch_y2"})
-  PIECES:Record({"models/minitrains/switch_y_3_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_y3"})
-  PIECES:Record({"models/minitrains/switch_y_3_128.mdl", "#", "#", 2, "", "-140.36781,49.63218,1", "0,135,0", "gmod_sw_minitrain_switch_y3"})
-  PIECES:Record({"models/minitrains/switch_y_3_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_y3"})
-  PIECES:Record({"models/minitrains/switch_y_4_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_y4"})
-  PIECES:Record({"models/minitrains/switch_y_4_128.mdl", "#", "#", 2, "", "-87.45033,8.87626,1", "0,157.5,0", "gmod_sw_minitrain_switch_y4"})
-  PIECES:Record({"models/minitrains/switch_y_4_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_y4"})
-  PIECES:Record({"models/minitrains/switch_y_5_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_y5"})
-  PIECES:Record({"models/minitrains/switch_y_5_128.mdl", "#", "#", 2, "", "-98.92384,11.17581,1", "0,157.5,0", "gmod_sw_minitrain_switch_y5"})
-  PIECES:Record({"models/minitrains/switch_y_5_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_y5"})
-  PIECES:Record({"models/minitrains/switch_y_6_128.mdl", "#", "#", 1, "", "0,-8.5,1", "", "gmod_sw_minitrain_switch_y6"})
-  PIECES:Record({"models/minitrains/switch_y_6_128.mdl", "#", "#", 2, "", "-110.40305,13.45934,1", "0,157.5,0", "gmod_sw_minitrain_switch_y6"})
-  PIECES:Record({"models/minitrains/switch_y_6_128.mdl", "#", "#", 3, "", "-128,-8.5,1", "0,180,0", "gmod_sw_minitrain_switch_y6"})
-
-  if(gsModeDB == "SQL") then sqlCommit() end
+--[[
+ * Create a table and populate it as shown below
+ * In the square brackets goes your TYPE,
+ * and then for every active point, you must have one array of
+ * strings and numbers, where the elements match the following data settings.
+ * {TYPE, LINEID, NAME}
+ * TYPE   > This is the category under your physical properties are stored internally.
+ *          It is mandatory and taken in pairs with LINEID, it forms the unique identifier of every record.
+ *          When used in /DSV/ mode ( like seen below ) it is used as a hash index.
+ * LINEID > This is the ID of the point that can be selected for building. They must be
+ *          sequential and mandatory. If provided, the ID must the same as the row index under
+ *          a given model key. Disabling this, makes it use the index of the current line.
+ *          Use that to swap the active points around by only moving the desired row up or down.
+ *          For the example table definition below, the line ID in the database will be the same.
+ * NAME   > This stores the name of the physical property. It must an actual physical property.
+ * The persistence of the table builder triggers the type export.
+ * For every component type there is one categorize function if present.
+ * The actual data comes after the categorize call bordered with SQL begin/commit.
+]]--
+if(not file.Exists(myPath.PHYSPROPERTIES, "DATA")) then
+  local PHYSPROPERTIES = asmlib.GetBuilderNick("PHYSPROPERTIES")
+  if(gsModeDB == "SQL") then sql.Begin() end
+  if(gsModeDB == "SQL") then sql.Commit() end
 end
 
 asmlib.LogInstance("<<< "..myScript)
