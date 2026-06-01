@@ -183,8 +183,6 @@ end
 ]]--
 if(not file.Exists(myPath.ADDITIONS, "DATA")) then
   local ADDITIONS = asmlib.GetBuilderNick("ADDITIONS")
-  if(gsModeDB == "SQL") then sql.Begin() end
-  if(gsModeDB == "SQL") then sql.Commit() end
 end
 
 --[[
@@ -208,8 +206,6 @@ end
 ]]--
 if(not file.Exists(myPath.PHYSPROPERTIES, "DATA")) then
   local PHYSPROPERTIES = asmlib.GetBuilderNick("PHYSPROPERTIES")
-  if(gsModeDB == "SQL") then sql.Begin() end
-  if(gsModeDB == "SQL") then sql.Commit() end
 end
 
 asmlib.LogInstance("<<< "..myScript)
