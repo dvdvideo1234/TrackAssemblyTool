@@ -31,6 +31,7 @@ local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD")
 local gsNoID      = asmlib.GetOpVar("MISS_NOID")
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV")
+local gsNoSQL     = asmlib.GetOpVar("MISS_NOSQL")
 local gsDirBAS    = asmlib.GetOpVar("DIRPATH_BAS")
 local gsDirDSV    = asmlib.GetOpVar("DIRPATH_DSV")
 local gsDirEXP    = asmlib.GetOpVar("DIRPATH_EXP")
@@ -1712,17 +1713,23 @@ asmlib.NewTable("PIECES",{
     ExportSyncDB    = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}}
   },
   Trigs = {
+    ExportTypeRUN = function(arLine, bSet)
+      if(bSet) then arLine[2] = "gsSymOff" end
+      for iC = 1, #arLine do
+        local bSQL = (asmlib.GetStrip(arLine[iC]) == gsNoSQL)
+        arLine[iC] = (bSQL and "gsMissDB" or arLine[iC])
+      end; return true
+    end,
     Record = function(arLine, vSrc)
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
-      local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
       arLine[2] = asmlib.GetEmpty(arLine[2], emFva, asmlib.Categorize(), noTY)
       arLine[3] = asmlib.GetEmpty(arLine[3], emFva, BEAUTY:Convert(arLine[1]):Get(), gsNoMD)
-      arLine[5] = asmlib.GetEmpty(arLine[5], asmlib.IsBlank, noSQL)
-      arLine[6] = asmlib.GetEmpty(arLine[6], asmlib.IsBlank, noSQL)
-      arLine[7] = asmlib.GetEmpty(arLine[7], asmlib.IsBlank, noSQL)
-      arLine[8] = asmlib.GetEmpty(arLine[8], emFva, noSQL)
+      arLine[5] = asmlib.GetEmpty(arLine[5], asmlib.IsBlank, gsNoSQL)
+      arLine[6] = asmlib.GetEmpty(arLine[6], asmlib.IsBlank, gsNoSQL)
+      arLine[7] = asmlib.GetEmpty(arLine[7], asmlib.IsBlank, gsNoSQL)
+      arLine[8] = asmlib.GetEmpty(arLine[8], emFva, gsNoSQL)
       if(not (asmlib.IsNull(arLine[8]) or asmlib.IsBlank(arLine[8]) or trCls[arLine[8]])) then
         asmlib.LogInstance("Register trace "..asmlib.GetReport(arLine[8],arLine[1]),vSrc)
         trCls[arLine[8]] = true; -- Register the class provided to the trace hit list
@@ -1773,7 +1780,6 @@ asmlib.NewTable("PIECES",{
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
         asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref),vSrc); return false end
-      local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
       for iR = 1, tSort.Size do
         local stRec = tSort[iR]
@@ -1787,8 +1793,8 @@ asmlib.NewTable("PIECES",{
         for iD = 1, #tOffs do
           local stPnt = tOffs[iD] -- Read current offsets from the model
           local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
-          local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
-                sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
+          local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or gsNoSQL)
+                sC = ((sC == sClass) and gsNoSQL or sC) -- Export default class
           oF:Write(sData); oF:Write(sDelim)
           oF:Write(makTab:Match(iD,4,true,"\"")); oF:Write(sDelim)
           oF:Write("\""); oF:Write(sP); oF:Write("\""); oF:Write(sDelim)
@@ -1804,7 +1810,6 @@ asmlib.NewTable("PIECES",{
       local sType, tType, nType = asmlib.ComponentType(sType) -- Normalize type
       local defP, defA = makP:GetDefinition(), makA:GetDefinition()
       local tTrgA = (istable(defA.Trigs) and defA.Trigs or nil)
-      local noSQL = asmlib.GetOpVar("MISS_NOSQL")
       local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
       for iP = 1, tSort.Size do
         local stRec = tSort[iP] -- Sorted sequential key
@@ -1818,8 +1823,8 @@ asmlib.NewTable("PIECES",{
           for iD = 1, #tOffs do -- The number is already inserted, so there will be no crash
             local stPnt = tOffs[iD] -- Read current offsets from the model
             local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
-            local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or noSQL)
-                  sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
+            local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or gsNoSQL)
+                  sC = ((sC == sClass) and gsNoSQL or sC) -- Export default class
             fP:Write(sData); fP:Write(sDelim);
             fP:Write(makP:Match(iD,4,true,"\"")); fP:Write(sDelim)
             fP:Write("\""); fP:Write(sP); fP:Write("\""); fP:Write(sDelim)
@@ -1832,8 +1837,8 @@ asmlib.NewTable("PIECES",{
                 for iA = 1, tA.Size do fA:Write(sH)
                   local aRow = makA:GetRowToArray(tA[iA]); aRow[1] = stRec.Key
                   for iC = 1, #aRow do aRow[iC] = makA:Match(aRow[iC],iC,true,"\"") end
-                  if(tTrgA and tTrgA["Export"]) then
-                    local bS, sR = pcall(tTrgA["Export"], aRow)
+                  if(tTrgA and tTrgA["ExportDSV"]) then
+                    local bS, sR = pcall(tTrgA["ExportDSV"], aRow)
                     if(not bS) then asmlib.LogInstance("Trigs manager fail: "..sR,defA.Nick); return false end
                     if(not sR) then asmlib.LogInstance("Trigs routine fail",defA.Nick); return false end
                   end; fA:Write(table.concat(aRow, sDelim)); fA:Write("\n")
@@ -1860,8 +1865,8 @@ asmlib.NewTable("PIECES",{
           for iID = 1, rec.Size do  -- Allocate row memory
             local qRow = {}; rPOA = tOffs[iID]
             local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
-            local sC = (asmlib.IsHere(rec.Unit) and tostring(rec.Unit) or noSQL)
-                  sC = ((sC == sClass) and noSQL or sC) -- Export default class as noSQL
+            local sC = (asmlib.IsHere(rec.Unit) and tostring(rec.Unit) or gsNoSQL)
+                  sC = ((sC == sClass) and gsNoSQL or sC) -- Export default class
             qRow[coMo] = rec.Slot
             qRow[coTy] = rec.Type
             qRow[coNm] = rec.Name
@@ -1877,14 +1882,6 @@ asmlib.NewTable("PIECES",{
       for iD = 1, tSort.Size do table.insert(qPieces, tSort[iD].Rec) end
       asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType),vSrc)
       return true
-    end,
-    ExportContentsRUN = function(arLine, sType)
-      local sType, tType, nType = asmlib.ComponentType(sType)
-      local aType, rType = asmlib.GetStrip(arLine[2], "\""), arLine[2]
-      rType = ((aType == sType) and "myType0" or rType)
-      for iT = 1, nType do local sT = tType[iT]
-        rType = ((aType == sT) and "myType"..iT or rType)
-      end; arLine[2], arLine[4] = rType, "gsSymOff"; return true
     end
   },
   [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
@@ -1909,7 +1906,7 @@ asmlib.NewTable("ADDITIONS",{
     Record              = {V = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}}
   },
   Trigs = {
-    Export = function(arLine)
+    ExportDSV = function(arLine)
       local sF = "%+d"
       arLine[7]  = (asmlib.GetEnumMap("MOVETYPE", arLine[7]) or arLine[7])
       arLine[8]  = (asmlib.GetEnumMap("SOLID"   , arLine[8]) or arLine[8])
@@ -1918,6 +1915,19 @@ asmlib.NewTable("ADDITIONS",{
       arLine[11] = sF:format(arLine[11]) -- Physics sleep
       arLine[12] = (asmlib.GetEnumMap("SOLID"   , arLine[12]) or arLine[12])
       return true
+    end,
+    ExportTypeRUN = function(arLine)
+      local sF = "%+d"; arLine[4] = "gsSymOff"
+      arLine[7]  = (asmlib.GetEnumMap("MOVETYPE", arLine[7]) or arLine[7])
+      arLine[8]  = (asmlib.GetEnumMap("SOLID"   , arLine[8]) or arLine[8])
+      arLine[9]  = sF:format(arLine[9]) -- Draw shadow
+      arLine[10] = sF:format(arLine[10]) -- Enable motion
+      arLine[11] = sF:format(arLine[11]) -- Physics sleep
+      arLine[12] = (asmlib.GetEnumMap("SOLID"   , arLine[12]) or arLine[12])
+      for iC = 1, #arLine do
+        local bSQL = (asmlib.GetStrip(arLine[iC]) == gsNoSQL)
+        arLine[iC] = (bSQL and "gsMissDB" or arLine[iC])
+      end; return true
     end,
     Record = function(arLine)
       arLine[7]  = (asmlib.GetEnumMap(gsSymDis, arLine[7]) or arLine[7])
@@ -1959,8 +1969,8 @@ asmlib.NewTable("ADDITIONS",{
         for iRec = 1, #tRec do
           local aRow = makTab:GetRowToArray(tRec[iRec]); aRow[1] = sKey
           for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
-          if(tTrig and tTrig["Export"]) then
-            local bS, sR = pcall(tTrig["Export"], aRow)
+          if(tTrig and tTrig["ExportDSV"]) then
+            local bS, sR = pcall(tTrig["ExportDSV"], aRow)
             if(not bS) then asmlib.LogInstance("Trigs manager fail: "..sR,vSrc); return false end
             if(not sR) then asmlib.LogInstance("Trigs routine fail",vSrc); return false end
           end
@@ -1968,16 +1978,6 @@ asmlib.NewTable("ADDITIONS",{
           oF:Write(table.concat(aRow, sDelim)); oF:Write("\n")
         end
       end; return true
-    end,
-    ExportContentsRUN = function(arLine)
-      local sF = "%+d"; arLine[4] = "gsSymOff"
-      arLine[7]  = (asmlib.GetEnumMap("MOVETYPE", arLine[7]) or arLine[7])
-      arLine[8]  = (asmlib.GetEnumMap("SOLID"   , arLine[8]) or arLine[8])
-      arLine[9]  = sF:format(arLine[9]) -- Draw shadow
-      arLine[10] = sF:format(arLine[10]) -- Enable motion
-      arLine[11] = sF:format(arLine[11]) -- Physics sleep
-      arLine[12] = (asmlib.GetEnumMap("SOLID"   , arLine[12]) or arLine[12])
-      return true
     end
   },
   [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
@@ -2007,6 +2007,9 @@ asmlib.NewTable("PHYSPROPERTIES",{
     }
   },
   Trigs = {
+    ExportTypeRUN = function(arLine)
+      arLine[2] = "gsSymOff"; return true
+    end,
     Record = function(arLine, vSrc)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
@@ -2068,8 +2071,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
           oF:Write(makTab:Match(sP,3,true,"\"")); oF:Write("\n")
         end
       end; return true
-    end,
-    ExportContentsRUN = function(arLine) arLine[2] = "gsSymOff"; return true end
+    end
   },
   [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
   [2] = {"LINEID", "INTEGER", "FLR",  nil },
