@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.862")
+asmlib.SetOpVar("TOOL_VERSION","9.863")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1713,6 +1713,10 @@ asmlib.NewTable("PIECES",{
     ExportSyncDB    = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}}
   },
   Trigs = {
+    ImportDSV = function(arLine, iM)
+      for iC = 1, #arLine do arLine[iC] = asmlib.GetStrip(arLine[iC]) end
+      return true
+    end,
     ExportTypeRUN = function(arLine, bSet)
       if(bSet) then arLine[2] = "gsSymOff" end
       for iC = 1, #arLine do
@@ -1815,7 +1819,7 @@ asmlib.NewTable("PIECES",{
         local stRec = tSort[iP] -- Sorted sequential key
         local tData = PCache[stRec.Key] -- Index data
         local rType, tOffs = tData.Type, tData.Offs -- Extract record type
-        if(rType == sType or tType[rType] and tType[rType] > 0) then
+        if(rType == sType or (tType[rType] and tType[rType] > 0)) then
           local sData = asmlib.GetConcat(defP.Name, sDelim,
             makP:Match(stRec.Key ,1, true, "\""), sDelim,
             makP:Match(tData.Type,2, true, "\""), sDelim,
@@ -1839,8 +1843,8 @@ asmlib.NewTable("PIECES",{
                   for iC = 1, #aRow do aRow[iC] = makA:Match(aRow[iC],iC,true,"\"") end
                   if(tTrgA and tTrgA["ExportDSV"]) then
                     local bS, sR = pcall(tTrgA["ExportDSV"], aRow)
-                    if(not bS) then asmlib.LogInstance("Trigs manager fail: "..sR,defA.Nick); return false end
-                    if(not sR) then asmlib.LogInstance("Trigs routine fail",defA.Nick); return false end
+                    if(not bS) then asmlib.LogInstance("Manager fail: "..sR,defA.Nick); return false end
+                    if(not sR) then asmlib.LogInstance("Routine fail",defA.Nick); return false end
                   end; fA:Write(table.concat(aRow, sDelim)); fA:Write("\n")
                 end
               end
@@ -1906,6 +1910,15 @@ asmlib.NewTable("ADDITIONS",{
     Record              = {V = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}}
   },
   Trigs = {
+    ImportDSV = function(arLine, iM)
+      local iM = math.floor(tonumber(iM) or 0)
+      local coMv, coPs, coSo = (7 + iM), (8 + iM), (12 + iM)
+      for iC = 1, #arLine do arLine[iC] = asmlib.GetStrip(arLine[iC]) end
+      arLine[coMv] = (asmlib.GetEnumMap(gsSymDis, arLine[coMv]) or arLine[coMv])
+      arLine[coPs] = (asmlib.GetEnumMap(gsSymDis, arLine[coPs]) or arLine[coPs])
+      arLine[coSo] = (asmlib.GetEnumMap(gsSymDis, arLine[coSo]) or arLine[coSo])
+      return true
+    end,
     ExportDSV = function(arLine)
       local sF = "%+d"
       arLine[7]  = (asmlib.GetEnumMap("MOVETYPE", arLine[7]) or arLine[7])
@@ -1917,7 +1930,7 @@ asmlib.NewTable("ADDITIONS",{
       return true
     end,
     ExportTypeRUN = function(arLine)
-      local sF = "%+d"; arLine[4] = "gsSymOff"
+      local sF, sM  = "%+d", "gsMissDB"; arLine[4] = "gsSymOff"
       arLine[7]  = (asmlib.GetEnumMap("MOVETYPE", arLine[7]) or arLine[7])
       arLine[8]  = (asmlib.GetEnumMap("SOLID"   , arLine[8]) or arLine[8])
       arLine[9]  = sF:format(arLine[9]) -- Draw shadow
@@ -1926,7 +1939,7 @@ asmlib.NewTable("ADDITIONS",{
       arLine[12] = (asmlib.GetEnumMap("SOLID"   , arLine[12]) or arLine[12])
       for iC = 1, #arLine do
         local bSQL = (asmlib.GetStrip(arLine[iC]) == gsNoSQL)
-        arLine[iC] = (bSQL and "gsMissDB" or arLine[iC])
+        arLine[iC] = (bSQL and sM or arLine[iC])
       end; return true
     end,
     Record = function(arLine)
@@ -1971,8 +1984,8 @@ asmlib.NewTable("ADDITIONS",{
           for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
           if(tTrig and tTrig["ExportDSV"]) then
             local bS, sR = pcall(tTrig["ExportDSV"], aRow)
-            if(not bS) then asmlib.LogInstance("Trigs manager fail: "..sR,vSrc); return false end
-            if(not sR) then asmlib.LogInstance("Trigs routine fail",vSrc); return false end
+            if(not bS) then asmlib.LogInstance("Manager fail: "..sR,vSrc); return false end
+            if(not sR) then asmlib.LogInstance("Routine fail",vSrc); return false end
           end
           oF:Write(defTab.Name); oF:Write(sDelim)
           oF:Write(table.concat(aRow, sDelim)); oF:Write("\n")
@@ -2007,6 +2020,10 @@ asmlib.NewTable("PHYSPROPERTIES",{
     }
   },
   Trigs = {
+    ImportDSV = function(arLine, iM)
+      for iC = 1, #arLine do arLine[iC] = asmlib.GetStrip(arLine[iC]) end
+      return true
+    end,
     ExportTypeRUN = function(arLine)
       arLine[2] = "gsSymOff"; return true
     end,

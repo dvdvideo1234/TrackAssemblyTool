@@ -653,7 +653,7 @@ function SettingsLogs(sHash)
   local S = file.Open(fName, "rb", "DATA"); table.Empty(tLogs)
   if(not S) then LogInstance("Failure "..GetReport(sKey, fName)); return false end
   local sRow, tCon = GetFileRow(S)
-  while(sRow) do
+  while(sRow and not tCon.ER) do
     if(not IsBlank(sRow)) then table.insert(tLogs, sRow) end
     sRow, tCon = GetFileRow(S, tCon)
   end; LogInstance("Success "..GetReport(sKey, fName)); return true
@@ -848,8 +848,8 @@ function InitBase(sName, sPurp)
       Var = "%s*local%s+myAddon.*%s*=%s*",
       Typ = "%s*local%s+myType.*%s*=%s*",
       Tas = "%s*if%(not file%.Exists%(myPath%.",
-      Fmk = "local %s = asmlib.GetBuilderNick(\"%s\")",
-      Wrs = GetConcat("%s*",GetOpVar("NAME_LIBSUFX"),"%.WorkshopID%s*")
+      Wrs = GetConcat("%s*",GetOpVar("NAME_LIBSUFX"),"%.WorkshopID%s*"),
+      Fmk = GetConcat("local %s = ", GetOpVar("NAME_LIBSUFX"), ".GetBuilderNick(\"%s\")")
     })
     SetOpVar("TABLE_IHEADER", {name = "", stage = 0, op = 0, icon = "", icon2 = ""})
     SetOpVar("TABLE_TOOLINF", {
@@ -2956,15 +2956,18 @@ function NewTable(sTable,defTab,bReload,bDelete)
   end
   --[[
    * Returns the row with swapped column names to indexes
-   * tRec > Record being converted to array
+   * tRow > Record being converted to array
    * tO   > Data output when provided (may have holes)
+   * bT   > Force trimming the holes
   ]]
-  function self:GetRowToArray(tRec, tO)
-    local tA = (tO or {}) -- Store it here
-    for key, val in pairs(tRec) do -- Column name tables are not ordered
+  function self:GetRowToArray(tRow, tO, bT)
+    local tA, iA = (tO or {}), 0 -- Store it here
+    for key, val in pairs(tRow) do -- Column name tables are not ordered
       local iD = self:GetColumnID(key) -- Retrieve a valid column ID
-      if(iD > 0) then tA[iD] = val end -- Validate and assign the array
-    end; return tA -- Return pointer to the output (may have holes)
+      if(iD > 0) then iA = (iA + 1) -- Count the validated columns
+        tA[(bT and iA or iD)] = val -- Use sequential in trim enable
+      end -- Validate and assign array contents for validated column
+    end; return tA -- Return pointer to the output (have holes no trim)
   end
   --[[
    * Data matching wrapper that works on an array
@@ -3170,10 +3173,18 @@ function NewTable(sTable,defTab,bReload,bDelete)
       self:SetFragment(sC, ((iD ~= nA) and sD or ""))
     end; return self:GetFragment()
   end
-  -- Internal type matching
+  --[[
+   * Matches the data content to the column type and settings
+   * snIn > String or number data content
+   * vID  > Column ID or name to be matched to
+   * bQ   > Force quote on the string being matched
+   * sQ   > force a quote character to be used when [bQ] is enabled
+   * bRe  > Replace the single SQL quite with two quotes
+   * bNo  > Do not replace empty strings with NULL
+  ]]--
   function self:Match(snIn,vID,bQ,sQ,bRe,bNo)
     local qtDef, sNull = self:GetDefinition(), GetOpVar("MISS_NOSQL")
-    local nvID = tonumber(vID); if(not IsHere(nvID)) then
+    local nvID = (tonumber(vID) or self:GetColumnID(vID)); if(not IsHere(nvID)) then
       LogInstance("Column ID mismatch "..GetReport(vID),qtDef.Nick); return nil end
     local defCol = qtDef[nvID]; if(not IsHere(defCol)) then
       LogInstance("Invalid column "..GetReport(nvID),qtDef.Nick); return nil end
@@ -3202,25 +3213,6 @@ function NewTable(sTable,defTab,bReload,bDelete)
       end
     else LogInstance("Invalid type "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil
     end; return snOu
-  end
-  function self:GetPrepare(tLine, sDelim, fFoo, ...)
-    local qtDef = self:GetDefinition(); if(not istable(tLine)) then
-      LogInstance("Source not table "..GetReport(tLine, sDelim), qtDef.Nick); return nil end
-    local sDelim, nA, tA = tostring(sDelim or "\t"):sub(1,1), select("#", ...), nil
-    if(nA > 0) then tA = {...} else tA, nA = {}, qtDef.Size
-      for iD = 1, nA do table.insert(tA, iD) end end
-    for iD = 1, nA do local iC = tA[iD]
-      local tC = qtDef[iC]; if(not tC) then
-        LogInstance("Column missing "..GetReport(iD,iC,nA), qtDef.Nick); return nil end
-      local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
-        LogInstance("Column name mismatch "..GetReport(iD,iC,nA),qtDef.Nick); return nil end
-      local vC, sD = tLine[sC], (iD == 1 and "" or sDelim) -- Extract the value
-      if(fFoo) then -- Call the conversion handler function when provided
-        local bS, sR = pcall(fFoo, iC, sC, vC, iD, nA); if(not bS) then
-          LogInstance("Value convert error "..GetReport(iD,iC,vC,nA,sR),qtDef.Nick); return nil end
-        vC = sR -- The value is converted and updated successfully
-      end; self:SetFragment(sD, (vC or ""))
-    end; return self:GetFragment()
   end
   -- Build SQL drop statement
   function self:Drop()
@@ -3885,8 +3877,8 @@ function ExportSyncDB(sDelim)
   F:Write(tHea.Tco:format(defTab.Nick, makTab:GetColumnList(nil,1,2,3)))
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
-    local qIndx = qsKey:format(sFunc, "")
-    local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
+    local qIndx, tQ = qsKey:format(sFunc, ""), makTab:GetQuery()
+    local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then
       Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
     if(not IsHere(Q)) then LogInstance("Build statement failed "..GetReport(sHew)); F:Flush(); F:Close(); return false end
     local qData = sql.Query(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
@@ -3894,13 +3886,15 @@ function ExportSyncDB(sDelim)
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance("No data found "..GetReport(sHew, Q)); return false end
     F:Write(tHea.Qry:format(#qData, Q))
-    local coTy, cT = makTab:GetColumnName(2), nil
-    for iD = 1, #qData do local vRow = qData[iD]
-      if(not cT or cT ~= vRow[coTy]) then cT = vRow[coTy]
+    local coTy, tD, cT = makTab:GetColumnName(2), {}, nil
+    for iD = 1, #qData do local qRow = qData[iD]
+      if(not cT or cT ~= qRow[coTy]) then cT = qRow[coTy]
         local sW = tostring(WorkshopID(cT) or sMiss)
         F:Write(tHea.Cax:format(cT, sW))
-      end; F:Write(makTab:GetPrepare(vRow, sDelim,
-      function(iCT, sCT, vCT) return makTab:Match(vCT,iCT,true,"\"",true) end).."\n")
+      end
+      for iD = 1, #tQ.S do local iC = tQ.S[iD]
+        tD[iD] = makTab:Match(qRow[makTab:GetColumnName(iC)],iC,true,"\"",true)
+      end; F:Write(table.concat(tD, sDelim)); F:Write("\n")
     end
   elseif(sMoDB == "LUA") then
     local fsLog = GetOpVar("FORM_LOGSOURCE")
@@ -3986,7 +3980,7 @@ function ImportCategory(vEq, sPref, bExp)
   local sEq, nLen = ("="):rep(nEq), (nEq + 2)
   local cFr, cBk = GetConcat("[", sEq, "["), GetConcat("]", sEq, "]")
   local sPar, isPar, sRow, tCon = "", false, GetFileRow(F)
-  while(sRow) do
+  while(sRow and not tCon.ER) do
     if(not IsBlank(sRow)) then
       local sFr, sBk = sRow:sub(1,nLen), sRow:sub(-nLen,-1)
       if(sFr == cFr and sBk == cBk) then -- Check for line markers
@@ -4100,9 +4094,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
-  local bFile, fName = file.Exists(sTable, "DATA")
-  local tHew, sHew = GetOpVar("PATTEM_EXDSVHED")
-  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local bFile, tHew, sHew = file.Exists(sTable, "DATA"), GetOpVar("PATTEM_EXDSVHED")
+  local sDelim, sFunc, fName = tostring(sDelim or "\t"):sub(1,1), debug.getinfo(1).name
   local sMoDB, bRef = GetOpVar("MODE_DATABASE"), tobool(bRef)
   if(bFile) then fName = sTable -- Use the settings form the file or override
     LogInstance("Reading configuration "..GetReport(fName))
@@ -4135,15 +4128,20 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   if(bComm and sMoDB == "SQL") then
     sql.Query(makTab:Begin():Get()); LogInstance("Begin "..GetReport(sHew,fName), sTable)
   end
+  local trgTab = (istable(defTab.Trigs) and defTab.Trigs or nil)
   local iD, sRow, tCon = makTab:GetColumnID("LINEID"), GetFileRow(F)
-  while(sRow) do
+  while(sRow and not tCon.ER) do
     if(not (IsBlank(sRow) or IsDisable(sRow))) then
       local aRow = sDelim:Explode(sRow)
       if(table.remove(aRow, 1) ~= defTab.Name) then tCon.ER = true
         LogInstance("Internal table mismatch "..GetReport(sHew, sRow), sTable); break end
       if(#aRow ~= defTab.Size) then tCon.ER = true
         LogInstance("Internal data mismatch "..GetReport(sHew, sRow), sTable); break end
-      for iC = 1, defTab.Size do aRow[iC] = GetStrip(aRow[iC]) end
+      local bS, sR = pcall(trgTab[sFunc], aRow);
+      if(not bS) then tCon.ER = true
+        LogInstance("Routine error "..GetReport(sHew, sRow, sR)); break end
+      if(not sR) then tCon.ER = true
+        LogInstance("Internal error "..GetReport(sHew, sRow)); break end
       if(bRef and (tonumber(aRow[iD]) or 0) == 1) then
         if(bComm) then makTab:Erase(aRow[1]) end
       end
@@ -4189,19 +4187,19 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     local I = file.Open(fName, "rb", "DATA"); if(not I) then
       LogInstance("Open fail "..GetReport(sHew, fName),sTable); return false end
     local sRow, tCon = GetFileRow(I)
-    while(sRow) do
+    while(sRow and not tCon.ER) do
       if((not IsBlank(sRow)) and (not IsDisable(sRow))) then
         local aRow = sDelim:Explode(sRow)
         if(table.remove(aRow, 1) ~= defTab.Name) then tCon.ER = true
           LogInstance("Internal table mismatch "..GetReport(sHew, sRow, fName), sTable); break end
         if(#aRow ~= defTab.Size) then tCon.ER = true
           LogInstance("Internal data mismatch "..GetReport(sHew, sRow, fName), sTable); break end
-        if(tTrig and tTrig["Record"]) then
-          local bS, sR = pcall(tTrig["Record"], aRow, sFunc); if(not bS) then
+        if(tTrig and tTrig["ImportDSV"]) then
+          local bS, sR = pcall(tTrig["ImportDSV"], aRow, 0); if(not bS) then
             LogInstance("Store manager fail: "..GetReport(sHew, nID, vK, sR),sTable); return false end
           if(not sR) then -- Rise log error when something gets wrong inside the trigger routine
             LogInstance("Store routine fail: "..GetReport(sHew, nID, vK),sTable); return false end
-        end; for iC = 1, defTab.Size do aRow[iC] = GetStrip(aRow[iC]) end
+        end
         if(not makTab:ArrayMatch(aRow,false,"",true,true)) then
           LogInstance("Read matching failed "..GetReport(sHew, fName),sTable); tCon.ER = true; break
         end -- Where the line ID must be read from. Validate the value
@@ -4237,12 +4235,11 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
             ..GetReport(sHew, tRow[nCnt], (nCnt+1), defTab[nCnt+1][1], sKey),sTable); return false
         end; tRow[nCnt] = vM -- Store the matched value in the same place as the original
       end -- Check whenever triggers are available. Run them if present
-      if(tTrig and tTrig["Record"]) then table.insert(tRow, 1, vK) -- Apply trigger format
-        local bS, sR = pcall(tTrig["Record"], tRow, sFunc); if(not bS) then
+      if(tTrig and tTrig["ImportDSV"]) then -- Apply trigger format with offset for primary key
+        local bS, sR = pcall(tTrig["ImportDSV"], tRow, -1); if(not bS) then
           LogInstance("Store manager fail: "..GetReport(sHew, nID, vK, sR),sTable); return false end
         if(not sR) then -- Rise log error when something gets wrong inside the trigger routine
           LogInstance("Store routine fail: "..GetReport(sHew, nID, vK),sTable); return false end
-        table.remove(tRow, 1) -- Remove the fictive duplicated primary key from the row data first column
       end
     end -- Register the read line to the output file
     if(bRepl) then -- Replace the data when enabled overwrites the file data
@@ -4343,7 +4340,7 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   I:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
   local sRow, tCon = GetFileRow(S)
-  while(sRow) do
+  while(sRow and not tCon.ER) do
     if(not (IsBlank(sRow) or IsDisable(sRow))) then
       local aRow = sDelim:Explode(sRow)
       if(table.remove(aRow, 1) ~= defTab.Name) then tCon.ER = true
@@ -4395,7 +4392,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
       local F = file.Open(fName, "rb" ,"DATA"); if(not F) then
         LogInstance("Skip fail: "..GetReport(sProg, fPref, fName)); return false end
       local sRow, tCon = GetFileRow(F)
-      while(sRow) do
+      while(sRow and not tCon.ER) do
         if(not IsBlank(sRow)) then local isAct = true
           if(IsDisable(sRow)) then isAct, sRow = false, sRow:sub(2,-1) end
           local tab = sDelim:Explode(sRow)
@@ -4436,7 +4433,7 @@ function ProcessDSV(sDelim)
     LogInstance("Open fail: "..GetReport(fName)); return false end
   local sGen = GetOpVar("DBEXP_PREFGEN")
   local sRow, tCon = GetFileRow(F)
-  while(sRow) do
+  while(sRow and not tCon.ER) do
     if(not IsBlank(sRow)) then
       if(not IsDisable(sRow)) then
         local tInf = sDelim:Explode(sRow)
@@ -4576,7 +4573,7 @@ function ExportTypeRUN(sType, bSet)
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, defP.Nick)
     if(not RunComponentType(sType, function(iTy, sTy)
-      local qTy = makP:Match(sTy, 2, true)
+      local qTy = makP:Match(sTy, makP:GetColumnID("TYPE"), true)
       local Q = makP:Get(qIndx, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery()
         Q = makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qTy) end
       if(not Q) then
@@ -4600,10 +4597,9 @@ function ExportTypeRUN(sType, bSet)
     LogInstance("Generate fail "..GetReport(sN),defP.Nick); return end
   local fS = file.Open(sS, "rb", "DATA"); if(not fS) then
     fE:Close(); LogInstance("Source fail "..GetReport(sS),defP.Nick) return end
-  local sRow, tCon = GetFileRow(fS)
-  local isSkip, sIn = false, "  "
-  while(sRow) do sRow = sRow:gsub("%s*$", "")
-    if(tPat.Var and sRow:find(tPat.Var)) then isSkip = true
+  local bSkip, sIn, sRow, tCon = false, "  ", GetFileRow(fS)
+  while(sRow and not tCon.ER) do sRow = sRow:gsub("%s*$", "")
+    if(tPat.Var and sRow:find(tPat.Var)) then bSkip = true
       fE:Write("local myAddon, myGroup = "); fE:Write(sSufx); fE:Write(".ComponentType(\"")
       if(not RunComponentType(sType, function(iTy, sTy)
         if(iTy == 0) then
@@ -4612,9 +4608,10 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(", "); fE:Write("\"")
           fE:Write(sTy); fE:Write("\"")
         end; return true
-      end, ssLog:format("Addon"))) then LogInstance("Component routine error", defP.Nick); end
+      end, ssLog:format("Addon"))) then tCon.ER = true
+        LogInstance("Component routine error", defP.Nick); end
       fE:Write(")\n")
-    elseif(tPat.Typ and sRow:find(tPat.Typ)) then isSkip = true
+    elseif(tPat.Typ and sRow:find(tPat.Typ)) then bSkip = true
       if(not RunComponentType(sType, function(iTy, sTy)
         if(iTy == 0) then
           fE:Write("local myType0 = "); fE:Write(sSufx); fE:Write(".GetTypeClean(myAddon)\n")
@@ -4623,8 +4620,9 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(sSufx); fE:Write(".GetTypeClean(myGroup and myGroup[");
           fE:Write(tostring(iTy)); fE:Write("] or myAddon)"); fE:Write("\n")
         end; return true
-      end, ssLog:format("Type"))) then LogInstance("Component routine error", defP.Nick); end
-    elseif(tPat.Cax and sRow:find(tPat.Cax)) then isSkip = true
+      end, ssLog:format("Type"))) then tCon.ER = true
+        LogInstance("Component routine error", defP.Nick); end
+    elseif(tPat.Cax and sRow:find(tPat.Cax)) then bSkip = true
       local iCa = 0; fE:Write("local myCategory = {")
       if(not RunComponentType(sType, function(iTy, sTy)
         local tCat = GetOpVar("TABLE_CATEGORIES")[sTy]
@@ -4634,9 +4632,10 @@ function ExportTypeRUN(sType, bSet)
         fE:Write(tostring(iTy)); fE:Write("] = {Txt = [[\n")
         fE:Write(sIn:rep(2)); fE:Write(tCat.Txt:gsub("\n","\n"..sIn:rep(2)).."\n")
         fE:Write(sIn:rep(1)); fE:Write("]]}"); iCa = iCa + 1; return true
-      end, ssLog:format("Category"))) then LogInstance("Component routine error", defP.Nick); end
+      end, ssLog:format("Category"))) then tCon.ER = true
+        LogInstance("Component routine error", defP.Nick); end
       fE:Write((iCa > 0) and "\n}\n" or "}\n")
-    elseif(tPat.Wrs and sRow:find(tPat.Wrs)) then isSkip = true
+    elseif(tPat.Wrs and sRow:find(tPat.Wrs)) then bSkip = true
       if(not RunComponentType(sType, function(iTy, sTy)
         local sID = WorkshopID(sTy)
         if(sID and sID:len() > 0) then
@@ -4646,8 +4645,9 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(sSufx); fE:Write(".WorkshopID(myType")
           fE:Write(tostring(iTy)); fE:Write(")\n")
         end; return true
-      end, ssLog:format("Workshop"))) then LogInstance("Component routine error", defP.Nick); end
-    elseif(tPat.Tas and sRow:find(tPat.Tas)) then isSkip = true
+      end, ssLog:format("Workshop"))) then tCon.ER = true
+        LogInstance("Component routine error", defP.Nick); end
+    elseif(tPat.Tas and sRow:find(tPat.Tas)) then bSkip = true
       local sMak = sRow:gsub(tPat.Tas, ""):gsub(",.*$", "")
       fE:Write(sRow); fE:Write("\n"); fE:Write(sIn:rep(1))
       fE:Write(tPat.Fmk:format(sMak, sMak)); fE:Write("\n")
@@ -4681,21 +4681,25 @@ function ExportTypeRUN(sType, bSet)
               fE:Write(table.concat(aRow, ", ")); fE:Write("})\n")
               if(aRow[cLn] == 1) then
                 if(not SetAdditionsRUN(sMo, qAdditions)) then
-                  LogInstance("Addition error "..GetReport(iD,qList,mMod)); return false end
+                  LogInstance("Addition error "..GetReport(iR,sMo)); return false end
               end
             end
           end; fE:Write(sIn:rep(1))
           fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n"); return true
-        end, ssLog:format("SET:PIECES"))) then LogInstance("Component routine error", defP.Nick); end
+        end, ssLog:format("SET:PIECES"))) then tCon.ER = true
+          LogInstance("Component routine error", defP.Nick); end
       elseif(sMak == "ADDITIONS") then
+        local cMo = makP:GetColumnID("MODELBASE")
         fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Begin() end\n")
         for iR = 1, #qAdditions do
           local aRow = makA:GetRowToArray(qAdditions[iR])
-                       makA:ArrayMatch(aRow, true, "\"", true)
+          local sMo = aRow[cMo]; makA:ArrayMatch(aRow, true, "\"", true)
           if(trgA and trgA[sFunc]) then
             local bS, sR = pcall(trgA[sFunc], aRow, bSet);
-            if(not bS) then LogInstance("Routine error "..GetReport(iR,sMo,sR)); return false end
-            if(not sR) then LogInstance("Internal error "..GetReport(iR,sMo)); return false end
+            if(not bS) then tCon.ER = true
+              LogInstance("Routine error "..GetReport(iR,sMo,sR)) end
+            if(not sR) then tCon.ER = true
+              LogInstance("Internal error "..GetReport(iR,sMo)) end
           end
           fE:Write(sIn:rep(1)); fE:Write(sMak); fE:Write(":Record({")
           fE:Write(table.concat(aRow, ", ")); fE:Write("})\n")
@@ -4703,7 +4707,7 @@ function ExportTypeRUN(sType, bSet)
         fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n")
       end
       fE:Write("end\n");
-    elseif(tPat.Tar and sRow:find(tPat.Tar)) then isSkip = true
+    elseif(tPat.Tar and sRow:find(tPat.Tar)) then bSkip = true
       local sMak = sRow:gsub("local%s+my", ""):gsub("%s*=%s*.*$", "")
       fE:Write("local "); fE:Write("my"..sMak); fE:Write(" = {")
       local bF = true; sMak = sMak:upper()
@@ -4724,7 +4728,7 @@ function ExportTypeRUN(sType, bSet)
                 fE:Write("\n"); fE:Write(sIn:rep(1)); fE:Write("[")
                 fE:Write(aRow[cMo]); fE:Write("] = {\n")
                 if(not SetAdditionsRUN(sMo, qAdditions)) then
-                  LogInstance("Addition error "..GetReport(iD,qList,mMod)); return false end
+                  LogInstance("Addition error "..GetReport(iR,sMo)); return false end
               end; aRow[cTy] = "myType"..iTy
               if(trgP and trgP[sFunc]) then
                 local bS, sR = pcall(trgP[sFunc], aRow, bSet);
@@ -4735,7 +4739,8 @@ function ExportTypeRUN(sType, bSet)
               fE:Write("{"); fE:Write(table.concat(aRow, ", ")); fE:Write("},\n")
             end
           end; return true
-        end, ssLog:format("RUN:PIECES"))) then LogInstance("Component routine error", defP.Nick); end
+        end, ssLog:format("RUN:PIECES"))) then tCon.ER = true
+          LogInstance("Component routine error", defP.Nick); end
         if(not bF) then
           fE:Seek(fE:Tell() - 2); fE:Write("\n")
           fE:Write(sIn:rep(1)); fE:Write("}\n")
@@ -4756,8 +4761,10 @@ function ExportTypeRUN(sType, bSet)
           end
           if(trgA and trgA[sFunc]) then
             local bS, sR = pcall(trgA[sFunc], aRow, bSet);
-            if(not bS) then LogInstance("Routine error "..GetReport(iR,sMo,sR)); return false end
-            if(not sR) then LogInstance("Internal error "..GetReport(iR,sMo)); return false end
+            if(not bS) then tCon.ER = true
+              LogInstance("Routine error "..GetReport(iR,sMo,sR)); end
+            if(not sR) then tCon.ER = true
+              LogInstance("Internal error "..GetReport(iR,sMo)); end
           end
           table.remove(aRow, cMo); fE:Write(sIn:rep(2))
           fE:Write("{"); fE:Write(table.concat(aRow, ", ")); fE:Write("},\n")
@@ -4768,9 +4775,9 @@ function ExportTypeRUN(sType, bSet)
         end
       end; fE:Write("}\n")
     else
-      if(isSkip and IsBlank(sRow:Trim())) then isSkip = false end
+      if(bSkip and IsBlank(sRow:Trim())) then bSkip = false end
     end
-    if(not isSkip) then fE:Write(sRow); fE:Write("\n") end
+    if(not bSkip) then fE:Write(sRow); fE:Write("\n") end
     sRow, tCon = GetFileRow(fS, tCon)
   end; fE:Write("\n"); fE:Flush(); fE:Close()
   if(tCon.ER) then if(not tCon.RO) then fS:Close() end
@@ -4805,7 +4812,7 @@ function ExportTypeDSV(sType, sDelim)
   local aNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defA.Name)
   local P = file.Open(pNam, "wb", "DATA"); if(not P) then
     LogInstance("Open fail "..GetReport(sType, fPref,pNam)); return end
-  local A = file.Open(aNam, "wb", "DATA"); if(not A) then
+  local A = file.Open(aNam, "wb", "DATA"); if(not A) then P:Flush(); P:Close()
     LogInstance("Open fail "..GetReport(sType, fPref,aNam)); return end
   local fsLog = GetOpVar("FORM_LOGSOURCE")
   local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
@@ -4814,12 +4821,14 @@ function ExportTypeDSV(sType, sDelim)
   A:Write(tHea.Src:format(sFunc, tHew.Fmt:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
   A:Write(tHea.Tco:format(defA.Nick, makA:GetColumnList(sDelim)))
   if(sMoDB == "SQL") then
+    local trgP = (istable(defP.Trigs) and defP.Trigs or nil)
+    local trgA = (istable(defA.Trigs) and defA.Trigs or nil)
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qsNov, qP = GetOpVar("MISS_NOAV"), {}
     local qInxP = qsKey:format(sFunc, defP.Nick)
     local qInxA = qsKey:format(sFunc, defA.Nick)
     if(not RunComponentType(sType, function(iTy, sTy)
-      local qTy = makP:Match(sTy, 2, true)
+      local qTy = makP:Match(sTy, makP:GetColumnID("TYPE"), true)
       local Q = makP:Get(qInxP, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery()
         Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qTy) end
       if(not IsHere(Q)) then
@@ -4827,30 +4836,42 @@ function ExportTypeDSV(sType, sDelim)
       local qData = sql.Query(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(iTy,sTy,fPref,sql.LastError(), Q), defP.Nick); return false end
       for iR = 1, #qData do table.insert(qP, qData[iR]) end; return true
-    end, ssLog:format("Query"))) then LogInstance("Component routine error", defP.Nick); return end
-    local coMo, coLI, rwM = makP:GetColumnName(1), makP:GetColumnName(4), ""
+    end, ssLog:format("Query"))) then P:Flush(); P:Close(); A:Flush(); A:Close()
+      LogInstance("Component routine error", defP.Nick); return end
+    local cMo, cLn = makP:GetColumnID("MODEL"), makP:GetColumnID("LINEID")
     P:Write(tHea.Qry:format(#qP, Q))
     for iP = 1, #qP do
-      P:Write(defP.Name); P:Write(sDelim); P:Write(makP:GetPrepare(qP[iP], sDelim,
-        function(iCP, sCP, vCP)
-          rwM = (sCP == coMo and vCP or rwM)
-          if(sCP == coLI and (tonumber(vCP) or 0) == 1) then
-            local qrMo = makP:Match(rwM, 1, true)
-            local Q = makA:Get(qInxA, qrMo); if(not IsHere(Q)) then local tQ = makA:GetQuery()
-              Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxA):Get(qInxA, qrMo) end
-            if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-              LogInstance("Build statement failed "..GetReport(sType, fPref),defA.Nick); return qsNov end
-            local qA = sql.Query(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-              LogInstance("SQL exec error "..GetReport(sType, fPref, sql.LastError(), Q), defA.Nick); return qsNov end
-            if(not IsHere(qA) or IsEmpty(qA)) then
-              LogInstance("No data found "..GetReport(sType, fPref, Q), defA.Nick)
-            else if(iP == 1) then A:Write(tHea.Qry:format(#qA, Q)) end
-              for iA = 1, #qA do
-                A:Write(defA.Name); A:Write(sDelim); A:Write(makA:GetPrepare(qA[iA], sDelim,
-                  function(iCA, sCA, vCA) return makA:Match(vCA,iCA,true,"\"",true) end).."\n")
-              end
-            end
-          end; return makP:Match(vCP,iCP,true,"\"",true) end).."\n")
+      local aP = makP:GetRowToArray(qP[iP])
+      local sMo = aRow[cMo]; makP:ArrayMatch(aP,true,"\"",true)
+      if(trgP["ExportDSV"]) then
+        local bS, sR = pcall(trgP["ExportDSV"], aP)
+        if(not bS) then P:Flush(); P:Close(); A:Flush(); A:Close()
+          LogInstance("Manager error "..GetReport(iP, sMo, sR), ssLog:format("PT:DSV")); return end
+        if(not sR) then P:Flush(); P:Close(); A:Flush(); A:Close()
+          LogInstance("Routine fail "..GetReport(iP, sMo, sR), ssLog:format("PT:DSV")); return end
+      end; P:Write(defP.Name); P:Write(sDelim); P:Write(table.concat(aP, sDelim))
+      if(aP[cLn] == 1) then
+        local qMo = makP:Match(sMo, cMo, true)
+        local Q = makA:Get(qInxA, qMo); if(not IsHere(Q)) then local tQ = makA:GetQuery()
+          Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxA):Get(qInxA, qMo) end
+        if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+          LogInstance("Build statement failed "..GetReport(sType, fPref),defA.Nick); return end
+        local qA = sql.Query(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
+          LogInstance("SQL exec error "..GetReport(sType, fPref, sql.LastError(), Q), defA.Nick); return end
+        if(IsHere(qA) and not IsEmpty(qA)) then
+          if(iP == 1) then A:Write(tHea.Qry:format(#qA, Q)) end
+          for iA = 1, #qA do
+            local aA = makA:GetRowToArray(qA[iA]); makA:ArrayMatch(aA,true,"\"",true)
+            if(trgA["ExportDSV"]) then
+              local bS, sR = pcall(trgA["ExportDSV"], aA)
+              if(not bS) then P:Flush(); P:Close(); A:Flush(); A:Close()
+                LogInstance("Manager error "..GetReport(iA, sMo, sR), ssLog:format("AT:DSV")); return end
+              if(not sR) then P:Flush(); P:Close(); A:Flush(); A:Close()
+                LogInstance("Routine fail "..GetReport(iA, sMo, sR), ssLog:format("AT:DSV")); return end
+            end; A:Write(defA.Name); A:Write(sDelim); A:Write(table.concat(aA), sDelim); A:Write("\n")
+          end
+        end
+      end
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
@@ -5370,7 +5391,7 @@ function AttachAdditions(ePiece)
   local coDR, coPM = makTab:GetColumnName(9), makTab:GetColumnName(10)
   local coPS, coSE = makTab:GetColumnName(11), makTab:GetColumnName(12)
   LogInstance(saFM:format("PIECE", "MODEL", sMoc)) -- Start processing for the base model
-  for iA = 1, stData.Size do local arRec = stData[iA]
+  for iA = 1, stData.Size do local arRec, bF = stData[iA]
     LogInstance(saFM:format("PIECE", "ADDITION", tostring(iA)))
     local sCass = GetEmpty(arRec[coEN], nil, dCass)
     local eBonus = ents.Create(sCass); LogInstance(saFM:format("ENT", "CREATE", sCass))
@@ -5398,15 +5419,15 @@ function AttachAdditions(ePiece)
     if(nPh >= 0) then eBonus:PhysicsInit(nPh)
       LogInstance(saFM:format("ENT", "PhysicsInit", tostring(nPh))) end
     local nSh = (tonumber(arRec[coDR]) or 0)
-    if(nSh ~= 0) then nSh = (nSh > 0); eBonus:DrawShadow(nSh)
-      LogInstance(saFM:format("ENT", "DrawShadow", tostring(nSh))) end
+    if(nSh ~= 0) then bF = (nSh > 0); eBonus:DrawShadow(bF)
+      LogInstance(saFM:format("ENT", "DrawShadow", tostring(bF))) end
     eBonus:SetParent(ePiece); LogInstance("ENT:SetParent(PIECE)")
     eBonus:Spawn(); LogInstance("ENT:Spawn()")
     pPonus = eBonus:GetPhysicsObject()
     if(pPonus and pPonus:IsValid()) then
-      local bEm = (tonumber(arRec[coPM]) or 0)
-      if(bEm ~= 0) then bEm = (bEm > 0); pPonus:EnableMotion(bEm)
-        LogInstance(saFM:format("ENT", "EnableMotion", tostring(bEm))) end
+      local nEm = (tonumber(arRec[coPM]) or 0)
+      if(nEm ~= 0) then bF = (nEm > 0); pPonus:EnableMotion(nEm > 0)
+        LogInstance(saFM:format("ENT", "EnableMotion", tostring(bF))) end
       local nZe = (tonumber(arRec[coPS]) or 0)
       if(nZe > 0) then pPonus:Sleep(); LogInstance("ENT:Sleep()") end
     end
