@@ -121,7 +121,7 @@ function GetTypePrefix(sT)
   return tostring(sT or ""):Trim():gsub("[^%w]","_"):lower()
 end
 
-function GetTypeClean(sT)
+function GetTypeNormalize(sT)
   return tostring(sT or ""):gsub("%s+", " "):Trim()
 end
 
@@ -598,7 +598,7 @@ end
 function ComponentType(sType, ...)
   local sK = GetOpVar("KEY_DEFAULT")
   local tU = GetOpVar("TABLE_COMPONENTS")
-  local sU, nT = GetTypeClean(sType), select("#", ...)
+  local sU, nT = GetTypeNormalize(sType), select("#", ...)
   local tA = tU[sU] -- Index the componet array
   if(not tA) then tA = {[sK] = 0}; tU[sU] = tA end
   if(nT <= 0) then -- No components specified
@@ -609,7 +609,7 @@ function ComponentType(sType, ...)
   local nA = tA[sK] -- Length calculation
   for iT = 1, nT do -- Process the parameters
     local vT = select(iT, ...) -- Read params
-    local sT = GetTypeClean(vT) -- Normal
+    local sT = GetTypeNormalize(vT) -- Normal
     if(sT ~= sU) then -- Do not register itself
       if(not tA[sT]) then -- Does not exist
         table.insert(tA, sT) -- Store it
@@ -4546,10 +4546,11 @@ function ExportTypeRUN(sType, bSet)
     LogInstance("Working on server"); return end
   if(not isstring(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return end
+  local sType = GetTypeNormalize(sType); if(IsBlank(sType)) then
+    LogInstance("Type is empty "..GetReport(sType)); return end
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode "..GetReport(sType)); return end
-  local sType, tType, nType = ComponentType(sType)
   local sPref, sFunc = GetTypePrefix(sType), debug.getinfo(1).name
   local noSQL, sTool = GetOpVar("MISS_NOSQL"), GetOpVar("TOOLNAME_NL")
   local tPat = (bSet and GetOpVar("PATTEX_AUTOSET") or GetOpVar("PATTEX_AUTORUN"))
@@ -4614,10 +4615,10 @@ function ExportTypeRUN(sType, bSet)
     elseif(tPat.Typ and sRow:find(tPat.Typ)) then bSkip = true
       if(not RunComponentType(sType, function(iTy, sTy)
         if(iTy == 0) then
-          fE:Write("local myType0 = "); fE:Write(sSufx); fE:Write(".GetTypeClean(myAddon)\n")
+          fE:Write("local myType0 = "); fE:Write(sSufx); fE:Write(".GetTypeNormalize(myAddon)\n")
         else
           fE:Write("local myType"); fE:Write(tostring(iTy)); fE:Write(" = ")
-          fE:Write(sSufx); fE:Write(".GetTypeClean(myGroup and myGroup[");
+          fE:Write(sSufx); fE:Write(".GetTypeNormalize(myGroup and myGroup[");
           fE:Write(tostring(iTy)); fE:Write("] or myAddon)"); fE:Write("\n")
         end; return true
       end, ssLog:format("Type"))) then tCon.ER = true
@@ -4792,9 +4793,15 @@ end
 ]]
 function ExportTypeDSV(sType, sDelim)
   if(SERVER) then LogInstance("Working on server"); return end
+  if(not isstring(sType)) then -- Type is not a string
+    LogInstance("Type mismatch "..GetReport(sType)); return end
+  local sType = GetTypeNormalize(sType); if(IsBlank(sType)) then
+    LogInstance("Type is empty "..GetReport(sType)); return end
+  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debug.getinfo(1).name
+  local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode"); return end
   local tHea = GetOpVar("FORM_HEADEREXP"); if(not isstring(sType)) then
     LogInstance("Type mismatch "..GetReport(sType)); return end
-  local sType, tType, nType = ComponentType(sType) -- Normalize type
   local tHew, fPref = GetOpVar("PATTEM_EXDSVHED"), GetTypePrefix(sType)
   local makP = GetBuilderNick("PIECES"); if(not IsHere(makP)) then
     LogInstance("Missing pieces builder "..GetReport(sType, fPref)); return end
@@ -4804,9 +4811,6 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("Missing additions builder "..GetReport(sType, fPref)); return end
   local defA = makA:GetDefinition(); if(not IsHere(defA)) then
     LogInstance("Missing additions definition "..GetReport(sType, fPref)); return end
-  local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debug.getinfo(1).name
-  local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
-    LogInstance("Unsupported mode"); return end
   local sDelim, fMon = tostring(sDelim or "\t"):sub(1,1), GetConcat("[", sMoDB:lower(), "-dsv]")
   local pNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defP.Name)
   local aNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defA.Name)
@@ -4898,8 +4902,12 @@ function ExportTypeTRN(sType, bExp)
     LogInstance("Working on server"); return end
   if(not isstring(sType)) then -- Type is not a string
     LogInstance("Type mismatch "..GetReport(sType)); return end
+  local sType = GetTypeNormalize(sType); if(IsBlank(sType)) then
+    LogInstance("Type is empty "..GetReport(sType)); return end
+  local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
+  local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode "..GetReport(sType)); return end
   local sSrc = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-  local sType = GetTypeClean(sType) -- Normalize type and convert it
   local sDir, sPrf, sNam = GetLibraryPath(sSrc), GetTypePrefix(sType)
   if(bExp) then -- Use the pattern for the export file format
     sNam = GetOpVar("FORM_PREFIXDSV"):format(sPrf, "*"):lower()
@@ -4927,9 +4935,13 @@ function ExportTypeCAT(sType)
     LogInstance("Working on server"); return end
   if(not isstring(sType)) then -- Type is not a string
     LogInstance("Type mismatch "..GetReport(sType)); return end
+  local sType = GetTypeNormalize(sType); if(IsBlank(sType)) then
+    LogInstance("Type is empty "..GetReport(sType)); return end
+  local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
+  local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode "..GetReport(sType)); return end
   local tCat = GetOpVar("TABLE_CATEGORIES") -- Categories table
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
-  local sType = GetTypeClean(sType) -- Normalize type and convert it
   local sPref, tCax = GetTypePrefix(sType), {} -- Convert type to prefix
   local sName = GetConcat("[", sMoDB, "-cat]", sPref):lower()
   local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
