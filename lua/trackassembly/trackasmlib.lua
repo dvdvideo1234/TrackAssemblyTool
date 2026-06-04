@@ -2471,10 +2471,8 @@ function GetBeautify()
   local mfCon = GetOpVar("MODELNAM_FUNC")
   local msDiv = GetOpVar("OPSYM_DIVIDER")
   local msDir = GetOpVar("OPSYM_DIRECTORY")
-  self.__GSUB = {
-    {msDiv.."+" , msDiv}, {msDiv.."$" , ""   },
-    {msDiv.."%w", mfCon}, {msExt      , ""   }
-  }
+  local mtSUB = {{msDiv.."+" , msDiv}, {msDiv.."$" , ""   },
+                 {msDiv.."%w", mfCon}, {msExt      , ""   }}
   local mtCut, mtSub, mtApp
   function self:Get()
     return msName
@@ -2494,21 +2492,21 @@ function GetBeautify()
   end
   function self:Apply()
     -- Apply the general rules on the conversion
-    if(mtCut) then local iCnt, iNxt = 1, 2
-      while(mtCut[iCnt] and mtCut[iNxt]) do
-        local fNu, bNu = tonumber(mtCut[iCnt]), tonumber(mtCut[iNxt])
+    if(mtCut) then local iC, iN = 1, 2
+      while(mtCut[iC] and mtCut[iN]) do
+        local fNu, bNu = tonumber(mtCut[iC]), tonumber(mtCut[iN])
         if(IsHere(fNu) and IsHere(bNu)) then
           LogInstance("Cut "..GetReport(fNu, bNu, msConv), msLogs)
           msConv = msConv:gsub(msConv:sub(fNu, bNu), "", 1)
         else LogInstance("Cut mismatch "..GetReport(fNu, bNu, sModel), msLogs); end
-        iCnt, iNxt = (iCnt + 2), (iNxt + 2)
+        iC, iN = (iC + 2), (iN + 2)
       end
     end -- Replace the unneeded parts by finding an in-string msConv
-    if(mtSub) then local iCnt, iNxt = 1, 2
-      while(mtSub[iCnt]) do
-        local fCh, bCh = tostring(mtSub[iCnt] or ""), tostring(mtSub[iNxt] or "")
+    if(mtSub) then local iC, iN = 1, 2
+      while(mtSub[iC]) do
+        local fCh, bCh = tostring(mtSub[iC] or ""), tostring(mtSub[iN] or "")
         msConv = msConv:gsub(fCh, bCh); LogInstance("Sub "..GetReport(fCh, bCh, msConv), msLogs)
-        iCnt, iNxt = (iCnt + 2), (iNxt + 2)
+        iC, iN = (iC + 2), (iN + 2)
       end
     end -- Append something if needed
     if(mtApp) then
@@ -2517,14 +2515,14 @@ function GetBeautify()
     end; return self:Set(msConv)
   end
   function self:Beautify(sIn)
-    local tA, tB, tC, tD = unpack(self.__GSUB)
+    local tA, tB, tC, tD = unpack(mtSUB)
     msConv = tostring(sIn or msName):lower():Trim()
     msConv = msConv:gsub(tA[1], tA[2]):gsub(tB[1], tB[2])
     if(msConv:sub(1,1) ~= msDiv) then msConv = msDiv..msConv end
     return self:Set(msConv:gsub(tC[1], tC[2]):sub(2,-1))
   end
   function self:Convert(sIn, bNo) -- ModelToName
-    local tA, tB, tC, tD = unpack(self.__GSUB)
+    local tA, tB, tC, tD = unpack(mtSUB)
     local sIn = tostring(sIn or ""):lower():Trim()
     if(IsBlank(sIn)) then return self:Set() end
     sIn = (sIn:sub(1, 1) ~= msDir) and GetConcat(msDir, sIn) or sIn
@@ -4815,9 +4813,9 @@ function ExportTypeDSV(sType, sDelim)
   local pNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defP.Name)
   local aNam = GetLibraryPath(GetOpVar("DIRPATH_EXP"), fMon..fPref, defA.Name)
   local P = file.Open(pNam, "wb", "DATA"); if(not P) then
-    LogInstance("Open fail "..GetReport(sType, fPref,pNam)); return end
+    LogInstance("Open fail "..GetReport(sType, fPref, pNam, defP.Nick)); return end
   local A = file.Open(aNam, "wb", "DATA"); if(not A) then P:Flush(); P:Close()
-    LogInstance("Open fail "..GetReport(sType, fPref,aNam)); return end
+    LogInstance("Open fail "..GetReport(sType, fPref, aNam, defP.Nick)); return end
   local fsLog = GetOpVar("FORM_LOGSOURCE")
   local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
   P:Write(tHea.Src:format(sFunc, tHew.Fmt:format(fPref,defP.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
@@ -4836,14 +4834,14 @@ function ExportTypeDSV(sType, sDelim)
       local Q = makP:Get(qInxP, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery()
         Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qTy) end
       if(not IsHere(Q)) then
-        LogInstance("Build statement failed "..GetReport(iTy, sTy, fPref),defP.Nick); return false end
+        LogInstance("Build statement failed "..GetReport(iTy,sTy),defP.Nick); return false end
       local qData = sql.Query(Q); if(not qData and isbool(qData)) then
-        LogInstance("SQL exec error "..GetReport(iTy,sTy,fPref,sql.LastError(), Q), defP.Nick); return false end
-      for iR = 1, #qData do table.insert(qP, qData[iR]) end; return true
+        LogInstance("SQL exec error "..GetReport(iTy,sTy,sql.LastError(),Q), defP.Nick); return false end
+      local nR = #qData; P:Write(tHea.Qry:format(nR, Q))
+      for iR = 1, nR do table.insert(qP, qData[iR]) end; return true
     end, ssLog:format("Query"))) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("Component routine error", defP.Nick); return end
     local cMo, cLn = makP:GetColumnID("MODEL"), makP:GetColumnID("LINEID")
-    P:Write(tHea.Qry:format(#qP, Q))
     for iP = 1, #qP do
       local aP = makP:GetRowToArray(qP[iP])
       local sMo = aRow[cMo]; makP:ArrayMatch(aP,true,"\"",true)
@@ -4862,8 +4860,7 @@ function ExportTypeDSV(sType, sDelim)
           LogInstance("Build statement failed "..GetReport(sType, fPref),defA.Nick); return end
         local qA = sql.Query(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
           LogInstance("SQL exec error "..GetReport(sType, fPref, sql.LastError(), Q), defA.Nick); return end
-        if(IsHere(qA) and not IsEmpty(qA)) then
-          if(iP == 1) then A:Write(tHea.Qry:format(#qA, Q)) end
+        if(IsHere(qA) and not IsEmpty(qA)) then A:Write(tHea.Qry:format(#qA, Q))
           for iA = 1, #qA do
             local aA = makA:GetRowToArray(qA[iA]); makA:ArrayMatch(aA,true,"\"",true)
             if(trgA["ExportDSV"]) then

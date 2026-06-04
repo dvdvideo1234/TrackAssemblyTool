@@ -22,7 +22,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
  * myType3, ... myType/n as variable arguments when your
  * addon contains multiple model packs.
 ]]
-local myAddon, myGroup = asmlib.ComponentType("Test's track pack") -- Your addon name
+local myAddon, myGroup = asmlib.ComponentType("Test's track pack")
 
 --[[
  * If you have passed a vararg above you will have a type group that
@@ -34,6 +34,16 @@ local myType = myAddon -- The type your addon resides in the tool with
 
 --[[
  * This is the beautifier object if you need to apply name beautifier rules
+ * You can use it to make TA populate the track piece name from its model
+ * You can have multiple substitution instance rules. Every one will substitute
+ * the string gradually based on the result of the previous substitution
+ * BEAUTY:SetRule()                 > Clear the beautifier rules
+ * BEAUTY:SetRule(gCut, gSub, gApp) > Apply a beautifier rule tables
+ *   gCut = {1, 6}          > Substitutes once the string defined between 1st and 6th symbol
+ *   gSub = {"foo", "bar"}  > Substitute the pattern in the first cell with the value of the second
+ *   gApp = {"foo", "bar"}  > Appends the first value at the front and the second on the back
+ * BEAUTY:Beautify(sIn)     > Process an entire string input. Underscore is treated as delimiter
+ * BEAUTY:Convert(sIn, bNo) > Process the file name. Second argument to disable the rules
 ]]
 local BEAUTY = asmlib.GetBeautify()
 
