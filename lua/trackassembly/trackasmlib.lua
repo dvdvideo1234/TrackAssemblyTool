@@ -3412,6 +3412,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
   function self:Erase(sKey)
     local sKey, qtDef  = tostring(sKey or ""), self:GetDefinition()
     local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debug.getinfo(1).name
+    local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
+      LogInstance("Unsupported mode "..GetReport(sType)); return false end
     if(sMoDB == "SQL") then local Q = nil
       if(sKey == "") then
         Q = self:Delete():Get(); if(not IsHere(Q)) then
