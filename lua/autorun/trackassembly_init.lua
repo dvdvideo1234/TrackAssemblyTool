@@ -278,17 +278,20 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
 
 ------------ ACTIONS ------------
 
-asmlib.SetAction("REFRESH_ITEM_LIST", -- Duplicator wrapper
-  function(tData, sPref)
+asmlib.SetAction("REFRESH_ITEM_LIST",
+  function(tData, sPref) -- Dedicated refresh action
     asmlib.RunBuilderCount(function(makTab, iD)
       local defTab = makTab:GetDefinition()
-      local sFile = tData.fDSV:format(sPref, defTab.Nick):lower()
-      if(file.Exists(sFile, "DATA")) then
-        asmlib.ImportDSV(defTab.Nick, true, sPref, nil, nil, true)
-      end
-    end, "REFRESH_ITEM_LIST"); return true
-  end, {
-    fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt"):lower()
+      local sP, sT = sPref, defTab.Nick -- Prefix
+      if(asmlib.IsBlank(sP)) then return true end
+      local sFile = tData.DSV:format(sP, sT):lower()
+      if(file.Exists(sFile, tData.SRC)) then
+        asmlib.ImportDSV(sT, tData.COM, sP, nil, nil, tData.RFS)
+      end -- When the file is available use direct data import
+    end, "REFRESH_ITEM_LIST"); return true -- Exit success
+  end, { -- Constants used across the action taken
+    DSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt"):lower(),
+    SRC = "DATA", COM = true, RFS = true -- Do not create values on call
   })
 
 if(SERVER) then
@@ -307,7 +310,7 @@ if(SERVER) then
     function(nLen, oPly) local sLog = "*REFRESH_ITEM_LIST"
       local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", net.ReadString())
       if(not bS) then asmlib.LogInstance("Refresh execute: "..sR,sLog); return nil end
-      if(not sR) then asmlib.LogInstance("Trigger routine fail",sLog); return nil end
+      if(not sR) then asmlib.LogInstance("Refresh routine fail",sLog); return nil end
     end)
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
@@ -933,7 +936,7 @@ if(CLIENT) then
               asmlib.LogInstance("Single player only",sLog..".ListView"); return nil end
             local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", sP)
             if(not bS) then asmlib.LogInstance("Refresh execute "..asmlib.GetReport(sP, sR),sLog..".ListView"); return nil end
-            if(not sR) then asmlib.LogInstance("Trigger routine fail",sLog..".ListView"); return nil end
+            if(not sR) then asmlib.LogInstance("Refresh routine fail",sLog..".ListView"); return nil end
             net.Start(gsLibName.."SendRefreshDSV"); net.WriteString(sP); net.SendToServer()
           end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(language.GetPhrase(sT.."lirm"),
