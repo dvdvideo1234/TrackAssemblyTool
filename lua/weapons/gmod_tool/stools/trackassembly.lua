@@ -148,10 +148,17 @@ if(SERVER) then
     function(oPly, oCom, oArgs) -- The command is intended for running in the server developer console
       if(game.SinglePlayer()) then -- During single player the database is refreshed via context menu
         asmlib.LogInstance("Refresh routine single",gtLogs); return end -- Command does nothing in single
-      local sP = asmlib.GetTypePrefix(tostring(oArgs[1] or "")); if(oPly ~= NULL) then -- Player will be NULL
-        asmlib.LogInstance("Refresh routine skip",gtLogs); return end -- Otherwise just exit routine
+      local sP = tostring(oArgs[1] or ""); if(oPly ~= NULL) then -- Player will be when executed in the console
+        asmlib.LogInstance("Refresh routine skip "..asmlib.GetReport(sP,oPly),gtLogs); return end -- Exit routine
       local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", sP); if(not bS) then
-        asmlib.LogInstance("Refresh execute: "..asmlib.GetReport(sP,sR),gtLogs); return end
+        asmlib.LogInstance("Refresh execute "..asmlib.GetReport(sP,sR),gtLogs); return end
+    end)
+
+  net.Receive(gsLibName.."SendRefreshDSV",
+    function(nLen, oPly)
+      local sLog, sP = "*REFRESH_ITEM_LIST", net.ReadString()
+      local bS, vO = asmlib.DoAction("REFRESH_ITEM_LIST", sP); if(not bS) then
+        asmlib.LogInstance("Refresh execute: "..asmlib.GetReport(sP,sR),sLog); return end
     end)
 end
 

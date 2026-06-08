@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.866")
+asmlib.SetOpVar("TOOL_VERSION","9.867")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -306,13 +306,6 @@ if(SERVER) then
   util.AddNetworkString(gsLibName.."SendRemoveCurveNode")
   util.AddNetworkString(gsLibName.."SendInsertCurveNode")
   util.AddNetworkString(gsLibName.."SendClearCurveNode")
-
-  net.Receive(gsLibName.."SendRefreshDSV",
-    function(nLen, oPly)
-      local sLog, sP = "*REFRESH_ITEM_LIST", net.ReadString()
-      local bS, vO = asmlib.DoAction("REFRESH_ITEM_LIST", sP); if(not bS) then
-        asmlib.LogInstance("Refresh execute: "..asmlib.GetReport(sP,sR),sLog); return end
-    end)
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
     function(oPly,oEnt,tData) local sLog = "*DUPE_PHYS_SETTINGS"
