@@ -700,6 +700,7 @@ function InitBase(sName, sPurp)
   SetOpVar("NAME_INIT",sName:lower())
   SetOpVar("NAME_PERP",sPurp:lower())
   SetOpVar("NAME_LIBSUFX", "asmlib")
+  SetOpVar("UNDO_PERFIX",GetOpVar("NAME_INIT"):gsub("^%l", string.upper)..": ")
   SetOpVar("NAME_LIBRARY", GetOpVar("NAME_INIT")..GetOpVar("NAME_LIBSUFX"))
   SetOpVar("TOOLNAME_NL",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):lower())
   SetOpVar("TOOLNAME_NU",(GetOpVar("NAME_INIT")..GetOpVar("NAME_PERP")):upper())
@@ -4113,7 +4114,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   if(IsBlank(fPref)) then -- The first argument is considered to be a table nick
     LogInstance("Prefix mismatch "..GetReport(fPref,sPref), sTable); return false end
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
-    LogInstance("Missing table builder "..GetReport(sHew,fName), sTable); return nil end
+    LogInstance("Missing table builder "..GetReport(sHew,fName), sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition "..GetReport(sHew,fName), sTable); return false end
   if(bFile) then

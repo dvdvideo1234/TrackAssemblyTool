@@ -15,7 +15,7 @@ local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
 local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
 local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
-local gsUndoPrefN = asmlib.GetOpVar("NAME_INIT"):gsub("^%l", string.upper)..": "
+local gsUndoPrefN = asmlib.GetOpVar("UNDO_PERFIX")
 local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
 local gsNoAV      = asmlib.GetOpVar("MISS_NOAV") -- Not available
 local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
@@ -95,6 +95,7 @@ if(CLIENT) then
   -- https://wiki.facepunch.com/gmod/Tool_Information_Display
   TOOL.Information = asmlib.GetToolInformation()
 
+  concommand.Remove(gsToolPrefL.."openframe")
   concommand.Add(gsToolPrefL.."openframe", asmlib.GetActionCode("OPEN_FRAME"))
 
   net.Receive(gsLibName.."SendDeleteGhosts"   , asmlib.GetActionCode("CLEAR_GHOSTS"))
@@ -113,6 +114,7 @@ if(CLIENT) then
   hook.Add("OnContextMenuOpen", gsToolPrefL.."ctxmenu_open", asmlib.GetActionCode("CTXMENU_OPEN"))
   hook.Add("OnContextMenuClose", gsToolPrefL.."ctxmenu_close", asmlib.GetActionCode("CTXMENU_CLOSE"))
 
+  concommand.Remove(gsToolPrefL.."resetvars")
   concommand.Add(gsToolPrefL.."resetvars",
     function(oPly, oCom, oArgs)
       asmlib.SetAsmConvar(oPly,"nextx"  , 0)
@@ -140,6 +142,17 @@ if(SERVER) then
   hook.Add("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
   hook.Add("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
   duplicator.RegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
+
+  concommand.Remove(gsToolPrefL.."refreshdsv")
+  concommand.Add(gsToolPrefL.."refreshdsv",
+    function(oPly, oCom, oArgs) -- The command is intended for running in the server developer console
+      if(game.SinglePlayer()) then -- During single player the database is refreshed via context menu
+        asmlib.LogInstance("Refresh routine single",gtLogs); return end -- Command does nothing in single
+      local sP = asmlib.GetTypePrefix(tostring(oArgs[1] or "")); if(oPly ~= NULL) then -- Player will be NULL
+        asmlib.LogInstance("Refresh routine skip",gtLogs); return end -- Otherwise just exit routine
+      local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", sP); if(not bS) then
+        asmlib.LogInstance("Refresh execute: "..asmlib.GetReport(sP,sR),gtLogs); return end
+    end)
 end
 
 TOOL.Name       = language.GetPhrase and language.GetPhrase("tool."..gsToolNameL..".name")
