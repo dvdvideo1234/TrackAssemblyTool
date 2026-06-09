@@ -4326,8 +4326,9 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
         if(not IsHere(vM)) then I:Flush(); I:Close(); tCon.ER = true
           LogInstance("Given matching failed "
             ..GetReport(sHew, aRow[nCnt], nCnt, defTab[nCnt][1]), sTable); break end
-        aRow[nCnt] = tostring(vM)
-      end; I:Write(sFr); I:Write(table.concat(aRow, ", ")); I:Write(sBk)
+      end
+      if(not makTab:Trigger("ExportDSV", defTab.Nick, aRow)) then tCon.ER = true; break end
+      I:Write(sFr); I:Write(table.concat(aRow, ", ")); I:Write(sBk)
     end; sRow, tCon = GetFileRow(S, tCon)
   end; I:Flush(); I:Close()
   if(tCon.ER) then if(not tCon.RO) then S:Close() end
