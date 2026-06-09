@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.867")
+asmlib.SetOpVar("TOOL_VERSION","9.868")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -287,7 +287,7 @@ asmlib.SetAction("REFRESH_ITEM_LIST",
       local sFile = tData.DSV:format(sP, sT):lower()
       if(file.Exists(sFile, tData.SRC)) then
         if(not asmlib.ImportDSV(sT, tData.COM, sP, nil, nil, tData.RFS)) then
-          asmlib.LogInstance("Failed to import "..asmlib.GetReport(sT,sP)); return end
+          asmlib.LogInstance("Failed refreshing "..asmlib.GetReport(sT,sP)); return end
       end -- When the file is available use direct data import
     end, "REFRESH_ITEM_LIST"); return true -- Exit success
   end, { -- Constants used across the action taken
@@ -1719,7 +1719,7 @@ asmlib.NewTable("PIECES",{
         arLine[iC] = (bSQL and "gsMissDB" or arLine[iC])
       end; return true
     end,
-    Record = function(arLine, vSrc)
+    Record = function(arLine)
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
@@ -1730,7 +1730,6 @@ asmlib.NewTable("PIECES",{
       arLine[7] = asmlib.GetEmpty(arLine[7], asmlib.IsBlank, gsNoSQL)
       arLine[8] = asmlib.GetEmpty(arLine[8], emFva, gsNoSQL)
       if(not (asmlib.IsNull(arLine[8]) or asmlib.IsBlank(arLine[8]) or trCls[arLine[8]])) then
-        asmlib.LogInstance("Register trace "..asmlib.GetReport(arLine[8],arLine[1]),vSrc)
         trCls[arLine[8]] = true; -- Register the class provided to the trace hit list
       end; return true
     end
@@ -1808,7 +1807,6 @@ asmlib.NewTable("PIECES",{
         asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType),vSrc); return false end
       local sType, tType, nType = asmlib.ComponentType(sType) -- Normalize type
       local defP, defA = makP:GetDefinition(), makA:GetDefinition()
-      local tTrgA = (istable(defA.Trigs) and defA.Trigs or nil)
       local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
       for iP = 1, tSort.Size do
         local stRec = tSort[iP] -- Sorted sequential key
@@ -1836,11 +1834,8 @@ asmlib.NewTable("PIECES",{
                 for iA = 1, tA.Size do fA:Write(sH)
                   local aRow = makA:GetRowToArray(tA[iA]); aRow[1] = stRec.Key
                   for iC = 1, #aRow do aRow[iC] = makA:Match(aRow[iC],iC,true,"\"") end
-                  if(tTrgA and tTrgA["ExportDSV"]) then
-                    local bS, sR = pcall(tTrgA["ExportDSV"], aRow)
-                    if(not bS) then asmlib.LogInstance("Manager fail: "..sR,defA.Nick); return false end
-                    if(not sR) then asmlib.LogInstance("Routine fail",defA.Nick); return false end
-                  end; fA:Write(table.concat(aRow, sDelim)); fA:Write("\n")
+                  if(not makA:Trigger("ExportDSV", vSrc, aRow)) then return false end
+                  fA:Write(table.concat(aRow, sDelim)); fA:Write("\n")
                 end
               end
             end
@@ -1925,13 +1920,7 @@ asmlib.NewTable("ADDITIONS",{
       return true
     end,
     ExportTypeRUN = function(arLine)
-      local sF, sM  = "%+d", "gsMissDB"; arLine[4] = "gsSymOff"
-      arLine[7]  = (asmlib.GetEnumMap("MOVETYPE", arLine[7]) or arLine[7])
-      arLine[8]  = (asmlib.GetEnumMap("SOLID"   , arLine[8]) or arLine[8])
-      arLine[9]  = sF:format(arLine[9]) -- Draw shadow
-      arLine[10] = sF:format(arLine[10]) -- Enable motion
-      arLine[11] = sF:format(arLine[11]) -- Physics sleep
-      arLine[12] = (asmlib.GetEnumMap("SOLID"   , arLine[12]) or arLine[12])
+      local sM  = "gsMissDB"; arLine[4] = "gsSymOff"
       for iC = 1, #arLine do
         local bSQL = (asmlib.GetStrip(arLine[iC]) == gsNoSQL)
         arLine[iC] = (bSQL and sM or arLine[iC])
@@ -1970,18 +1959,13 @@ asmlib.NewTable("ADDITIONS",{
     ExportDSV = function(oF, makTab, tCache, fPref, sDelim, vSrc)
       local tSort = asmlib.Arrange(tCache, "Slot")
       local defTab = makTab:GetDefinition()
-      local tTrig = (istable(defTab.Trigs) and defTab.Trigs or nil)
       for iRow = 1, tSort.Size do
         local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
         for iRec = 1, #tRec do
           local aRow = makTab:GetRowToArray(tRec[iRec]); aRow[1] = sKey
           for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
-          if(tTrig and tTrig["ExportDSV"]) then
-            local bS, sR = pcall(tTrig["ExportDSV"], aRow)
-            if(not bS) then asmlib.LogInstance("Manager fail: "..sR,vSrc); return false end
-            if(not sR) then asmlib.LogInstance("Routine fail",vSrc); return false end
-          end
+          if(not makTab:Trigger("ExportDSV", vSrc, aRow)) then return false end
           oF:Write(defTab.Name); oF:Write(sDelim)
           oF:Write(table.concat(aRow, sDelim)); oF:Write("\n")
         end
@@ -2022,7 +2006,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
     ExportTypeRUN = function(arLine)
       arLine[2] = "gsSymOff"; return true
     end,
-    Record = function(arLine, vSrc)
+    Record = function(arLine)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
       arLine[1] = asmlib.GetEmpty(arLine[1], emFva, asmlib.Categorize(), noTY); return true

@@ -3409,6 +3409,16 @@ function NewTable(sTable,defTab,bReload,bDelete)
     for iCnt = 1, nA do self:SetFragment(tostring(tA[iCnt]), (iCnt ~= nA and ", " or " );")) end
     qtCmd[qtCmd.STMT] = self:GetFragment(); return self
   end
+  -- Run a trigger with the given ID and arguments
+  function self:Trigger(sID, vSrc, ...)
+    local qtDef = self:GetDefinition()
+    local qtTrg = (istable(qtDef.Trigs) and qtDef.Trigs or nil)
+    if(not (qtTrg and qtTrg[sID])) then return true end
+    local bS, sR = pcall(qtTrg[sID], ...)
+    if(not bS) then LogInstance("Routine error "..GetReport(sID,sR,...),vSrc); return false end
+    if(not sR) then LogInstance("Internal error "..GetReport(sID,sR,...),vSrc); return false end
+    return true -- The trigger is successfully executed
+  end
   -- Wipes a set of records via primary key
   function self:Erase(sKey)
     local sKey, qtDef  = tostring(sKey or ""), self:GetDefinition()
@@ -3441,7 +3451,6 @@ function NewTable(sTable,defTab,bReload,bDelete)
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
     local qtDef = self:GetDefinition()
-    local tTrig = (istable(qtDef.Trigs) and qtDef.Trigs or nil)
     local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debug.getinfo(1).name
     local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
       LogInstance("Unsupported mode", qtDef.Nick); return false end
@@ -3453,11 +3462,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     end -- Read the log source format and reduce the number of concatenations
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
     local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
-    if(tTrig and tTrig[sFunc]) then -- Call the trigger when provided
-      local bS, sR = pcall(tTrig[sFunc], arLine, ssLog:format("Trigs"))
-      if(not bS) then LogInstance("Trigger manager: "..sR,qtDef.Nick); return false end
-      if(not sR) then LogInstance("Trigger routine fail",qtDef.Nick); return false end
-    end -- Populate the data after the trigger does its thing
+    if(not self:Trigger(sFunc, ssLog:format("Trigs"), arLine)) then return false end
     if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
       for iD = 1, qtDef.Size do arLine[iD] = self:Match(arLine[iD],iD,true) end
       local qIndx = qsKey:format(sFunc, qtDef.Nick)
@@ -4039,7 +4044,6 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     LogInstance("Missing table builder "..GetReport(sHew), sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition "..GetReport(sHew), sTable); return false end
-  local tTrig = (istable(defTab.Trigs) and defTab.Trigs or nil)
   local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fName = GetLibraryPath(sSors, fPref, defTab.Name)
   local F = file.Open(fName, "wb", "DATA"); if(not F) then
@@ -4060,13 +4064,8 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     F:Write(tHea.Qry:format(#qData, Q))
     for iR = 1, #qData do local aRow = makTab:GetRowToArray(qData[iR])
       for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
-      if(tTrig["ExportDSV"]) then
-        local bS, sR = pcall(tTrig["ExportDSV"], aRow)
-        if(not bS) then F:Flush(); F:Close()
-          LogInstance("Trigs manager error "..GetReport(sHew, fName, sR), sTable); return false end
-        if(not sR) then F:Flush(); F:Close()
-          LogInstance("Trigs routine fail "..GetReport(sHew, fName, sR), sTable); return false end
-      end; F:Write(defTab.Name); F:Write(sDelim); F:Write(table.concat(aRow, sDelim)); F:Write("\n")
+      if(not makTab:Trigger("ExportDSV", sTable, aRow)) then F:Flush(); F:Close(); return false end
+      F:Write(defTab.Name); F:Write(sDelim); F:Write(table.concat(aRow, sDelim)); F:Write("\n")
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
     local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
@@ -4129,7 +4128,6 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   if(bComm and sMoDB == "SQL") then
     sql.Query(makTab:Begin():Get()); LogInstance("Begin "..GetReport(sHew,fName), sTable)
   end
-  local trgTab = (istable(defTab.Trigs) and defTab.Trigs or nil)
   local iD, sRow, tCon = makTab:GetColumnID("LINEID"), GetFileRow(F)
   while(sRow and not tCon.ER) do
     if(not (IsBlank(sRow) or IsDisable(sRow))) then
@@ -4138,11 +4136,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
         LogInstance("Internal table mismatch "..GetReport(sHew, sRow), sTable); break end
       if(#aRow ~= defTab.Size) then tCon.ER = true
         LogInstance("Internal data mismatch "..GetReport(sHew, sRow), sTable); break end
-      local bS, sR = pcall(trgTab[sFunc], aRow);
-      if(not bS) then tCon.ER = true
-        LogInstance("Routine error "..GetReport(sHew, sRow, sR)); break end
-      if(not sR) then tCon.ER = true
-        LogInstance("Internal error "..GetReport(sHew, sRow)); break end
+      if(not makTab:Trigger(sFunc, sTable, aRow)) then tCon.ER = true; break end
       if(bRef and (tonumber(aRow[iD]) or 0) == 1) then
         if(bComm) then makTab:Erase(aRow[1]) end
       end
@@ -4181,7 +4175,6 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder "..GetReport(sHew),sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
-  local tTrig = (istable(defTab.Trigs) and defTab.Trigs or nil)
   local fName = GetLibraryPath(GetOpVar("DIRPATH_DSV"), fPref, defTab.Name)
   TimeLap("INIT-OK")
   if(file.Exists(fName, "DATA")) then
@@ -4195,12 +4188,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           LogInstance("Internal table mismatch "..GetReport(sHew, sRow, fName), sTable); break end
         if(#aRow ~= defTab.Size) then tCon.ER = true
           LogInstance("Internal data mismatch "..GetReport(sHew, sRow, fName), sTable); break end
-        if(tTrig and tTrig["ImportDSV"]) then
-          local bS, sR = pcall(tTrig["ImportDSV"], aRow, 0); if(not bS) then
-            LogInstance("Store manager fail: "..GetReport(sHew, nID, vK, sR),sTable); return false end
-          if(not sR) then -- Rise log error when something gets wrong inside the trigger routine
-            LogInstance("Store routine fail: "..GetReport(sHew, nID, vK),sTable); return false end
-        end
+        if(not makTab:Trigger("ImportDSV", defTab.Nick, aRow, 0)) then tCon.ER = true; break end
         if(not makTab:ArrayMatch(aRow,false,"",true,true)) then
           LogInstance("Read matching failed "..GetReport(sHew, fName),sTable); tCon.ER = true; break
         end -- Where the line ID must be read from. Validate the value
@@ -4236,12 +4224,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
             ..GetReport(sHew, tRow[nCnt], (nCnt+1), defTab[nCnt+1][1], sKey),sTable); return false
         end; tRow[nCnt] = vM -- Store the matched value in the same place as the original
       end -- Check whenever triggers are available. Run them if present
-      if(tTrig and tTrig["ImportDSV"]) then -- Apply trigger format with offset for primary key
-        local bS, sR = pcall(tTrig["ImportDSV"], tRow, -1); if(not bS) then
-          LogInstance("Store manager fail: "..GetReport(sHew, nID, vK, sR),sTable); return false end
-        if(not sR) then -- Rise log error when something gets wrong inside the trigger routine
-          LogInstance("Store routine fail: "..GetReport(sHew, nID, vK),sTable); return false end
-      end
+      if(not makTab:Trigger("ImportDSV", defTab.Nick, tRow, -1)) then return false end
     end -- Register the read line to the output file
     if(bRepl) then -- Replace the data when enabled overwrites the file data
       if(tData[vK]) then -- Update the file with the new data
@@ -4263,13 +4246,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         ..GetReport(sHew,key),sTable); return false end
     for iR = 1, fRec.Size do
       local fRow = fRec[iR]; table.insert(fRow, 1, key)
-      if(tTrig and tTrig["Record"]) then
-        local bS, sR = pcall(tTrig["Record"], fRow)
-        if(not bS) then O:Flush(); O:Close()
-          LogInstance("Import manager fail: "..sR,defTab.Nick); return false end
-        if(not sR) then O:Flush(); O:Close()
-          LogInstance("Import routine fail",defTab.Nick); return false end
-      end
+      if(not makTab:Trigger("Record", defTab.Nick, fRow)) then
+        O:Flush(); O:Close(); return false end
       O:Write(defTab.Name); O:Write(sDelim)
       for iM = 1, #fRow do
         local vM = makTab:Match(fRow[iM],iM,true,"\"",true)
@@ -4278,14 +4256,9 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           return false -- Matching has failed
         end; fRow[iM] = vM
       end
-      if(tTrig and tTrig["ExportDSV"]) then
-        local bS, sR = pcall(tTrig["ExportDSV"], fRow)
-        if(not bS) then O:Flush(); O:Close()
-          LogInstance("Export manager fail: "..sR,defTab.Nick); return false end
-        if(not sR) then O:Flush(); O:Close()
-          LogInstance("Export routine fail",defTab.Nick); return false end
-        for iT = 1, #fRow do fRow[iT] = tostring(fRow[iT]):Trim() end
-      end; O:Write(table.concat(fRow, sDelim)); O:Write("\n")
+      if(not makTab:Trigger("ExportDSV", defTab.Nick, fRow)) then
+        O:Flush(); O:Close(); return false end
+      O:Write(table.concat(fRow, sDelim)); O:Write("\n")
     end
   end; O:Flush(); O:Close()
   TimeLap("OUTC-FINISH")
@@ -4332,7 +4305,6 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   end
   local S = file.Open(sSRC, "rb", "DATA"); if(not S) then
     LogInstance("Open fail "..GetReport(sHew, sSRC),sTable); return false end
-  local tTrig = (istable(defTab.Trigs) and defTab.Trigs or nil)
   local sFpr = GetOpVar("FORM_PREFIXFMT"):format(sMoDB:lower(), "tr", fPref)
   local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), sFpr, defTab.Name)
   local I = file.Open(sEXP, "wb", "DATA"); if(not I) then
@@ -4348,13 +4320,7 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
         LogInstance("Internal table mismatch "..GetReport(sHew, sRow), sTable); break end
       if(#aRow ~= defTab.Size) then tCon.ER = true
         LogInstance("Internal data mismatch "..GetReport(sHew, sRow), sTable); break end
-      if(tTrig and tTrig["Record"]) then
-        local bS, sR = pcall(tTrig["Record"], aRow)
-        if(not bS) then tCon.ER = true
-          LogInstance("Import manager fail: "..sR,defTab.Nick); break end
-        if(not sR) then tCon.ER = true
-          LogInstance("Import routine fail",defTab.Nick); break end
-      end
+      if(not makTab:Trigger("Record", defTab.Nick, aRow)) then tCon.ER = true; break end
       for nCnt = 1, #aRow do
         local vM = makTab:Match(GetStrip(aRow[nCnt]),nCnt,true,"\"",true)
         if(not IsHere(vM)) then I:Flush(); I:Close(); tCon.ER = true
@@ -4567,8 +4533,6 @@ function ExportTypeRUN(sType, bSet)
     LogInstance("Missing table builder "..GetReport(sType)); return end
   local defA = makA:GetDefinition(); if(not defA) then
     LogInstance("Missing table definition "..GetReport(sType)); return end
-  local trgP = (istable(defP.Trigs) and defP.Trigs or nil)
-  local trgA = (istable(defA.Trigs) and defA.Trigs or nil)
   local fsLog, qPieces, qAdditions = GetOpVar("FORM_LOGSOURCE")
   local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
   if(sMoDB == "SQL") then qPieces, qAdditions = {}, {}
@@ -4674,11 +4638,8 @@ function ExportTypeRUN(sType, bSet)
             local aRow = makP:GetRowToArray(qPieces[iR])
             if(aRow[cTy] == sTy) then
               local sMo = aRow[cMo]; makP:ArrayMatch(aRow, true, "\"", true)
-              if(trgP and trgP[sFunc]) then
-                local bS, sR = pcall(trgP[sFunc], aRow, bSet);
-                if(not bS) then LogInstance("Routine error "..GetReport(iR,sMo,sR)); return false end
-                if(not sR) then LogInstance("Internal error "..GetReport(iR,sMo)); return false end
-              end
+              if(not makP:Trigger(sFunc, tPat.Tas, aRow, bSet)) then
+                tCon.ER = false; return false end
               fE:Write(sIn:rep(1)); fE:Write(sMak); fE:Write(":Record({")
               fE:Write(table.concat(aRow, ", ")); fE:Write("})\n")
               if(aRow[cLn] == 1) then
@@ -4696,13 +4657,10 @@ function ExportTypeRUN(sType, bSet)
         for iR = 1, #qAdditions do
           local aRow = makA:GetRowToArray(qAdditions[iR])
           local sMo = aRow[cMo]; makA:ArrayMatch(aRow, true, "\"", true)
-          if(trgA and trgA[sFunc]) then
-            local bS, sR = pcall(trgA[sFunc], aRow, bSet);
-            if(not bS) then tCon.ER = true
-              LogInstance("Routine error "..GetReport(iR,sMo,sR)) end
-            if(not sR) then tCon.ER = true
-              LogInstance("Internal error "..GetReport(iR,sMo)) end
-          end
+          if(not makA:Trigger("ExportDSV", tPat.Tas, aRow, bSet)) then
+            tCon.ER = false; break end
+          if(not makA:Trigger(sFunc, tPat.Tas, aRow, bSet)) then
+            tCon.ER = false; break end
           fE:Write(sIn:rep(1)); fE:Write(sMak); fE:Write(":Record({")
           fE:Write(table.concat(aRow, ", ")); fE:Write("})\n")
         end
@@ -4732,11 +4690,8 @@ function ExportTypeRUN(sType, bSet)
                 if(not SetAdditionsRUN(sMo, qAdditions)) then
                   LogInstance("Addition error "..GetReport(iR,sMo)); return false end
               end; aRow[cTy] = "myType"..iTy
-              if(trgP and trgP[sFunc]) then
-                local bS, sR = pcall(trgP[sFunc], aRow, bSet);
-                if(not bS) then LogInstance("Routine error "..GetReport(iR,sMo,sR)); return false end
-                if(not sR) then LogInstance("Internal error "..GetReport(iR,sMo)); return false end
-              end
+              if(not makP:Trigger(sFunc, tPat.Tar, aRow, bSet)) then
+                tCon.ER = false; return false end
               table.remove(aRow, cMo); fE:Write(sIn:rep(2))
               fE:Write("{"); fE:Write(table.concat(aRow, ", ")); fE:Write("},\n")
             end
@@ -4761,13 +4716,8 @@ function ExportTypeRUN(sType, bSet)
             fE:Write("\n"); fE:Write(sIn:rep(1)); fE:Write("[")
             fE:Write(aRow[cMo]); fE:Write("] = {\n")
           end
-          if(trgA and trgA[sFunc]) then
-            local bS, sR = pcall(trgA[sFunc], aRow, bSet);
-            if(not bS) then tCon.ER = true
-              LogInstance("Routine error "..GetReport(iR,sMo,sR)); end
-            if(not sR) then tCon.ER = true
-              LogInstance("Internal error "..GetReport(iR,sMo)); end
-          end
+          if(not makA:Trigger(sFunc, tPat.Tar, aRow, bSet)) then
+            tCon.ER = false; break end
           table.remove(aRow, cMo); fE:Write(sIn:rep(2))
           fE:Write("{"); fE:Write(table.concat(aRow, ", ")); fE:Write("},\n")
         end
@@ -4826,8 +4776,6 @@ function ExportTypeDSV(sType, sDelim)
   A:Write(tHea.Src:format(sFunc, tHew.Fmt:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
   A:Write(tHea.Tco:format(defA.Nick, makA:GetColumnList(sDelim)))
   if(sMoDB == "SQL") then
-    local trgP = (istable(defP.Trigs) and defP.Trigs or nil)
-    local trgA = (istable(defA.Trigs) and defA.Trigs or nil)
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qsNov, qP = GetOpVar("MISS_NOAV"), {}
     local qInxP = qsKey:format(sFunc, defP.Nick)
@@ -4848,13 +4796,9 @@ function ExportTypeDSV(sType, sDelim)
     for iP = 1, #qP do
       local aP = makP:GetRowToArray(qP[iP])
       local sMo = aRow[cMo]; makP:ArrayMatch(aP,true,"\"",true)
-      if(trgP["ExportDSV"]) then
-        local bS, sR = pcall(trgP["ExportDSV"], aP)
-        if(not bS) then P:Flush(); P:Close(); A:Flush(); A:Close()
-          LogInstance("Manager error "..GetReport(iP, sMo, sR), ssLog:format("PT:DSV")); return end
-        if(not sR) then P:Flush(); P:Close(); A:Flush(); A:Close()
-          LogInstance("Routine fail "..GetReport(iP, sMo, sR), ssLog:format("PT:DSV")); return end
-      end; P:Write(defP.Name); P:Write(sDelim); P:Write(table.concat(aP, sDelim))
+      if(not makP:Trigger("ExportDSV", ssLog:format("PT:DSV"), aP)) then
+        P:Flush(); P:Close(); A:Flush(); A:Close(); return end
+      P:Write(defP.Name); P:Write(sDelim); P:Write(table.concat(aP, sDelim))
       if(aP[cLn] == 1) then
         local qMo = makP:Match(sMo, cMo, true)
         local Q = makA:Get(qInxA, qMo); if(not IsHere(Q)) then local tQ = makA:GetQuery()
@@ -4866,13 +4810,9 @@ function ExportTypeDSV(sType, sDelim)
         if(IsHere(qA) and not IsEmpty(qA)) then A:Write(tHea.Qry:format(#qA, Q))
           for iA = 1, #qA do
             local aA = makA:GetRowToArray(qA[iA]); makA:ArrayMatch(aA,true,"\"",true)
-            if(trgA["ExportDSV"]) then
-              local bS, sR = pcall(trgA["ExportDSV"], aA)
-              if(not bS) then P:Flush(); P:Close(); A:Flush(); A:Close()
-                LogInstance("Manager error "..GetReport(iA, sMo, sR), ssLog:format("AT:DSV")); return end
-              if(not sR) then P:Flush(); P:Close(); A:Flush(); A:Close()
-                LogInstance("Routine fail "..GetReport(iA, sMo, sR), ssLog:format("AT:DSV")); return end
-            end; A:Write(defA.Name); A:Write(sDelim); A:Write(table.concat(aA), sDelim); A:Write("\n")
+            if(not makA:Trigger("ExportDSV", ssLog:format("AT:DSV"), aA)) then
+              P:Flush(); P:Close(); A:Flush(); A:Close(); return end
+            A:Write(defA.Name); A:Write(sDelim); A:Write(table.concat(aA), sDelim); A:Write("\n")
           end
         end
       end
