@@ -4717,6 +4717,8 @@ function ExportTypeRUN(sType, bSet)
             fE:Write("\n"); fE:Write(sIn:rep(1)); fE:Write("[")
             fE:Write(aRow[cMo]); fE:Write("] = {\n")
           end
+          if(not makA:Trigger("ExportDSV", tPat.Tas, aRow, bSet)) then
+            tCon.ER = false; break end
           if(not makA:Trigger(sFunc, tPat.Tar, aRow, bSet)) then
             tCon.ER = false; break end
           table.remove(aRow, cMo); fE:Write(sIn:rep(2))
