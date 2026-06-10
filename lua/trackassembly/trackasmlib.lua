@@ -430,7 +430,7 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   local sFunc = LogSource(tInfo, tLoc)
   local sSrc, bF, bL = tostring(vSrc or ""), nil, nil
   if(IsExact(sSrc)) then sSrc = sSrc:sub(2,-1); sFunc = "" else
-    if(not IsBlank(sSrc)) then sSrc = sSrc..":" end end
+    if(not IsBlank(sSrc)) then sSrc = sSrc.."." end end
   local sData = GetConcat(sSrc, sFunc, ": ", vMsg)
   bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
   bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
@@ -754,7 +754,6 @@ function InitBase(sName, sPurp)
     Src = "# %s:(%s) %s [%s]\n" , Tco = "# %s:(%s)\n",
     Qry = "# Query(%d):[[%s]]\n", Cax = "# Categorize(%s): %s\n"
   })
-  SetOpVar("FORM_LOGSOURCE","%s.%s(%s)")
   SetOpVar("FORM_METHCALLS","%s:%s(%s)")
   SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
   SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
@@ -2549,9 +2548,7 @@ function Categorize(oTyp, fCat, ...)
     oBeu:SetRule(); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
     if(SERVER) then return end -- The server must bail out right here
     local sTyp = tostring(GetOpVar("DEFAULT_TYPE") or ""):Trim()
-    local fsLog, tTyp = GetOpVar("FORM_LOGSOURCE") -- The format value
-    local ssLog = "*"..fsLog:format("TYPE","Categorize",tostring(oTyp))
-    LogInstance("Name "..GetReport(type(fCat), oTyp, sTyp, sPrf), ssLog)
+    LogInstance("Name "..GetReport(type(fCat), oTyp, sTyp, sPrf))
     if(isstring(fCat)) then
       tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
     elseif(istable(fCat)) then local tArg, tTxt = {...}, {}
@@ -2612,10 +2609,10 @@ function Categorize(oTyp, fCat, ...)
       table.insert(tTxt, "  while(s > 0) do table.remove(t); s = s - 1 end\n")
       table.insert(tTxt, "  return t, m\n")
       table.insert(tTxt, "end"); tTyp.Txt = table.concat(tTxt)
-    else LogInstance("Skip "..GetReport(fCat), ssLog); return nil end
+    else LogInstance("Skip "..GetReport(fCat)); return nil end
     tTyp.Cmp = CompileString(GetConcat("return (", tTyp.Txt, ")"), sTyp)
     local bS, vO = pcall(tTyp.Cmp); if(not bS) then
-      LogInstance("Failed "..GetReport(fCat, vO), ssLog); return nil end
+      LogInstance("Failed "..GetReport(fCat, vO)); return nil end
     tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
   end
 end
@@ -2826,18 +2823,17 @@ end
  * fR > Routine function itself fR(iT, sT)
      iT > Component type index. Zero for base
      sT > Component type name
- * sS > Routine caller source
  * Return false on error true otherwise
 ]]
-function RunComponentType(sT, fR, sS)
-  if(not isfunction(fR)) then
-    LogInstance("Routine mismatch "..GetReport(fR), sS); return false end
-  local sT, tT, nT = ComponentType(sT); local bS, vR = pcall(fR, 0, sT)
-  if(not bS) then LogInstance("Base error: "..GetReport(0, sT, vR), sS); return false end
-  if(not vR) then LogInstance("Base fault: "..GetReport(0, sT, vR), sS); return false end
+function RunComponentType(sT, fR)
+  local sT, tT, nT = ComponentType(sT); if(not isfunction(fR)) then
+    LogInstance("Routine mismatch "..GetReport(fR), nil, nil, 3); return false end
+  local bS, vR = pcall(fR, 0, sT); if(not bS) then
+    LogInstance("Base error: "..GetReport(0, sT, vR), nil, nil, 3); return false end
+  if(not vR) then LogInstance("Base fault: "..GetReport(0, sT, vR), nil, nil, 3); return false end
   for iT = 1, nT do; local vT = tT[iT]; local bS, vR = pcall(fR, iT, vT)
-    if(not bS) then LogInstance("Item error: "..GetReport(iT, vT, vR), sS); return false end
-    if(not vR) then LogInstance("Item fault: "..GetReport(iT, vT, vR), sS); return false end
+    if(not bS) then LogInstance("Item error: "..GetReport(iT, vT, vR), nil, nil, 3); return false end
+    if(not vR) then LogInstance("Item fault: "..GetReport(iT, vT, vR), nil, nil, 3); return false end
   end; return true
 end
 
@@ -3428,7 +3424,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local qtOpr = (istable(qtDef.Cache) and qtDef.Cache or nil) -- Used operator hash
     if(not (qtOpr and qtOpr[sID])) then -- If the operator is missing
       LogInstance("Missing error "..GetReport(sID,sR,...),qtDef.Nick); return false end
-    local bS, sR = pcall(qtOpr[sID], self, ...); if(not bS) then -- Execution error
+    local bS, sR = pcall(qtOpr[sID], ...); if(not bS) then -- Execution error
       LogInstance("Routine error "..GetReport(sID,sR,...),qtDef.Nick); return false end
     if(not sR) then LogInstance("Internal error "..GetReport(sID,sR,...),qtDef.Nick); return false end
     return true -- The operator is successfully executed. Return success
@@ -3453,11 +3449,9 @@ function NewTable(sTable,defTab,bReload,bDelete)
       local qData = sql.Query(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sql.LastError(), Q),qtDef.Nick); return false end
     end -- Clear the entry from the table cache too
-    local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
-    local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
     local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing",qtDef.Nick); return false end
-    return self:Operator(sFunc, tCache, sKey)
+    return self:Operator(sFunc, self, tCache, sKey)
   end
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
@@ -3471,8 +3465,6 @@ function NewTable(sTable,defTab,bReload,bDelete)
         LogInstance("Row data "..GetReport(key, val), qtDef.Nick) end
       return false -- Print all other values when the model is missing
     end -- Read the log source format and reduce the number of concatenations
-    local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
-    local ssLog = "*"..fsLog:format(qtDef.Nick,sFunc,"%s")
     if(not self:Trigger(sFunc, arLine)) then return false end
     if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
       for iD = 1, qtDef.Size do arLine[iD] = self:Match(arLine[iD],iD,true) end
@@ -3488,7 +3480,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
         LogInstance("Primary key mismatch "..GetReport(arLine[1], qtDef[1][1], snPK), qtDef.Nick); return false end
       local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
         LogInstance("Cache missing",qtDef.Nick); return false end
-      if(not self:Operator(sFunc, tCache, snPK, arLine)) then return false end
+      if(not self:Operator(sFunc, self, tCache, snPK, arLine)) then return false end
     end; return true -- The dynamic cache population was successful
   end
   -- When database mode is SQL create a table in sqlite
@@ -3910,15 +3902,10 @@ function ExportSyncDB(sDelim)
       end; F:Write(table.concat(tD, sDelim)); F:Write("\n")
     end
   elseif(sMoDB == "LUA") then
-    local fsLog = GetOpVar("FORM_LOGSOURCE")
-    local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"Cache")
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing "..GetReport(sHew)); F:Flush(); F:Close(); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, sDelim, ssLog)
-    if(not bS) then F:Flush(); F:Close()
+    if(not makTab:Operator(sFunc, F, makTab, tCache, sDelim)) then F:Flush(); F:Close()
       LogInstance("Cache manager error "..GetReport(sHew,sR)); return false end
-    if(not sR) then F:Flush(); F:Close()
-      LogInstance("Cache routine fail "..GetReport(sHew,sR)); return false end
   end; F:Flush(); F:Close(); LogInstance("Success "..GetReport(sHew)); return true
 end
 
@@ -4075,15 +4062,10 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
       F:Write(defTab.Name); F:Write(sDelim); F:Write(table.concat(aRow, sDelim)); F:Write("\n")
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
-    local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
-    local ssLog = "*"..fsLog:format(defTab.Nick,sFunc,"Cache")
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("Cache missing "..GetReport(sHew, fName), sTable); return false end
-    local bS, sR = pcall(defTab.Cache[sFunc], F, makTab, tCache, fPref, sDelim, ssLog)
-    if(not bS) then F:Flush(); F:Close()
+    if(not makTab:Operator(sFunc, F, makTab, tCache, fPref, sDelim)) then F:Flush(); F:Close()
       LogInstance("Cache manager error "..GetReport(sHew, fName, sR), sTable); return false end
-    if(not sR) then F:Flush(); F:Close()
-      LogInstance("Cache routine fail "..GetReport(sHew, fName, sR), sTable); return false end
   end; F:Flush(); F:Close(); LogInstance("Success "..GetReport(sHew, fName), sTable); return true
 end
 
@@ -4543,8 +4525,6 @@ function ExportTypeRUN(sType, bSet)
     LogInstance("Missing table builder "..GetReport(sType)); return end
   local defA = makA:GetDefinition(); if(not defA) then
     LogInstance("Missing table definition "..GetReport(sType)); return end
-  local fsLog, qPieces, qAdditions = GetOpVar("FORM_LOGSOURCE")
-  local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
   if(sMoDB == "SQL") then qPieces, qAdditions = {}, {}
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, defP.Nick)
@@ -4557,15 +4537,14 @@ function ExportTypeRUN(sType, bSet)
       local qData = sql.Query(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sql.LastError(), Q),defP.Nick); return false end
       for iR = 1, #qData do table.insert(qPieces, qData[iR]) end; return true
-    end, ssLog:format("Query"))) then LogInstance("Component routine error", defP.Nick); return end
+    end)) then LogInstance("Component routine error", defP.Nick); return end
   elseif(sMoDB == "LUA") then qPieces, qAdditions = {}, {}
     local tCache = libCache[defP.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing",defP.Nick); return false end
     if(not RunComponentType(sType, function(iTy, sTy)
-      local bS, sR = pcall(defP.Cache[sFunc], sTy, makP, tCache, qPieces, ssLog:format("Cache"))
-      if(not bS) then LogInstance("Cache manager error "..GetReport(iTy, sTy, sR),defP.Nick); return false end
-      if(not sR) then LogInstance("Cache routine fail "..GetReport(iTy, sTy, sR),defP.Nick); return false end; return true
-    end)) then LogInstance("Component routine error", defP.Nick); return end
+      if(not makP:Operator(sFunc, sTy, makP, tCache, qPieces)) then
+        LogInstance("Cache manager error "..GetReport(iTy, sTy, sR),defP.Nick); return false end
+      return true end)) then LogInstance("Component routine error", defP.Nick); return end
   end
   if(not (IsHere(qPieces) and IsHere(qPieces[1]))) then
     LogInstance("Export content missing", defP.Nick) end
@@ -4584,7 +4563,7 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(", "); fE:Write("\"")
           fE:Write(sTy); fE:Write("\"")
         end; return true
-      end, ssLog:format("Addon"))) then tCon.ER = true
+      end)) then tCon.ER = true
         LogInstance("Component routine error", defP.Nick); end
       fE:Write(")\n")
     elseif(tPat.Typ and sRow:find(tPat.Typ)) then bSkip = true
@@ -4596,7 +4575,7 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(sSufx); fE:Write(".GetTypeNormalize(myGroup and myGroup[");
           fE:Write(tostring(iTy)); fE:Write("] or myAddon)"); fE:Write("\n")
         end; return true
-      end, ssLog:format("Type"))) then tCon.ER = true
+      end)) then tCon.ER = true
         LogInstance("Component routine error", defP.Nick); end
     elseif(tPat.Cax and sRow:find(tPat.Cax)) then bSkip = true
       local iCa = 0; fE:Write("local myCategory = {")
@@ -4608,7 +4587,7 @@ function ExportTypeRUN(sType, bSet)
         fE:Write(tostring(iTy)); fE:Write("] = {Txt = [[\n")
         fE:Write(sIn:rep(2)); fE:Write(tCat.Txt:gsub("\n","\n"..sIn:rep(2)).."\n")
         fE:Write(sIn:rep(1)); fE:Write("]]}"); iCa = iCa + 1; return true
-      end, ssLog:format("Category"))) then tCon.ER = true
+      end)) then tCon.ER = true
         LogInstance("Component routine error", defP.Nick); end
       fE:Write((iCa > 0) and "\n}\n" or "}\n")
     elseif(tPat.Wrs and sRow:find(tPat.Wrs)) then bSkip = true
@@ -4621,7 +4600,7 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(sSufx); fE:Write(".WorkshopID(myType")
           fE:Write(tostring(iTy)); fE:Write(")\n")
         end; return true
-      end, ssLog:format("Workshop"))) then tCon.ER = true
+      end)) then tCon.ER = true
         LogInstance("Component routine error", defP.Nick); end
     elseif(tPat.Tas and sRow:find(tPat.Tas)) then bSkip = true
       local sMak = sRow:gsub(tPat.Tas, ""):gsub(",.*$", "")
@@ -4659,7 +4638,7 @@ function ExportTypeRUN(sType, bSet)
             end
           end; fE:Write(sIn:rep(1))
           fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n"); return true
-        end, ssLog:format("SET:PIECES"))) then tCon.ER = true
+        end)) then tCon.ER = true
           LogInstance("Component routine error", defP.Nick); end
       elseif(sMak == "ADDITIONS") then
         local cMo = makP:GetColumnID("MODELBASE")
@@ -4706,7 +4685,7 @@ function ExportTypeRUN(sType, bSet)
               fE:Write("{"); fE:Write(table.concat(aRow, ", ")); fE:Write("},\n")
             end
           end; return true
-        end, ssLog:format("RUN:PIECES"))) then tCon.ER = true
+        end)) then tCon.ER = true
           LogInstance("Component routine error", defP.Nick); end
         if(not bF) then
           fE:Seek(fE:Tell() - 2); fE:Write("\n")
@@ -4781,8 +4760,6 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("Open fail "..GetReport(sType, fPref, pNam, defP.Nick)); return end
   local A = file.Open(aNam, "wb", "DATA"); if(not A) then P:Flush(); P:Close()
     LogInstance("Open fail "..GetReport(sType, fPref, aNam, defP.Nick)); return end
-  local fsLog = GetOpVar("FORM_LOGSOURCE")
-  local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
   P:Write(tHea.Src:format(sFunc, tHew.Fmt:format(fPref,defP.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
   P:Write(tHea.Tco:format(defP.Nick, makP:GetColumnList(sDelim)))
   A:Write(tHea.Src:format(sFunc, tHew.Fmt:format(fPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
@@ -4802,7 +4779,7 @@ function ExportTypeDSV(sType, sDelim)
         LogInstance("SQL exec error "..GetReport(iTy,sTy,sql.LastError(),Q), defP.Nick); return false end
       local nR = #qData; P:Write(tHea.Qry:format(nR, Q))
       for iR = 1, nR do table.insert(qP, qData[iR]) end; return true
-    end, ssLog:format("Query"))) then P:Flush(); P:Close(); A:Flush(); A:Close()
+    end)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("Component routine error", defP.Nick); return end
     local cMo, cLn = makP:GetColumnID("MODEL"), makP:GetColumnID("LINEID")
     for iP = 1, #qP do
@@ -4830,16 +4807,12 @@ function ExportTypeDSV(sType, sDelim)
       end
     end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
-    local fsLog = GetOpVar("FORM_LOGSOURCE") -- Read the log source format
-    local ssLog = "*"..fsLog:format(defP.Nick,sFunc,"%s")
     local PCache, ACache = libCache[defP.Name], libCache[defA.Name]
     if(not IsHere(PCache)) then P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("Cache missing "..GetReport(sType, fPref),defP.Nick); return end
-    local bS, sR = pcall(defP.Cache[sFunc], P, makP, PCache, A, makA, ACache, sType, sDelim, ssLog:format("Cache"))
-    if(not bS) then P:Flush(); P:Close(); A:Flush(); A:Close()
+    if(not makP:Operator(sFunc, P, makP, PCache, A, makA, ACache, sType, sDelim)) then
+      P:Flush(); P:Close(); A:Flush(); A:Close()
       LogInstance("Cache manager error "..GetReport(sType, fPref, sR),defP.Nick); return end
-    if(not sR) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("Cache routine fail "..GetReport(sType, fPref),defP.Nick); return end
   end; P:Flush(); P:Close(); A:Flush(); A:Close(); LogInstance("Success "..GetReport(sType, fPref))
 end
 
@@ -4896,11 +4869,11 @@ function ExportTypeCAT(sType)
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   local sPref, tCax = GetTypePrefix(sType), {} -- Convert type to prefix
   local sName = GetConcat("[", sMoDB, "-cat]", sPref):lower()
-  local fsLog = GetOpVar("FORM_LOGSOURCE") -- The actual format value
-  local ssLog = "*"..fsLog:format("DB",sFunc,"%s") -- Just copy the reference
-  if(not RunComponentType(sType, function(iTy, sTy) tCax[sTy] = tCat[sTy]; return true
-  end, ssLog:format("Assign"))) then LogInstance("Component routine error"); return end
+  if(not RunComponentType(sType, function(iTy, sTy)
+    tCax[sTy] = tCat[sTy]; return true
+  end)) then LogInstance("Component routine error"); return end
   ExportCategory(3, tCax, sName, true)
+  LogInstance("Success "..GetReport(sType))
 end
 
 ----------------------------- SNAPPING ------------------------------
