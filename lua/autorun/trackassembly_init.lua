@@ -13,11 +13,11 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.870")
+asmlib.SetOpVar("TOOL_VERSION","9.871")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
-local gtInitLogs  = asmlib.GetOpVar("LOG_INIT")
+local gtInitLogs  = {"*Init", false, 0}
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsSymDis    = asmlib.GetOpVar("OPSYM_DISABLE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
@@ -82,6 +82,7 @@ asmlib.SetBorder(gsToolPrefL.."maxstatts", 1, 10)
 asmlib.SetBorder(gsToolPrefL.."maxstcnt" , 1)
 asmlib.SetBorder(gsToolPrefL.."maxghcnt" , 1)
 asmlib.SetBorder(gsToolPrefL.."maxtrmarg", 0, 1)
+asmlib.SetBorder(gsToolPrefL.."ioreadall", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."maxspmarg", -100, 100)
 asmlib.SetBorder(gsToolPrefL.."sizeucs"  , 0, 50)
 asmlib.SetBorder(gsToolPrefL.."spawnrate", 1, 10)
@@ -96,7 +97,6 @@ asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
 asmlib.NewAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written before the counter is reset")
 asmlib.NewAsmConvar("logsbrs", 0, nil, gnIndependentUsed, "Maximum logging lines being written in every I/O write flush")
 asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logsbrs","INT"))
-asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
 
@@ -140,6 +140,7 @@ asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
 asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
 asmlib.SetOpVar("SPAWN_MARGIN" , asmlib.GetAsmConvar("maxspmarg", "FLT"))
 asmlib.SetOpVar("MSDELTA_SEND" , asmlib.GetAsmConvar("dtmessage", "FLT"))
+asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ GLOBAL VARIABLES ------------
 
@@ -1708,7 +1709,7 @@ asmlib.NewTable("PIECES",{
     ExportSyncDB    = {S = {1,2,3}, W = {{4,"%d"}}, O = {2,3,1}}
   },
   Trigs = {
-    ImportDSV = function(arLine, iM)
+    ImportDSV = function(arLine)
       for iC = 1, #arLine do arLine[iC] = asmlib.GetStrip(arLine[iC]) end
       return true
     end,
@@ -1834,7 +1835,7 @@ asmlib.NewTable("PIECES",{
                 for iA = 1, tA.Size do fA:Write(sH)
                   local aRow = makA:GetRowToArray(tA[iA]); aRow[1] = stRec.Key
                   for iC = 1, #aRow do aRow[iC] = makA:Match(aRow[iC],iC,true,"\"") end
-                  if(not makA:Trigger("ExportDSV", vSrc, aRow)) then return false end
+                  if(not makA:Trigger("ExportDSV", aRow)) then return false end
                   fA:Write(table.concat(aRow, sDelim)); fA:Write("\n")
                 end
               end
@@ -1900,13 +1901,11 @@ asmlib.NewTable("ADDITIONS",{
     Record              = {V = {"%s","%s","%s","%d","%s","%s","%d","%d","%d","%d","%d","%d"}}
   },
   Trigs = {
-    ImportDSV = function(arLine, iM)
-      local iM = math.floor(tonumber(iM) or 0)
-      local coMv, coPs, coSo = (7 + iM), (8 + iM), (12 + iM)
+    ImportDSV = function(arLine)
       for iC = 1, #arLine do arLine[iC] = asmlib.GetStrip(arLine[iC]) end
-      arLine[coMv] = (asmlib.GetEnumMap(gsSymDis, arLine[coMv]) or arLine[coMv])
-      arLine[coPs] = (asmlib.GetEnumMap(gsSymDis, arLine[coPs]) or arLine[coPs])
-      arLine[coSo] = (asmlib.GetEnumMap(gsSymDis, arLine[coSo]) or arLine[coSo])
+      arLine[7]  = (asmlib.GetEnumMap(gsSymDis, arLine[7] ) or arLine[7])
+      arLine[8]  = (asmlib.GetEnumMap(gsSymDis, arLine[8] ) or arLine[8])
+      arLine[12] = (asmlib.GetEnumMap(gsSymDis, arLine[12]) or arLine[12])
       return true
     end,
     ExportDSV = function(arLine)
@@ -1934,29 +1933,29 @@ asmlib.NewTable("ADDITIONS",{
     end,
   },
   Cache = {
-    Erase  = function(makTab, tCache, snPK, vSrc)
+    Erase = function(makTab, tCache, snPK)
       local stData = tCache[snPK]; if(not stData) then
-        asmlib.LogInstance("Cache missing "..asmlib.GetReport(snPK),vSrc); return false end
+        asmlib.LogInstance("Cache missing "..asmlib.GetReport(snPK)); return false end
       if(snPK and snPK ~= "") then tCache[snPK] = nil else table.Empty(tCache) end; return true
     end,
-    Record = function(makTab, tCache, snPK, arLine, vSrc)
-      local defTab = makTab:GetDefinition()
+    Record = function(makTab, tCache, snPK, arLine)
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
+      local defTab, sSors = makTab:GetDefinition(), makTab:GetFragment()
       local iID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),vSrc); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),sSors); return false end
       if(iID ~= (stData.Size + 1)) then
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK),vSrc); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK),sSors); return false end
       stData[iID] = {} -- LineID has to be set properly
       for iCnt = 2, defTab.Size do local sC = makTab:GetColumnName(iCnt); if(not sC) then
-        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iCnt,snPK),vSrc); return false end
+        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iCnt,snPK),sSors); return false end
         stData[iID][sC] = makTab:Match(arLine[iCnt],iCnt); if(not asmlib.IsHere(stData[iID][sC])) then
-          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iCnt,arLine[iCnt],snPK),vSrc); return false end
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iCnt,arLine[iCnt],snPK),sSors); return false end
       end; stData.Size = stData.Size + 1; return true
     end,
-    ExportDSV = function(oF, makTab, tCache, fPref, sDelim, vSrc)
+    ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
       local tSort = asmlib.Arrange(tCache, "Slot")
       local defTab = makTab:GetDefinition()
       for iRow = 1, tSort.Size do
@@ -1965,7 +1964,7 @@ asmlib.NewTable("ADDITIONS",{
         for iRec = 1, #tRec do
           local aRow = makTab:GetRowToArray(tRec[iRec]); aRow[1] = sKey
           for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
-          if(not makTab:Trigger("ExportDSV", vSrc, aRow)) then return false end
+          if(not makTab:Trigger("ExportDSV", aRow)) then return false end
           oF:Write(defTab.Name); oF:Write(sDelim)
           oF:Write(table.concat(aRow, sDelim)); oF:Write("\n")
         end
@@ -1999,7 +1998,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
     }
   },
   Trigs = {
-    ImportDSV = function(arLine, iM)
+    ImportDSV = function(arLine)
       for iC = 1, #arLine do arLine[iC] = asmlib.GetStrip(arLine[iC]) end
       return true
     end,
