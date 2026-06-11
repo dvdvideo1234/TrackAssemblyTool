@@ -600,9 +600,9 @@ end
  * [...] > The internal track types being registered
 ]]
 function ComponentType(sType, ...)
-  local sK = GetOpVar("OPSYM_DISABLE")
+  local sU = GetTypeNormalize(sType)
+  local sK, nT = "#", select("#", ...)
   local tU = GetOpVar("TABLE_COMPONENTS")
-  local sU, nT = GetTypeNormalize(sType), select(sK, ...)
   local tA = tU[sU] -- Index the component array
   if(not tA) then tA = {[sK] = 0}; tU[sU] = tA end
   if(nT <= 0) then -- No components specified
