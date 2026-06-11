@@ -407,7 +407,7 @@ function LogSource(tInfo, tLoc)
   if(sN and not tLoc.Dbg) then return sN end
   local iD, iC = tostring(tInfo.linedefined or sX), tostring(tInfo.currentline or sX)
   local sS = (tInfo.source and string.GetFileFromFilename(tInfo.source) or sX)
-  return tLoc.Fdg:format(iD, iC, sS)
+  return tLoc.Fdg:format(iD, sS, iC)
 end
 
 --[[
@@ -600,10 +600,10 @@ end
  * [...] > The internal track types being registered
 ]]
 function ComponentType(sType, ...)
-  local sK = GetOpVar("KEY_DEFAULT")
+  local sK = GetOpVar("OPSYM_DISABLE")
   local tU = GetOpVar("TABLE_COMPONENTS")
-  local sU, nT = GetTypeNormalize(sType), select("#", ...)
-  local tA = tU[sU] -- Index the componet array
+  local sU, nT = GetTypeNormalize(sType), select(sK, ...)
+  local tA = tU[sU] -- Index the component array
   if(not tA) then tA = {[sK] = 0}; tU[sU] = tA end
   if(nT <= 0) then -- No components specified
     local tA = tU[sU] -- Components index
@@ -722,7 +722,7 @@ function InitBase(sName, sPurp)
     Tbr = {}, -- Table to store burst rate log lines
     Cur = 0, -- Current logging line ID
     Fmt = "", -- Log message ID format. Log file name
-    Fdg = "[%s][%s]@%s|", -- Use function location if name is missing
+    Fdg = "[%s]%s[%s]", -- Use function location if name is missing
     Dbg = false, -- Force stack trace debugging only
     Nam = GetOpVar("DIRPATH_BAS")..GetOpVar("NAME_LIBRARY").."_log.txt",
     Frc = {KV = "%s[%s]", EQ = "%s = %s", VV = "{%s}[%s] = <%s>", EM = "%s = {}"}
