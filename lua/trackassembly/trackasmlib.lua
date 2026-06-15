@@ -4497,6 +4497,7 @@ end
  * dedicated autorun control script files adding the given type argument
  * to the database by using external plugable DSV prefix list
  * sType > Track type or prefix the DSV files are created for
+ * bSet  > Export via direct data set insertions
 ]]
 function ExportTypeRUN(sType, bSet)
   if(SERVER) then

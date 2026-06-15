@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.876")
+asmlib.SetOpVar("TOOL_VERSION","9.877")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1714,10 +1714,15 @@ asmlib.NewTable("PIECES",{
       return true
     end,
     ExportTypeRUN = function(arLine, bSet)
-      if(bSet) then arLine[2] = "gsSymOff" end
+      local sM, sN, sC  = "gsMissDB", "gsSymOff", "myType"
+      if(bSet) then arLine[2] = sN else arLine[4] = sN
+        if(not asmlib.RunComponentType(arLine[1], function(iTy, sTy)
+          if(sTy == arLine[1]) then arLine[1] = sC..iTy end; return true
+        end)) then return false end
+      end
       for iC = 1, #arLine do
         local bSQL = (asmlib.GetStrip(arLine[iC]) == gsNoSQL)
-        arLine[iC] = (bSQL and "gsMissDB" or arLine[iC])
+        arLine[iC] = (bSQL and sM or arLine[iC])
       end; return true
     end,
     Record = function(arLine)
@@ -1918,9 +1923,9 @@ asmlib.NewTable("ADDITIONS",{
       arLine[12] = (asmlib.GetEnumMap("SOLID"   , arLine[12]) or arLine[12])
       return true
     end,
-    ExportTypeRUN = function(arLine)
-      if(bSet) then arLine[2] = "gsSymOff" end
-      local sM  = "gsMissDB"
+    ExportTypeRUN = function(arLine, bSet)
+      local sM, sN = "gsMissDB", "gsSymOff"
+      if(not bSet) then arLine[4] = sN end
       for iC = 1, #arLine do
         local bSQL = (asmlib.GetStrip(arLine[iC]) == gsNoSQL)
         arLine[iC] = (bSQL and sM or arLine[iC])
