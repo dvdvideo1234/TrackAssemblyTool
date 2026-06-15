@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.875")
+asmlib.SetOpVar("TOOL_VERSION","9.876")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1909,7 +1909,7 @@ asmlib.NewTable("ADDITIONS",{
       return true
     end,
     ExportDSV = function(arLine)
-      local sF = "%+d"
+      local sF = "%2d"
       arLine[7]  = (asmlib.GetEnumMap("MOVETYPE", arLine[7]) or arLine[7])
       arLine[8]  = (asmlib.GetEnumMap("SOLID"   , arLine[8]) or arLine[8])
       arLine[9]  = sF:format(arLine[9]) -- Draw shadow
@@ -1919,7 +1919,8 @@ asmlib.NewTable("ADDITIONS",{
       return true
     end,
     ExportTypeRUN = function(arLine)
-      local sM  = "gsMissDB"; arLine[4] = "gsSymOff"
+      if(bSet) then arLine[2] = "gsSymOff" end
+      local sM  = "gsMissDB"
       for iC = 1, #arLine do
         local bSQL = (asmlib.GetStrip(arLine[iC]) == gsNoSQL)
         arLine[iC] = (bSQL and sM or arLine[iC])

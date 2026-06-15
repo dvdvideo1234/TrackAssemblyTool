@@ -600,28 +600,25 @@ end
  * [...] > The internal track types being registered
 ]]
 function ComponentType(sType, ...)
+  local nT = select("#", ...)
   local sU = GetTypeNormalize(sType)
-  local sK, nT = "#", select("#", ...)
   local tU = GetOpVar("TABLE_COMPONENTS")
   local tA = tU[sU] -- Index the component array
-  if(not tA) then tA = {[sK] = 0}; tU[sU] = tA end
+  if(not tA) then tA = {}; tU[sU] = tA end
   if(nT <= 0) then -- No components specified
     local tA = tU[sU] -- Components index
-    local nA = tA[sK] -- Component size
-    return sU, tA, nA -- Return type info
+    return sU, tA, #tA -- Return type info
   end -- There are multiple type components
-  local nA = tA[sK] -- Length calculation
   for iT = 1, nT do -- Process the parameters
     local vT = select(iT, ...) -- Read params
     local sT = GetTypeNormalize(vT) -- Normal
     if(sT ~= sU) then -- Do not register itself
       if(not tA[sT]) then -- Does not exist
         table.insert(tA, sT) -- Store it
-        nA = nA + 1 -- Register adding
-        tA[sT] = nA -- Reverse indexed
+        tA[sT] = #tA -- Reverse indexed
       else LogInstance("Exists "..GetReport(sU, iT, sT)) end
     else LogInstance("Origin "..GetReport(sU, iT)) end
-  end; tA[sK] = nA; return sU, tA, nA
+  end; return sU, tA, #tA
 end
 
 function IsFlag(vKey, vVal)
@@ -4336,12 +4333,13 @@ end
  * bSkip  > Skip addition for the DSV prefix if exists
 ]]
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
-  local sProg = tostring(sProg or ""); if(IsBlank(sProg)) then
-    LogInstance("Program empty "..GetReport(sProg, sPref)); return false end
+  local sProg = tostring(sProg or "")
+  if(IsBlank(sProg)) then sProg = debug.getinfo(2).source
+    LogInstance("Program empty "..GetReport(sProg, sPref)) end
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sProg, sPref, fPref), sTable); return false end
   if(CLIENT and game.SinglePlayer()) then
-    LogInstance("Single client "..GetReport(sProg, sPref)); return true end
+    LogInstance("Same machine "..GetReport(sProg, sPref)); return true end
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sProg, sPref)); return true end
   local sDelim, sMiss = tostring(sDelim or "\t"):sub(1,1), GetOpVar("MISS_NOAV")
@@ -4641,7 +4639,7 @@ function ExportTypeRUN(sType, bSet)
         end)) then tCon.ER = true
           LogInstance("Component routine error", defP.Nick); end
       elseif(sMak == "ADDITIONS") then
-        local cMo = makP:GetColumnID("MODELBASE")
+        local cMo = makA:GetColumnID("MODELBASE")
         fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Begin() end\n")
         for iR = 1, #qAdditions do
           local aRow = makA:GetRowToArray(qAdditions[iR])
@@ -4692,7 +4690,7 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(sIn:rep(1)); fE:Write("}\n")
         end
       elseif(sMak == "ADDITIONS") then
-        local cLn = makP:GetColumnID("LINEID")
+        local cLn = makA:GetColumnID("LINEID")
         local cMo = makA:GetColumnID("MODELBASE")
         for iR = 1, #qAdditions do
           local aRow = makA:GetRowToArray(qAdditions[iR])
