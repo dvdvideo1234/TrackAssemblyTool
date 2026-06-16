@@ -569,7 +569,7 @@ end
  * sType > The addon name to register ID for
  *   sID > Workshop ID being registered to the addon
  * Returns line contents and reaching EOF flag
- *   sWP > The stored workshop ID bases on the prefix
+ *   sWP > The stored workshop ID based on the prefix
 ]]
 function WorkshopID(sType, sID)
   if(SERVER) then return nil end
@@ -578,11 +578,12 @@ function WorkshopID(sType, sID)
   local sType = sType:Trim() -- Trim leading and trailing spaces
   local sPref = GetTypePrefix(sType)
   local sWP = tID.Data[sPref] -- Read the value under the key
-  if(sID) then local sPS = tostring(sID or ""):Trim() -- Convert argument
-    local nS, nE = sPS:find(tID.ID) -- Check ID
+  if(sID) then -- Workshop ID is provided as second argument
+    local sW = tostring(sID or ""):Trim() -- Convert argument
+    local nS, nE = sW:find(tID.ID) -- Check ID containing digits
     if(nS and nE) then -- The number meets the format requirement
-      if(not sWP) then sWP = sPS -- One is not present
-        tID.Data[sPref] = sPS -- Index by prefix and type
+      if(not sWP) then sWP = sW:sub(nS, nE) -- One is not present
+        tID.Data[sPref] = sWP -- Index by prefix and type
       else -- Updated value already exists so do nothing
         LogInstance("Exists "..GetReport(sType, sPref, sWP, sID))
       end -- Report overwrite value is present in the list
@@ -4592,11 +4593,12 @@ function ExportTypeRUN(sType, bSet)
       fE:Write((iCa > 0) and "\n}\n" or "}\n")
     elseif(tPat.Wrs and sRow:find(tPat.Wrs)) then bSkip = true
       if(not RunComponentType(sType, function(iTy, sTy)
-        local sID = WorkshopID(sTy)
-        if(sID and sID:len() > 0) then
+        local sID = WorkshopID(sTy) -- Try sub-type category ID
+        if(not (sID and sID:len() > 0)) then sID = WorkshopID(sType) end
+        if(sID and sID:len() > 0) then -- Otherwise main type ID
           fE:Write(sSufx); fE:Write(".WorkshopID(myType")
           fE:Write(tostring(iTy)); fE:Write(", \""); fE:Write(sID); fE:Write("\")\n")
-        else
+        else -- Otherwise write down empty second argument
           fE:Write(sSufx); fE:Write(".WorkshopID(myType")
           fE:Write(tostring(iTy)); fE:Write(")\n")
         end; return true
