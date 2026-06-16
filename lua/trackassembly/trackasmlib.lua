@@ -605,9 +605,9 @@ function ComponentType(sType, ...)
   local tU = GetOpVar("TABLE_COMPONENTS")
   local tA = tU[sU] -- Index the component array
   if(not tA) then tA = {}; tU[sU] = tA end
+  local nA = #tA -- Current data length
   if(nT <= 0) then -- No components specified
-    local tA = tU[sU] -- Components index
-    return sU, tA, #tA -- Return type info
+    return sU, tA, nA -- Return type info
   end -- There are multiple type components
   for iT = 1, nT do -- Process the parameters
     local vT = select(iT, ...) -- Read params
@@ -615,10 +615,11 @@ function ComponentType(sType, ...)
     if(sT ~= sU) then -- Do not register itself
       if(not tA[sT]) then -- Does not exist
         table.insert(tA, sT) -- Store it
-        tA[sT] = #tA -- Reverse indexed
+        nA = nA + 1 -- Increment current size
+        tA[sT] = nA -- Reverse indexed
       else LogInstance("Exists "..GetReport(sU, iT, sT)) end
     else LogInstance("Origin "..GetReport(sU, iT)) end
-  end; return sU, tA, #tA
+  end; return sU, tA, nA
 end
 
 function IsFlag(vKey, vVal)
