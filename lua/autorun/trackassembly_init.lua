@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.880")
+asmlib.SetOpVar("TOOL_VERSION","9.881")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -938,65 +938,67 @@ if(CLIENT) then
         asmlib.WorkshopAttachToMenu(pnMenu, sP) -- Workshop ID for given track type
         -- Use the already exported DSV. Export database contents by type/prefix
         asmlib.ExportAttachToMenu(pnMenu, sP, true) -- Export database contents by type/prefix
-        -- Populate the sub-menu with all table nicknames
-        local pIn, pOp = nil, nil; asmlib.RunBuilderCount(function(makTab, iD)
-          local defTab = makTab:GetDefinition()
-          local sFile = fDSV:format(sP, defTab.Nick):lower()
-          if(file.Exists(sFile, "DATA")) then
-            if(not (pIn and pOp)) then
-              -- Manipulate content local settings related to the line
-              pIn, pOp = pnMenu:AddSubMenu(language.GetPhrase(sT.."st"))
-              if(not IsValid(pIn)) then pnFrame:Close()
-                asmlib.LogInstance("Settings menu invalid",sLog..".ListView"); return end
-              if(not IsValid(pOp)) then pnFrame:Close()
-                asmlib.LogInstance("Settings opts invalid",sLog..".ListView"); return end
-              pOp:SetIcon(asmlib.ToIcon(sI.."st"))
-            end -- When there is at least one DSV table present make table sub-menu
-            if(pIn and pOp) then -- When the sub-menu pointer is available add tables
-              local pTb, pOb = pIn:AddSubMenu(defTab.Nick)
-              if(not IsValid(pTb)) then pnFrame:Close()
-                asmlib.LogInstance("Manage menu invalid "..GetReport(iD, defTab.Nick),sLog..".ListView"); return end
-              if(not IsValid(pOb)) then pnFrame:Close()
-                asmlib.LogInstance("Manage opts invalid",sLog..".ListView"); return end
-              pOb:SetIcon(asmlib.ToIcon(sI.."si"))
-              pTb:AddOption(language.GetPhrase(sT.."stnk"),
-                function() SetClipboardText(defTab.Nick) end):SetImage(asmlib.ToIcon(sI.."stnk"))
-              pTb:AddOption(language.GetPhrase(sT.."stpt"),
-                function() SetClipboardText(sFile) end):SetImage(asmlib.ToIcon(sI.."stpt"))
-              pTb:AddOption(language.GetPhrase(sT.."sttm"),
-                function() SetClipboardText(asmlib.GetDateTime(file.Time(sFile, "DATA"))) end):SetImage(asmlib.ToIcon(sI.."sttm"))
-              pTb:AddOption(language.GetPhrase(sT.."stsz"),
-                function() SetClipboardText(tostring(file.Size(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
-              pTb:AddOption(language.GetPhrase(sT.."sted"),
-                function() -- Edit the database contents using the Luapad addon
-                  if(luapad) then -- Luapad is installed and present. The context menu option is available
-                    asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
-                    if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
-                    luapad.AddTab("["..sP.."]["..defTab.Nick.."]", file.Read(sFile, "DATA"), gsDrcDSV);
-                    if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                      local sCats = fDSV:format(sP, "CATEGORY"):lower(); if(file.Exists(sCats,"DATA")) then
-                        luapad.AddTab("["..sP.."][CATEGORY]", file.Read(sCats, "DATA"), gsDrcDSV);
-                      end -- This is done so we can distinguish between luapad and other panels
-                    end -- Luapad is designed not to be closed so we need to make it invisible
-                    luapad.Frame:SetVisible(true); luapad.Frame:Center()
-                    luapad.Frame:MakePopup(); conElements:Push({luapad.Frame, "SetVisible", false})
-                  else -- Luapad is not installed. Open the link to install it
-                    local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
-                    local sID = asmlib.WorkshopID("Luapad for GMod 13"); gui.OpenURL(sUR:format(sID))
-                    asmlib.LogInstance("Skipped "..asmlib.GetReport(sFile), sLog..".ListView"); return
-                  end -- Luapad is not installed and missing. Open the addon homepage
-                end):SetImage(asmlib.ToIcon(sI.."sted"))
-              pTb:AddOption(language.GetPhrase(sT.."stdl"),
-                function() file.Delete(sFile)
-                  asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
-                  if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY"):lower()
-                    if(file.Exists(sCats,"DATA")) then file.Delete(sCats) -- Delete category when present
-                      asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
-                  end
-                end):SetImage(asmlib.ToIcon(sI.."stdl"))
+        -- Populate the sub-menu with all table nicknames in case origin is a DSV list
+        if(not asmlib.IsExact(sP)) then local pIn, pOp = nil, nil -- Extern database DSV list
+          asmlib.RunBuilderCount(function(makTab, iD) -- Extern database does not have data files
+            local defTab = makTab:GetDefinition()
+            local sFile = fDSV:format(sP, defTab.Nick):lower()
+            if(file.Exists(sFile, "DATA")) then
+              if(not (pIn and pOp)) then
+                -- Manipulate content local settings related to the line
+                pIn, pOp = pnMenu:AddSubMenu(language.GetPhrase(sT.."st"))
+                if(not IsValid(pIn)) then pnFrame:Close()
+                  asmlib.LogInstance("Settings menu invalid",sLog..".ListView"); return end
+                if(not IsValid(pOp)) then pnFrame:Close()
+                  asmlib.LogInstance("Settings opts invalid",sLog..".ListView"); return end
+                pOp:SetIcon(asmlib.ToIcon(sI.."st"))
+              end -- When there is at least one DSV table present make table sub-menu
+              if(pIn and pOp) then -- When the sub-menu pointer is available add tables
+                local pTb, pOb = pIn:AddSubMenu(defTab.Nick)
+                if(not IsValid(pTb)) then pnFrame:Close()
+                  asmlib.LogInstance("Manage menu invalid "..GetReport(iD, defTab.Nick),sLog..".ListView"); return end
+                if(not IsValid(pOb)) then pnFrame:Close()
+                  asmlib.LogInstance("Manage opts invalid",sLog..".ListView"); return end
+                pOb:SetIcon(asmlib.ToIcon(sI.."si"))
+                pTb:AddOption(language.GetPhrase(sT.."stnk"),
+                  function() SetClipboardText(defTab.Nick) end):SetImage(asmlib.ToIcon(sI.."stnk"))
+                pTb:AddOption(language.GetPhrase(sT.."stpt"),
+                  function() SetClipboardText(sFile) end):SetImage(asmlib.ToIcon(sI.."stpt"))
+                pTb:AddOption(language.GetPhrase(sT.."sttm"),
+                  function() SetClipboardText(asmlib.GetDateTime(file.Time(sFile, "DATA"))) end):SetImage(asmlib.ToIcon(sI.."sttm"))
+                pTb:AddOption(language.GetPhrase(sT.."stsz"),
+                  function() SetClipboardText(tostring(file.Size(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
+                pTb:AddOption(language.GetPhrase(sT.."sted"),
+                  function() -- Edit the database contents using the Luapad addon
+                    if(luapad) then -- Luapad is installed and present. The context menu option is available
+                      asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
+                      if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
+                      luapad.AddTab("["..sP.."]["..defTab.Nick.."]", file.Read(sFile, "DATA"), gsDrcDSV);
+                      if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+                        local sCats = fDSV:format(sP, "CATEGORY"):lower(); if(file.Exists(sCats,"DATA")) then
+                          luapad.AddTab("["..sP.."][CATEGORY]", file.Read(sCats, "DATA"), gsDrcDSV);
+                        end -- This is done so we can distinguish between luapad and other panels
+                      end -- Luapad is designed not to be closed so we need to make it invisible
+                      luapad.Frame:SetVisible(true); luapad.Frame:Center()
+                      luapad.Frame:MakePopup(); conElements:Push({luapad.Frame, "SetVisible", false})
+                    else -- Luapad is not installed. Open the link to install it
+                      local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
+                      local sID = asmlib.WorkshopID("Luapad for GMod 13"); gui.OpenURL(sUR:format(sID))
+                      asmlib.LogInstance("Skipped "..asmlib.GetReport(sFile), sLog..".ListView"); return
+                    end -- Luapad is not installed and missing. Open the addon homepage
+                  end):SetImage(asmlib.ToIcon(sI.."sted"))
+                pTb:AddOption(language.GetPhrase(sT.."stdl"),
+                  function() file.Delete(sFile)
+                    asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
+                    if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY"):lower()
+                      if(file.Exists(sCats,"DATA")) then file.Delete(sCats) -- Delete category when present
+                        asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
+                    end
+                  end):SetImage(asmlib.ToIcon(sI.."stdl"))
+              end
             end
-          end
-        end, "DSV_MENU"); pnMenu:Open()
+          end, "DSV_MENU")
+        end; pnMenu:Open()
       end -- Populate the tables for every database
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
       conElements:Push({pnFrame, "Close"}); asmlib.LogInstance("Success",sLog); return
