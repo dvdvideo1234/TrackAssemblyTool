@@ -4357,7 +4357,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     LogInstance("User disabled "..GetReport(sProg, sPref)); return true end
   local sDelim, sMiss = tostring(sDelim or "\t"):sub(1,1), GetOpVar("MISS_NOAV")
   local fName = GetLibraryPath(GetOpVar("DIRPATH_SET"), GetOpVar("NAME_LIBRARY"), "_dsv")
-  if(bSkip) then
+  if(bSkip or IsExact(fPref)) then
     if(file.Exists(fName, "DATA")) then local fPool = {}
       local F = file.Open(fName, "rb" ,"DATA"); if(not F) then
         LogInstance("Skip fail: "..GetReport(sProg, fPref, fName)); return false end

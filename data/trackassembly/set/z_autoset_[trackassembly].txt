@@ -65,7 +65,7 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
  * when you need it to do something else.
 --]]
 local function ThrowError(vMesg)
-  local sMesg = (myScript.." > ("..myAddon.."): "..tostring(vMesg)) -- Convert to string
+  local sMesg = asmlib.GetConcat(myScript, " > (", myAddon, "): ", vMesg) -- Convert
   if(asmlib) then asmlib.LogInstance(sMesg, mySource) end -- Update the tool logs
   ErrorNoHaltWithStack(sMesg.."\n") -- Produce an error without breaking the stack
 end
@@ -88,6 +88,12 @@ asmlib.LogInstance(">>> "..myScript.." ("..tostring(myFlag).."): {"..myAddon..",
 
 -- Register the workshop ID
 asmlib.WorkshopID(myAddon, "287012681")
+
+-- Register the prefix with the external database panel
+-- Register the auto prefix and check for errors
+if(not asmlib.RegisterDSV(myScript, "*"..myPrefix)) then
+  ThrowError("Failed to register content") -- Throw the error if fails
+end -- Third argument is the delimiter. The default tab is used
 
 --[[
  * Create a table and populate it as shown below
