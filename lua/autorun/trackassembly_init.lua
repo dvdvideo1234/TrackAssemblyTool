@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.881")
+asmlib.SetOpVar("TOOL_VERSION","9.882")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -787,8 +787,11 @@ if(CLIENT) then
           tDat[1] = (tDat[1]:Trim():upper():sub(1,1))
           tDat[1] = ((tDat[1] == "V") and "V" or "X")
           -- Database unique prefix. Contains non-spaces
-          tDat[2] = tostring(tDat[2] or "")
-          tDat[2] = asmlib.GetTypePrefix(tDat[2])
+          tDat[2] = tostring(tDat[2] or ""):Trim()
+          if(not asmlib.IsExact(tDat[2])) then -- Concert to file prefix
+            tDat[2] = asmlib.GetTypePrefix(tDat[2]) else -- Mark * in front
+            tDat[2] = asmlib.GetConcat("*", asmlib.GetTypePrefix(tDat[2]:sub(2,-1)))
+          end -- Putting an asterisk disables file functions
           -- Additional information. It can be anything
           tDat[3] = tostring(tDat[3] or ""):Trim()
           tDat[3] = (asmlib.IsBlank(tDat[3]) and gsNoAV or tDat[3])
