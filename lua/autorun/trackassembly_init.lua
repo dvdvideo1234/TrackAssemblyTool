@@ -13,11 +13,10 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.882")
+asmlib.SetOpVar("TOOL_VERSION","9.883")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
-local gtInitLogs  = {"*Init", false, 0}
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsSymDis    = asmlib.GetOpVar("OPSYM_DISABLE")
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
@@ -203,9 +202,10 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       conCallBack:Push({"timermode", function(sV, vO, vN)
         local arTim = gsSymDir:Explode(vN)
         asmlib.RunBuilderCount(function(makTab, iD)
-          local sTim, defTab = arTim[iD], makTab:GetDefinition(); makTab:TimerSetup(sTim)
-          asmlib.LogInstance("Timer apply "..asmlib.GetReport(defTab.Nick,sTim),gtInitLogs)
-        end, "TIMER_MODE"); asmlib.LogInstance("Timer update "..asmlib.GetReport(vN),gtInitLogs)
+          local sTim, defTab = arTim[iD], makTab:GetDefinition()
+          asmlib.LogInstance("Timer update "..asmlib.GetReport(sTim),"*"..defTab.Nick)
+          makTab:TimerSetup(sTim); return true
+        end)
       end})
       conCallBack:Push({"dtmessage", function(sV, vO, vN)
         if(SERVER) then
@@ -288,9 +288,9 @@ asmlib.SetAction("REFRESH_ITEM_LIST",
       local sFile = tData.DSV:format(sP, sT):lower()
       if(file.Exists(sFile, tData.SRC)) then
         if(not asmlib.ImportDSV(sT, tData.COM, sP, nil, nil, tData.RFS)) then
-          asmlib.LogInstance("Failed refreshing "..asmlib.GetReport(sT,sP)); return end
-      end -- When the file is available use direct data import
-    end, "REFRESH_ITEM_LIST"); return true -- Exit success
+          asmlib.LogInstance("Failed refreshing "..asmlib.GetReport(sT,sP)); return false end
+      end; return true -- When the file is available use direct data import
+    end); return true -- Exit success
   end, { -- Constants used across the action taken
     DSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt"):lower(),
     SRC = "DATA", COM = true, RFS = true -- Do not create values on call
@@ -788,10 +788,7 @@ if(CLIENT) then
           tDat[1] = ((tDat[1] == "V") and "V" or "X")
           -- Database unique prefix. Contains non-spaces
           tDat[2] = tostring(tDat[2] or ""):Trim()
-          if(not asmlib.IsExact(tDat[2])) then -- Concert to file prefix
-            tDat[2] = asmlib.GetTypePrefix(tDat[2]) else -- Mark * in front
-            tDat[2] = asmlib.GetConcat("*", asmlib.GetTypePrefix(tDat[2]:sub(2,-1)))
-          end -- Putting an asterisk disables file functions
+          tDat[2] = asmlib.GetTypePrefix(tDat[2])
           -- Additional information. It can be anything
           tDat[3] = tostring(tDat[3] or ""):Trim()
           tDat[3] = (asmlib.IsBlank(tDat[3]) and gsNoAV or tDat[3])
@@ -924,20 +921,21 @@ if(CLIENT) then
         if(not IsValid(pOp)) then pnFrame:Close()
           asmlib.LogInstance("Internals opts invalid",sLog..".ListView"); return end
         pOp:SetIcon(asmlib.ToIcon(sI.."li"))
-        pIn:AddOption(language.GetPhrase(sT.."licg"),
-          function() tpText:Scan(pnLine, true) end):SetImage(asmlib.ToIcon(sI.."licg"))
         pIn:AddOption(language.GetPhrase(sT.."licr"),
           function() tpText:Scan(pnLine) end):SetImage(asmlib.ToIcon(sI.."licr"))
-        pIn:AddOption(language.GetPhrase(sT.."lirf"),
-          function() -- Call client action to refresh the prefix
-            local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", sP); if(not bS) then
-              asmlib.LogInstance("Refresh execute: "..asmlib.GetReport(sP,sR),sLog..".ListView"); return end
-            if(game.SinglePlayer()) then -- In single player send a message for the server too
-              net.Start(gsLibName.."SendRefreshDSV"); net.WriteString(sP); net.SendToServer() end
-          end):SetImage(asmlib.ToIcon(sI.."lirf"))
         pIn:AddOption(language.GetPhrase(sT.."lirm"),
           function() pnSelf:RemoveLine(nIndex) end):SetImage(asmlib.ToIcon(sI.."lirm"))
-        -- Handle workshop specific options for the given track type
+        if(not asmlib.IsExact(sP)) then -- Change and refresh are disabled for direct insert
+          pIn:AddOption(language.GetPhrase(sT.."licg"), -- Change line via the text field
+            function() tpText:Scan(pnLine, true) end):SetImage(asmlib.ToIcon(sI.."licg"))
+          pIn:AddOption(language.GetPhrase(sT.."lirf"), -- Erase all traces and refresh
+            function() -- Call client action to refresh the prefix. Single execution place
+              local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", sP); if(not bS) then
+                asmlib.LogInstance("Refresh execute: "..asmlib.GetReport(sP,sR),sLog..".ListView"); return end
+              if(game.SinglePlayer()) then -- In single player send a message for the server too
+                net.Start(gsLibName.."SendRefreshDSV"); net.WriteString(sP); net.SendToServer() end
+            end):SetImage(asmlib.ToIcon(sI.."lirf")) -- Set it a pretty icon
+        end -- Handle workshop specific options for the given track type
         asmlib.WorkshopAttachToMenu(pnMenu, sP) -- Workshop ID for given track type
         -- Use the already exported DSV. Export database contents by type/prefix
         asmlib.ExportAttachToMenu(pnMenu, sP, true) -- Export database contents by type/prefix
@@ -999,8 +997,8 @@ if(CLIENT) then
                     end
                   end):SetImage(asmlib.ToIcon(sI.."stdl"))
               end
-            end
-          end, "DSV_MENU")
+            end; return true
+          end)
         end; pnMenu:Open()
       end -- Populate the tables for every database
       pnFrame:SetVisible(true); pnFrame:Center(); pnFrame:MakePopup()
@@ -2089,9 +2087,9 @@ asmlib.NewTable("PHYSPROPERTIES",{
 --[[ Categories are only needed client side ]]--
 if(CLIENT) then
   if(file.Exists(gsGenerDSV.."category.txt", "DATA")) then
-    asmlib.LogInstance("DB CATEGORY from GENERIC",gtInitLogs)
+    asmlib.LogInstance("DB CATEGORY from GENERIC","*Init")
     asmlib.ImportCategory(3, gsGenerPrf)
-  else asmlib.LogInstance("DB CATEGORY from LUA",gtInitLogs) end
+  else asmlib.LogInstance("DB CATEGORY from LUA","*Init") end
 end
 
 --[[ Track pieces parameterization legend
@@ -2108,11 +2106,11 @@ end
  * Second argument of Categorize() is used to generate track categories for the processed addon
 ]]--
 if(file.Exists(gsGenerDSV.."pieces.txt", "DATA")) then
-  asmlib.LogInstance("DB PIECES from GENERIC",gtInitLogs)
+  asmlib.LogInstance("DB PIECES from GENERIC","*Init")
   asmlib.ImportDSV("PIECES", true, gsGenerPrf)
 else
   if(gsMoDB == "SQL") then sql.Begin() end
-  asmlib.LogInstance("DB PIECES from LUA",gtInitLogs)
+  asmlib.LogInstance("DB PIECES from LUA","*Init")
   local PIECES = asmlib.GetBuilderNick("PIECES"); BEAUTY:SetRule()
   if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
     asmlib.Categorize("Develop Sprops")
@@ -4957,11 +4955,11 @@ else
 end
 
 if(file.Exists(gsGenerDSV.."physproperties.txt", "DATA")) then
-  asmlib.LogInstance("DB PHYSPROPERTIES from GENERIC",gtInitLogs)
+  asmlib.LogInstance("DB PHYSPROPERTIES from GENERIC","*Init")
   asmlib.ImportDSV("PHYSPROPERTIES", true, gsGenerPrf)
 else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/Material_surface_properties
   if(gsMoDB == "SQL") then sql.Begin() end
-  asmlib.LogInstance("DB PHYSPROPERTIES from LUA",gtInitLogs)
+  asmlib.LogInstance("DB PHYSPROPERTIES from LUA","*Init")
   local PHYSPROPERTIES = asmlib.GetBuilderNick("PHYSPROPERTIES"); BEAUTY:SetRule()
   asmlib.Categorize("Concrete")
   PHYSPROPERTIES:Record({"#", 1 , "brick"          })
@@ -5066,13 +5064,13 @@ else --- Valve's physical properties: https://developer.valvesoftware.com/wiki/M
 end
 
 if(file.Exists(gsGenerDSV.."additions.txt", "DATA")) then
-  asmlib.LogInstance("DB ADDITIONS from GENERIC",gtInitLogs)
+  asmlib.LogInstance("DB ADDITIONS from GENERIC","*Init")
   asmlib.ImportDSV("ADDITIONS", true, gsGenerPrf)
 else
   if(gsMoDB == "SQL") then sql.Begin() end
-  asmlib.LogInstance("DB ADDITIONS from LUA",gtInitLogs)
+  asmlib.LogInstance("DB ADDITIONS from LUA","*Init")
   local ADDITIONS = asmlib.GetBuilderNick("ADDITIONS"); BEAUTY:SetRule()
   if(gsMoDB == "SQL") then sql.Commit() end
 end
 
-asmlib.LogInstance("Version: "..asmlib.GetOpVar("TOOL_VERSION"), gtInitLogs)
+asmlib.LogInstance("Version: "..asmlib.GetOpVar("TOOL_VERSION"), "*Init")

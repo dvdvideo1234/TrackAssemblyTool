@@ -2816,14 +2816,15 @@ function GetBuilderID(vID)
   return makTab -- Return the dedicated table builder object
 end
 
-function RunBuilderCount(fR, sS)
+function RunBuilderCount(fR)
   local iCnt = #libQTable; if(not isfunction(fR)) then
-    LogInstance("Routine mismatch "..GetReport(fR), sS); return false end
-  for iD = 1, iCnt do -- Execute function for every table
-    local makTab = GetBuilderID(iD); if(not IsHere(makTab)) then
-      LogInstance("Missing table builder for "..GetReport(iD), sS); return false end
-    local bS, vO = pcall(fR, makTab, iD); if(not bS) then
-      LogInstance("Execute error: "..vO, GetReport(iD), sS); return false end
+    LogInstance("Routine mismatch "..GetReport(fR), nil, nil, 3); return false end
+  for iD = 1, iCnt do -- Execute function routine for every table class
+    local makTab = GetBuilderID(iD); if(not IsHere(makTab)) then -- No table class return
+      LogInstance("Missing builder "..GetReport(iD), nil, nil, 3); return false end
+    local bS, vO = pcall(fR, makTab, iD) -- Attempt to call the routine with the table class
+    if(not bS) then LogInstance("Execute error: "..GetReport(iD, vO), nil, nil, 3); return false end
+    if(not vO) then LogInstance("Execute fault: "..GetReport(iD, vO), nil, nil, 3); return false end
   end; return true -- Return success
 end
 
@@ -4844,8 +4845,8 @@ function ExportTypeTRN(sType, bExp)
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode "..GetReport(sType, bExp)); return end
-  local sSrc = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-  local sDir, sNam = GetLibraryPath(sSrc)
+  local sTrn = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
+  local sDir, sNam = GetLibraryPath(sTrn)
   if(bExp) then -- Use the pattern for the export file format
     sNam = GetOpVar("FORM_PREFIXDSV"):format(sPref, "*"):lower()
     sNam = GetOpVar("FORM_PREFIXFMT"):format("*", "dsv", sNam):lower()
