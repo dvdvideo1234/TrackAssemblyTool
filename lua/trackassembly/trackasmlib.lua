@@ -4840,7 +4840,7 @@ function ExportTypeTRN(sType, bExp)
     LogInstance("Working on server "..GetReport(sType, bExp)); return end
   if(not isstring(sType)) then -- Type is not a string
     LogInstance("Type mismatch "..GetReport(sType, bExp)); return end
-  local sType, sPref = GetTypeNormal(sType); if(IsBlank(sType)) then
+  local sType, sPref = GetTypeConfig(sType); if(IsBlank(sType)) then
     LogInstance("Type is empty "..GetReport(sType, bExp)); return end
   local sMoDB = GetOpVar("MODE_DATABASE") -- Read database mode
   local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
@@ -4853,7 +4853,8 @@ function ExportTypeTRN(sType, bExp)
   else -- Use the pattern prefix for the DSV file format
     sNam = GetOpVar("FORM_PREFIXDSV"):format(sPref, "*"):lower()
   end -- Try to create translation files list
-  local tSrc = file.Find(sDir..sNam, "DATA") -- Search for generic database
+  local tSrc = file.Find(sDir..sNam, "DATA"); if(not tSrc) then
+    LogInstance("File format invalid "..GetReport(sType, bExp, sDir, sNam)); return end
   for iF = 1, #tSrc do local vF = tSrc[iF]:lower() -- Translate DSV to records
     if(not vF:find("category.txt", 1, true)) then -- Ignore categories
       LogInstance("Translate "..GetReport(sNam, sDir, vF))
