@@ -4853,14 +4853,13 @@ function ExportTypeTRN(sType, bExp)
   else -- Use the pattern prefix for the DSV file format
     sNam = GetOpVar("FORM_PREFIXDSV"):format(sPref, "*"):lower()
   end -- Try to create translation files list
-  local tSrc = file.Find(sDir..sNam, "DATA"); if(not tSrc) then
-    LogInstance("File format invalid "..GetReport(sType, bExp, sDir, sNam)); return end
+  local tSrc = file.Find(sDir..sNam, "DATA"); if(not (tSrc and #tSrc > 0)) then
+    LogInstance("Translate skip "..GetReport(sType, bExp, sDir, sNam)); return end
   for iF = 1, #tSrc do local vF = tSrc[iF]:lower() -- Translate DSV to records
     if(not vF:find("category.txt", 1, true)) then -- Ignore categories
-      LogInstance("Translate "..GetReport(sNam, sDir, vF))
       TranslateDSV(sDir..vF, sPref, nil, bExp) -- Translate files of the type
     end -- All files related to that type are translated
-  end
+  end; LogInstance("Translate "..GetReport(sType, bExp, sDir, sNam))
 end
 
 --[[
