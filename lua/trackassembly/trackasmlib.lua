@@ -117,12 +117,12 @@ function GetInstPrefix()
   return (CLIENT and "cl_" or (SERVER and "sv_" or "na_"))
 end
 
-function GetTypePrefix(sT)
-  return tostring(sT or ""):Trim():gsub("[^%w]","_"):lower()
-end
-
 function GetTypeNormal(sT)
   return tostring(sT or ""):Trim():gsub("%s+", " ")
+end
+
+function GetTypePrefix(sT)
+  return tostring(sT or ""):Trim():gsub("[^%w]","_"):lower()
 end
 
 function GetTypeConfig(sT)
@@ -585,23 +585,19 @@ function WorkshopID(sType, sID)
   local tID = GetOpVar("TABLE_WSIDADDON"); if(not isstring(sType)) then
     LogInstance("Invalid "..GetReport(sType)); return nil end
   local sType = GetTypeNormal(sType) -- Trim extra and border spaces
-  local sPref = GetTypePrefix(sType); if(sType == sPref) then
-    LogInstance("Diverge "..GetReport(sType, sPref)); return nil end
+  local sPref = GetTypePrefix(sType) -- Convert the type to a prefix
   local sWP = tID.Data[sPref] -- Read the value under the key
-  if(sID) then -- Workshop ID is provided as second argument
-    local sW = tostring(sID or ""):Trim() -- Convert argument
-    local nS, nE = sW:find(tID.ID) -- Check ID containing digits
-    if(nS and nE) then -- The number meets the format requirement
-      if(not sWP) then sWP = sW:sub(nS, nE) -- One is not present
-        tID.Data[sPref] = sWP -- Index by prefix and type
-        tID.Type[sPref] = sType -- Store the original type
-      else -- Updated value already exists so do nothing
-        LogInstance("Exists "..GetReport(sType, sPref, sWP, sID))
-      end -- Report overwrite value is present in the list
-    else -- The number does not meet the format
-      LogInstance("Mismatch "..GetReport(sType, sPref, sWP, sID))
-    end -- Return the current value under the specified key
-  end; return sWP
+  if(not sID) then return sWP end -- Return the WSID under the prefix
+  -- Workshop ID is provided as second argument. Try to store it
+  local sW = tostring(sID or ""):Trim() -- Convert argument
+  local nS, nE = sW:find(tID.ID) -- Check ID containing digits
+  if(not (nS and nE)) then -- The number does not meet the format
+    LogInstance("Mismatch "..GetReport(sType, sPref, sWP, sID)); return sWP end
+  if(sWP) then -- The WSID key already exists in the database so cancel storage
+    LogInstance("Exists "..GetReport(sType, sPref, sWP, sID)); return sWP end
+  local sWP = sW:sub(nS, nE) -- One is not present and contain only digits
+  tID.Data[sPref] = sWP -- Index by prefix and store the WSID
+  tID.Type[sPref] = sType; return sWP -- Store the original type
 end
 
 --[[
