@@ -1732,7 +1732,7 @@ asmlib.NewTable("PIECES",{
       local noTY  = asmlib.GetOpVar("MISS_NOTP")
       local trCls = asmlib.GetOpVar("TRACE_CLASS")
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
-      arLine[2] = asmlib.GetEmpty(arLine[2], emFva, asmlib.Categorize(), noTY)
+      arLine[2] = asmlib.GetEmpty(arLine[2], emFva, asmlib.GetTypeNormal(asmlib.Categorize()), noTY)
       arLine[3] = asmlib.GetEmpty(arLine[3], emFva, BEAUTY:Convert(arLine[1]):Get(), gsNoMD)
       arLine[5] = asmlib.GetEmpty(arLine[5], asmlib.IsBlank, gsNoSQL)
       arLine[6] = asmlib.GetEmpty(arLine[6], asmlib.IsBlank, gsNoSQL)
@@ -2017,7 +2017,8 @@ asmlib.NewTable("PHYSPROPERTIES",{
     Record = function(arLine)
       local noTY = asmlib.GetOpVar("MISS_NOTP")
       local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
-      arLine[1] = asmlib.GetEmpty(arLine[1], emFva, asmlib.Categorize(), noTY); return true
+      local smTyp = asmlib.GetTypeNormal(asmlib.Categorize())
+      arLine[1] = asmlib.GetEmpty(arLine[1], emFva, smTyp, noTY); return true
     end
   },
   Cache = {

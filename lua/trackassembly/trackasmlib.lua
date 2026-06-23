@@ -117,12 +117,12 @@ function GetInstPrefix()
   return (CLIENT and "cl_" or (SERVER and "sv_" or "na_"))
 end
 
-function GetTypeNormal(sT)
-  return tostring(sT or ""):Trim():gsub("%s+", " ")
-end
-
 function GetTypePrefix(sT)
   return tostring(sT or ""):Trim():gsub("[^%w]","_"):lower()
+end
+
+function GetTypeNormal(sT)
+  return tostring(sT or ""):Trim():gsub("%s+", " ")
 end
 
 function GetTypeConfig(sT)
