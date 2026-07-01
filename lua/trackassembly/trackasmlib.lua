@@ -2966,7 +2966,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
    * bT   > Force trimming the holes
   ]]
   function self:GetRowToArray(tRow, tO, bT)
-    local tA, iA = (tO or {}), 0 -- Store it here
+    local tA, iA = (tO or {}), 0 -- Create new or store in the output
     for key, val in pairs(tRow) do -- Column name tables are not ordered
       local iD = self:GetColumnID(key) -- Retrieve a valid column ID
       if(iD > 0) then iA = (iA + 1) -- Count the validated columns
@@ -2979,11 +2979,11 @@ function NewTable(sTable,defTab,bReload,bDelete)
    * tArr > Array being converted to record
    * tO   > Data output when provided
   ]]
-  function self:ArrayMatch(tArr,bQ,sQ,bRe,bNo)
+  function self:ArrayMatch(tArr, bQ, sQ, bRe, bNo)
     local qtDef = self:GetDefinition() -- Table definition index
     for iC = 1, qtDef.Size do -- Record is not ordered so either way
-      local vM = self:Match(tArr[iC],iC,bQ,sQ,bRe,bNo)
-      if(not IsHere(vM)) then
+      local vM = self:Match(tArr[iC],iC,bQ,sQ,bRe,bNo) -- Matching item
+      if(not IsHere(vM)) then -- In case a value is not matched print row
         LogInstance("Row mismatch "..GetReport(unpack(tArr)), qtDef.Nick)
         return false -- Matching for column has failed
       end; tArr[iC] = vM -- Assign and check the next column
@@ -2995,11 +2995,11 @@ function NewTable(sTable,defTab,bReload,bDelete)
    * tO   > Data output when provided
   ]]
   function self:GetArrayToRow(tArr, tO)
-    local tA, qtDef = (tO or {}), self:GetDefinition() -- Store it here
+    local tR, qtDef = (tO or {}), self:GetDefinition() -- Store it here
     for iC = 1, qtDef.Size do -- Record is not ordered so either way
       local sN = self:GetColumnName(iC) -- Get column name mapping
-      if(sN) then tA[sN] = tArr[iC] end
-    end; return tA
+      if(sN) then tR[sN] = tArr[iC] end
+    end; return tR
   end
   -- Removes the object from the list
   function self:Remove(vRet)
