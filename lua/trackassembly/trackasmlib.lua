@@ -2881,7 +2881,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     if(vK) then return tabCmd[vK] end; return tabCmd
   end
   -- Register a string in the STMT concatenate list
-  function self:SetFragment(...)
+  function self:SetConcat(...)
     local qtCmd = self:GetCommand()
     local qtFrg, nF = qtCmd.FRAG, select("#", ...)
     if(not qtFrg) then qtCmd.FRAG = {}; qtFrg = qtCmd.FRAG end
@@ -2890,7 +2890,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     end; return self
   end
   -- Creates the statement from the list and returns it
-  function self:GetFragment()
+  function self:GetConcat()
     local qtCmd = self:GetCommand()
     local qtFrg = qtCmd.FRAG
     if(not qtFrg) then return "" end
@@ -3175,8 +3175,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
         LogInstance("Column missing "..GetReport(iD,iC,nA), qtDef.Nick); return nil end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
         LogInstance("Column name mismatch "..GetReport(iD,iC,nA),qtDef.Nick); return nil end
-      self:SetFragment(sC, ((iD ~= nA) and sD or ""))
-    end; return self:GetFragment()
+      self:SetConcat(sC, ((iD ~= nA) and sD or ""))
+    end; return self:GetConcat()
   end
   --[[
    * Matches the data content to the column type and settings
@@ -3268,7 +3268,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
   function self:Create()
     local qtDef = self:GetDefinition()
     local qtCmd = self:GetCommand(); qtCmd.STMT = "CREATE"
-    self:SetFragment(qtCmd.STMT, " TABLE IF NOT EXISTS ", qtDef.Name, " ( ")
+    self:SetConcat(qtCmd.STMT, " TABLE IF NOT EXISTS ", qtDef.Name, " ( ")
     for iCnt = 1, qtDef.Size do
       local tC = qtDef[iCnt]; if(not tC) then
         LogInstance("Column missing "..GetReport(iCnt,qtDef.Size), qtDef.Nick); return self:Deny() end
@@ -3276,8 +3276,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
         LogInstance("Column name mismatch "..GetReport(iCnt,qtDef.Size),qtDef.Nick); return self:Deny() end
       local sT = tostring(tC[2] or ""); if(IsBlank(sT)) then
         LogInstance("Column type mismatch "..GetReport(iCnt,qtDef.Size),qtDef.Nick); return self:Deny() end
-      self:SetFragment(sC, " ", sT, (iCnt ~= qtDef.Size and ", " or " );"))
-    end; qtCmd[qtCmd.STMT] = self:GetFragment(); return self
+      self:SetConcat(sC, " ", sT, (iCnt ~= qtDef.Size and ", " or " );"))
+    end; qtCmd[qtCmd.STMT] = self:GetConcat(); return self
   end
   -- Build SQL table indexes statement
   function self:Index(...)
@@ -3295,9 +3295,9 @@ function NewTable(sTable,defTab,bReload,bDelete)
       if(isnumber(vA)) then vA = {vA} end; if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
       local nV, bNe = #vA, (vA.Ne or not IsHere(vA.Ne))
-      self:SetFragment("CREATE ", (vA.Un and "UNIQUE " or ""), qtCmd.STMT)
-      self:SetFragment((bNe and " IF NOT EXISTS " or " "), "IND_", qtDef.Name)
-      self:SetFragment(sDiv, table.concat(vA,sDiv), " ON ", qtDef.Name, " ( ")
+      self:SetConcat("CREATE ", (vA.Un and "UNIQUE " or ""), qtCmd.STMT)
+      self:SetConcat((bNe and " IF NOT EXISTS " or " "), "IND_", qtDef.Name)
+      self:SetConcat(sDiv, table.concat(vA,sDiv), " ON ", qtDef.Name, " ( ")
       for iInd = 1, nV do
         local iV = math.floor(tonumber(vA[iInd]) or 0); if(iV == 0) then
           LogInstance("Index mismatch "..GetReport(nA,iCnt,iInd),qtDef.Nick); return self:Deny() end
@@ -3305,15 +3305,15 @@ function NewTable(sTable,defTab,bReload,bDelete)
           LogInstance("Column missing "..GetReport(nA,iCnt,iInd,iV), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt,iInd,iV),qtDef.Nick); return self:Deny() end
-        self:SetFragment(sC, (iInd ~= nV and ", " or " );"))
-      end; tStmt[iCnt] = self:GetFragment()
+        self:SetConcat(sC, (iInd ~= nV and ", " or " );"))
+      end; tStmt[iCnt] = self:GetConcat()
     end return self
   end
   -- Builds an SQL select statement
   function self:Select(...)
     local qtCmd, nA = self:GetCommand(), select("#", ...)
     local qtDef = self:GetDefinition(); qtCmd.STMT = "SELECT"
-    self:SetFragment(qtCmd.STMT, " ")
+    self:SetConcat(qtCmd.STMT, " ")
     if(nA > 0) then local tA = {...}
       for iCnt = 1, nA do
         local vA = math.floor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
@@ -3322,10 +3322,10 @@ function NewTable(sTable,defTab,bReload,bDelete)
           LogInstance("Column missing "..GetReport(nA,iCnt,vA), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
-        self:SetFragment(sC, (iCnt ~= nA and ", " or ""))
+        self:SetConcat(sC, (iCnt ~= nA and ", " or ""))
       end
-    else self:SetFragment("*") end; self:SetFragment(" FROM ", qtDef.Name, ";")
-    qtCmd[qtCmd.STMT] = self:GetFragment(); return self
+    else self:SetConcat("*") end; self:SetConcat(" FROM ", qtDef.Name, ";")
+    qtCmd[qtCmd.STMT] = self:GetConcat(); return self
   end
   -- Add where clause to the current statement
   function self:Where(...)
@@ -3340,7 +3340,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),qtDef.Nick); return self:Deny() end
-    local tA = {...}; self:SetFragment(sStmt:Trim("%s"):Trim(";"))
+    local tA = {...}; self:SetConcat(sStmt:Trim("%s"):Trim(";"))
     for iCnt = 1, nA do
       local vA, sW = tA[iCnt], ((iCnt == 1) and " WHERE " or " AND "); if(not istable(vA)) then
         LogInstance("Argument not table "..GetReport(nA,iCnt), qtDef.Nick); return self:Deny() end
@@ -3350,8 +3350,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
          LogInstance("Column missing "..GetReport(nA,iCnt,wC,wV), qtDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
         LogInstance("Column mismatch "..GetReport(nA,iCnt,wC,wV),qtDef.Nick); return self:Deny() end
-      self:SetFragment(sW, sC, " = ", tostring(wV))
-    end; self:SetFragment(";"); qtCmd[qtCmd.STMT] = self:GetFragment(); return self
+      self:SetConcat(sW, sC, " = ", tostring(wV))
+    end; self:SetConcat(";"); qtCmd[qtCmd.STMT] = self:GetConcat(); return self
   end
   -- Add order by clause to the current statement
   function self:Order(...)
@@ -3366,7 +3366,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),qtDef.Nick); return self:Deny() end
-    local tA = {...}; self:SetFragment(sStmt:Trim("%s"):Trim(";"), " ORDER BY ")
+    local tA = {...}; self:SetConcat(sStmt:Trim("%s"):Trim(";"), " ORDER BY ")
     for iCnt = 1, nA do
       local vA = math.floor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
         LogInstance("Column undefined "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
@@ -3375,14 +3375,14 @@ function NewTable(sTable,defTab,bReload,bDelete)
         LogInstance("Column missing "..GetReport(nA,iCnt,vA), qtDef.Nick); return self:Deny() end
       local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
         LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
-      self:SetFragment(sC, sDir, (iCnt ~= nA and ", " or ";"))
-    end; qtCmd[qtCmd.STMT] = self:GetFragment(); return self
+      self:SetConcat(sC, sDir, (iCnt ~= nA and ", " or ";"))
+    end; qtCmd[qtCmd.STMT] = self:GetConcat(); return self
   end
   -- Build SQL insert statement
   function self:Insert(...)
     local qtCmd, nA = self:GetCommand(), select("#", ...)
     local qtDef = self:GetDefinition(); qtCmd.STMT = "INSERT"
-    self:SetFragment(qtCmd.STMT, " INTO ", qtDef.Name, " ( ")
+    self:SetConcat(qtCmd.STMT, " INTO ", qtDef.Name, " ( ")
     if(nA > 0) then local tA = {...}
       for iCnt = 1, nA do -- Assume the user wants to build custom insert
         local vA = math.floor(tonumber(tA[iCnt]) or 0); if(vA == 0) then
@@ -3391,7 +3391,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
           LogInstance("Column missing "..GetReport(nA,iCnt,vA), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt,vA),qtDef.Nick); return self:Deny() end
-        self:SetFragment(sC, (iCnt ~= nA and ", " or " )"))
+        self:SetConcat(sC, (iCnt ~= nA and ", " or " )"))
       end
     else nA = qtDef.Size -- When called with no arguments is the same as picking all columns
       for iCnt = 1, nA do
@@ -3399,9 +3399,9 @@ function NewTable(sTable,defTab,bReload,bDelete)
           LogInstance("Column missing "..GetReport(nA,iCnt), qtDef.Nick); return self:Deny() end
         local sC = tostring(tC[1] or ""); if(IsBlank(sC)) then
           LogInstance("Column mismatch "..GetReport(nA,iCnt),qtDef.Nick); return self:Deny() end
-        self:SetFragment(sC, (iCnt ~= nA and ", " or " )"))
+        self:SetConcat(sC, (iCnt ~= nA and ", " or " )"))
       end
-    end; qtCmd[qtCmd.STMT] = self:GetFragment(); return self
+    end; qtCmd[qtCmd.STMT] = self:GetConcat(); return self
   end
   -- Add values clause to the current statement
   function self:Values(...)
@@ -3411,9 +3411,9 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Statement deny "..GetReport(nA,qtCmd.STMT), qtDef.Nick); return self:Deny() end
     if(not isstring(sStmt)) then
       LogInstance("Previous mismatch "..GetReport(nA,qtCmd.STMT,sStmt),qtDef.Nick); return self:Deny() end
-    self:SetFragment(sStmt:Trim("%s"):Trim(";").." VALUES ( ")
-    for iCnt = 1, nA do self:SetFragment(tostring(tA[iCnt]), (iCnt ~= nA and ", " or " );")) end
-    qtCmd[qtCmd.STMT] = self:GetFragment(); return self
+    self:SetConcat(sStmt:Trim("%s"):Trim(";").." VALUES ( ")
+    for iCnt = 1, nA do self:SetConcat(tostring(tA[iCnt]), (iCnt ~= nA and ", " or " );")) end
+    qtCmd[qtCmd.STMT] = self:GetConcat(); return self
   end
   -- Run a trigger with the given ID and arguments
   function self:Trigger(sID, ...)

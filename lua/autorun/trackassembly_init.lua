@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.884")
+asmlib.SetOpVar("TOOL_VERSION","9.885")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1952,16 +1952,15 @@ asmlib.NewTable("ADDITIONS",{
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
-      local defTab, sSors = makTab:GetDefinition(), makTab:GetFragment()
       local iID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK),sSors); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK)); return false end
       if(iID ~= (stData.Size + 1)) then
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK),sSors); return false end
-      stData[iID] = {} -- LineID has to be set properly
-      for iCnt = 2, defTab.Size do local sC = makTab:GetColumnName(iCnt); if(not sC) then
-        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iCnt,snPK),sSors); return false end
-        stData[iID][sC] = makTab:Match(arLine[iCnt],iCnt); if(not asmlib.IsHere(stData[iID][sC])) then
-          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iCnt,arLine[iCnt],snPK),sSors); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK)); return false end
+      local defTab = makTab:GetDefinition(); stData[iID] = {} -- LineID has to be set properly
+      for iC = 2, defTab.Size do local sC = makTab:GetColumnName(iC); if(not sC) then
+        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iC,snPK)); return false end
+        stData[iID][sC] = makTab:Match(arLine[iC],iC); if(not asmlib.IsHere(stData[iID][sC])) then
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iC,arLine[iC],snPK)); return false end
       end; stData.Size = stData.Size + 1; return true
     end,
     ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
