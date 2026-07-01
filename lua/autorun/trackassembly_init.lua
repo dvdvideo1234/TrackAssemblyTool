@@ -976,7 +976,7 @@ if(CLIENT) then
                       if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
                       luapad.AddTab("["..sP.."]["..defTab.Nick.."]", file.Read(sFile, "DATA"), gsDrcDSV);
                       if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                        local sCats = fDSV:format(sP, "CATEGORY"):lower(); if(file.Exists(sCats,"DATA")) then
+                        local sCats = fDSV:format(sP, "category"):lower(); if(file.Exists(sCats,"DATA")) then
                           luapad.AddTab("["..sP.."][CATEGORY]", file.Read(sCats, "DATA"), gsDrcDSV);
                         end -- This is done so we can distinguish between luapad and other panels
                       end -- Luapad is designed not to be closed so we need to make it invisible
@@ -991,7 +991,7 @@ if(CLIENT) then
                 pTb:AddOption(language.GetPhrase(sT.."stdl"),
                   function() file.Delete(sFile)
                     asmlib.LogInstance("Deleted "..asmlib.GetReport(sFile), sLog..".ListView")
-                    if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "CATEGORY"):lower()
+                    if(defTab.Nick == "PIECES") then local sCats = fDSV:format(sP, "category"):lower()
                       if(file.Exists(sCats,"DATA")) then file.Delete(sCats) -- Delete category when present
                         asmlib.LogInstance("Deleted "..asmlib.GetReport(sCats), sLog..".ListView") end
                     end

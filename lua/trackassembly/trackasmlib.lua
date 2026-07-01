@@ -2979,12 +2979,12 @@ function NewTable(sTable,defTab,bReload,bDelete)
    * tArr > Array being converted to record
    * tO   > Data output when provided
   ]]
-  function self:ArrayMatch(tArr,bQ,sQ,bNo,bNo)
+  function self:ArrayMatch(tArr,bQ,sQ,bRe,bNo)
     local qtDef = self:GetDefinition() -- Table definition index
     for iC = 1, qtDef.Size do -- Record is not ordered so either way
       local vM = self:Match(tArr[iC],iC,bQ,sQ,bRe,bNo)
-      if(not IsHere(vM)) then LogInstance("Matching failed "
-        ..GetReport(tArr[iC],iC,bQ,sQ,bRe,bNo), qtDef.Nick)
+      if(not IsHere(vM)) then
+        LogInstance("Row mismatch "..GetReport(unpack(tArr)), qtDef.Nick)
         return false -- Matching for column has failed
       end; tArr[iC] = vM -- Assign and check the next column
     end; return true -- Matching is successful
@@ -3474,7 +3474,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     end -- Read the log source format and reduce the number of concatenations
     if(not self:Trigger(sFunc, arLine)) then return false end
     if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
-      for iD = 1, qtDef.Size do arLine[iD] = self:Match(arLine[iD],iD,true) end
+      if(not self:ArrayMatch(arLine, true)) then return false end
       local qIndx = qsKey:format(sFunc, qtDef.Nick)
       local Q = self:Get(qIndx, unpack(arLine)); if(not IsHere(Q)) then local tQ = self:GetQuery()
         Q = self:Insert():Values(unpack(tQ.V)):Store(qIndx):Get(qIndx, unpack(arLine)) end
@@ -3933,9 +3933,9 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local sHew, sFunc = tHew.Fmt:format(fPref, nEq), debug.getinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew)); return true end
-  if(IsGenericDB("CATEGORY")) then
+  if(IsGenericDB("category")) then
     LogInstance("Generic database "..GetReport(sHew)); return true end
-  local sSnam = (GetOpVar("TOOLNAME_PL").."CATEGORY"):lower()
+  local sSnam = (GetOpVar("TOOLNAME_PL").."category"):lower()
   local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fName = GetLibraryPath(sSors, fPref, sSnam)
   local F = file.Open(fName, "wb", "DATA"); if(not F) then
@@ -3968,7 +3968,7 @@ function ImportCategory(vEq, sPref, bExp)
   local nEq = math.max(math.floor(tonumber(vEq) or 0), 0)
   local tHew = GetOpVar("PATTEM_EXCATHED")
   local sHew = tHew.Fmt:format(fPref, nEq)
-  local sSnam = (GetOpVar("TOOLNAME_PL").."CATEGORY"):lower()
+  local sSnam = (GetOpVar("TOOLNAME_PL").."category"):lower()
   local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
   local fName = GetLibraryPath(sSors, fPref, sSnam)
   local F = file.Open(fName, "rb", "DATA"); if(not F) then
@@ -4064,7 +4064,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
       LogInstance("No data found "..GetReport(sHew, fName, Q), sTable); return false end
     F:Write(tHea.Qry:format(#qData, Q))
     for iR = 1, #qData do local aRow = makTab:GetRowToArray(qData[iR])
-      for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
+      if(not self:ArrayMatch(aRow, true, "\"", true)) then F:Flush(); F:Close(); return false end
       if(not makTab:Trigger("ExportDSV", aRow)) then F:Flush(); F:Close(); return false end
       F:Write(defTab.Name); F:Write(sDelim); F:Write(table.concat(aRow, sDelim)); F:Write("\n")
     end -- Matching will not crash as it is matched during insertion
@@ -4185,9 +4185,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         if(#aRow ~= defTab.Size) then tCon.ER = true
           LogInstance("Internal data mismatch "..GetReport(sHew, sRow, fName), sTable); break end
         if(not makTab:Trigger("ImportDSV", aRow)) then tCon.ER = true; break end
-        if(not makTab:ArrayMatch(aRow,false,"",true,true)) then
-          LogInstance("Read matching failed "..GetReport(sHew, fName),sTable); tCon.ER = true; break
-        end -- Where the line ID must be read from. Validate the value
+        if(not makTab:ArrayMatch(aRow,false,"",true,true)) then tCon.ER = true; break end
+         -- Where the line ID must be read from. Validate the value
         local vK = aRow[1]; if(not fData[vK]) then fData[vK] = {Size = 0} end
         local fRec, vID, nID = fData[vK], aRow[iD]; nID = (tonumber(vID) or 0)
         if((fRec.Size < 0) or (nID <= fRec.Size) or ((nID - fRec.Size) ~= 1)) then
@@ -4214,13 +4213,11 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       -- Where the line ID must be read from. Skip the key itself and convert the disabled value
       if(iR ~= nID) then -- Validate the line ID being in proper borders and sequential values
         LogInstance("Sync point ID scatter " -- After line ID validation it is assigned in the slot
-          ..GetReport(sHew, iR, vID, nID, sID, sKey),sTable); return false end; tRow[iD] = nID
-      for iC = 1, #tRow do -- Do a value matching without quotes
-        local vM = makTab:Match(tRow[iC],iC,false,"",true,true); if(not IsHere(vM)) then
-          LogInstance("Sync matching failed "
-            ..GetReport(sHew, tRow[iC], iC, defTab[iC][1], sKey),sTable); return false
-        end; tRow[iC] = vM -- Store the matched value in the same place as the original
-      end -- Check whenever triggers are available. Run them if present
+          ..GetReport(sHew, iR, vID, nID, sID, sKey), sTable); return false end; tRow[iD] = nID
+      if(not makTab:ArrayMatch(tRow,false,"",true,true)) then -- Do a value matching without quotes
+        LogInstance("Sync matching failed " -- Store the matched value in the same place as the original
+          ..GetReport(sHew, iR, vID, nID, sID, sKey), sTable); return false end
+      -- Check whenever triggers are available. Run them if present
       if(not makTab:Trigger("ImportDSV", tRow)) then return false end
       table.remove(tRow, 1) -- Make sure to remove the PK after the validation
     end -- Register the read line to the output file
@@ -4238,24 +4235,16 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   O:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   TimeLap("OUTC-INIT")
   for iS = 1, tSort.Size do local key = tSort[iS].Key
-    local fRec, vK = fData[key], makTab:Match(key,1,true,"\"",true)
-    if(not IsHere(vK)) then O:Flush(); O:Close()
+    local fRec, sKey = fData[key], makTab:Match(key,1,true,"\"",true)
+    if(not IsHere(sKey)) then O:Flush(); O:Close()
       LogInstance("Write matching PK failed "
         ..GetReport(sHew,key),sTable); return false end
     for iR = 1, fRec.Size do
       local fRow = fRec[iR]; table.insert(fRow, 1, key)
-      if(not makTab:Trigger("Record", fRow)) then
-        O:Flush(); O:Close(); return false end
-      O:Write(defTab.Name); O:Write(sDelim)
-      for iM = 1, #fRow do
-        local vM = makTab:Match(fRow[iM],iM,true,"\"",true)
-        if(not IsHere(vM)) then O:Flush(); O:Close(); LogTable(fRow, "Row", sTable)
-          LogInstance("Write matching failed "..GetReport(sHew, fRow[iM], iM, defTab[iM][1], key),sTable)
-          return false -- Matching has failed
-        end; fRow[iM] = vM
-      end
-      if(not makTab:Trigger("ExportDSV", fRow)) then
-        O:Flush(); O:Close(); return false end
+      if(not makTab:Trigger("Record", fRow)) then O:Flush(); O:Close(); return false end
+      O:Write(defTab.Name); O:Write(sDelim) -- Write down the table name for unified source
+      if(not makTab:ArrayMatch(fRow, true, "\"", true)) then O:Flush(); O:Close(); return false end
+      if(not makTab:Trigger("ExportDSV", fRow)) then O:Flush(); O:Close(); return false end
       O:Write(table.concat(fRow, sDelim)); O:Write("\n")
     end
   end; O:Flush(); O:Close()
@@ -4266,18 +4255,18 @@ end
 function TranslateDSV(sTable, sPref, sDelim, bExp)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
-  local bFile, sSRC = file.Exists(sTable, "DATA")
+  local bFile, sMos, sSrc = file.Exists(sTable, "DATA"), "rc-"
   local tHew, sHew = GetOpVar("PATTEM_EXDSVHED")
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debug.getinfo(1).name
   local fPref, tHea = tostring(sPref or GetInstPrefix()):lower(), GetOpVar("FORM_HEADEREXP")
-  if(bFile) then sSRC = sTable -- Use the settings form the file or override
-    LogInstance("Reading configuration "..GetReport(sSRC))
-    local F = file.Open(sSRC, "rb", "DATA"); if(not F) then
-      LogInstance("Open fail "..GetReport(sSRC)); return false end
+  if(bFile) then sSrc = sTable -- Use the settings form the file or override
+    LogInstance("Reading configuration "..GetReport(sSrc))
+    local F = file.Open(sSrc, "rb", "DATA"); if(not F) then
+      LogInstance("Open fail "..GetReport(sSrc)); return false end
     local sRow = F:ReadLine(); F:Close() -- Read the file header
     local sPar = sRow:match(tHew.Hdr); if(not sPar) then
-      LogInstance("Intern header missing "..GetReport(sSRC)); return false end
+      LogInstance("Intern header missing "..GetReport(sSrc)); return false end
     local tPar = tHew.Sym:Explode(sPar:match(tHew.Par):Trim():sub(2,-2):Trim())
     local bDem = (tPar[3] and not IsBlank(tPar[3]))
     fPref, sTable = tPar[1]:Trim():lower(), tPar[2]:Trim()
@@ -4295,15 +4284,15 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition "..GetReport(sHew),sTable); return false end
   if(bFile) then
-    LogInstance("Intern "..GetReport(sHew,sSRC), sTable)
+    LogInstance("Intern "..GetReport(sHew,sSrc), sTable)
   else
     local sSors = (bExp and GetOpVar("DIRPATH_EXP") or GetOpVar("DIRPATH_DSV"))
-    sSRC = GetLibraryPath(sSors, fPref, defTab.Name)
-    LogInstance("Extern "..GetReport(sHew,sSRC), sTable)
+    sMos, sSrc = (bExp and "ex-" or "sv-"), GetLibraryPath(sSors, fPref, defTab.Name)
+    LogInstance("Extern "..GetReport(sHew,sSrc), sTable)
   end
-  local S = file.Open(sSRC, "rb", "DATA"); if(not S) then
-    LogInstance("Open fail "..GetReport(sHew, sSRC),sTable); return false end
-  local sFpr = GetOpVar("FORM_PREFIXFMT"):format(sMoDB:lower(), "tr", fPref)
+  local S = file.Open(sSrc, "rb", "DATA"); if(not S) then
+    LogInstance("Open fail "..GetReport(sHew, sSrc),sTable); return false end
+  local sFpr = GetOpVar("FORM_PREFIXFMT"):format(sMoDB:lower(), sMos.."tr", fPref)
   local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), sFpr, defTab.Name)
   local I = file.Open(sEXP, "wb", "DATA"); if(not I) then
     LogInstance("Open fail "..GetReport(sHew, sEXP),sTable); return false end
@@ -4319,19 +4308,15 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
       if(#aRow ~= defTab.Size) then tCon.ER = true
         LogInstance("Internal data mismatch "..GetReport(sHew, sRow), sTable); break end
       if(not makTab:Trigger("Record", aRow)) then tCon.ER = true; break end
-      for nCnt = 1, #aRow do
-        local vM = makTab:Match(GetStrip(aRow[nCnt]),nCnt,true,"\"",true)
-        if(not IsHere(vM)) then I:Flush(); I:Close(); tCon.ER = true
-          LogInstance("Given matching failed "
-            ..GetReport(sHew, aRow[nCnt], nCnt, defTab[nCnt][1]), sTable); break end
-      end
+      if(not makTab:Trigger("ImportDSV", aRow)) then tCon.ER = true; break end
+      if(not makTab:ArrayMatch(aRow, true, "\"", true)) then tCon.ER = true; break end
       if(not makTab:Trigger("ExportDSV", aRow)) then tCon.ER = true; break end
       I:Write(sFr); I:Write(table.concat(aRow, ", ")); I:Write(sBk)
     end; sRow, tCon = GetFileRow(S, tCon)
   end; I:Flush(); I:Close()
   if(tCon.ER) then if(not tCon.RO) then S:Close() end
     LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
-  LogInstance("Success "..GetReport(sHew, sSRC),sTable); return true
+  LogInstance("Success "..GetReport(sHew, sSrc),sTable); return true
 end
 
 --[[
@@ -4426,7 +4411,7 @@ function ProcessDSV(sDelim)
       for iD = 1, tab.Size do LogInstance("Prefix "..GetReport(iD, prf, tab[iD])) end
     else
       if(CLIENT) then
-        local sNick = "CATEGORY"
+        local sNick = "category"
         local srNam = (sPL..sNick):lower()
         local srGen = sFms:format(sGen, srNam):lower()
         local srDsv = sFms:format(prf, srNam):lower()
