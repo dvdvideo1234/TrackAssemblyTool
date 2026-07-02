@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.885")
+asmlib.SetOpVar("TOOL_VERSION","9.886")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -827,7 +827,7 @@ if(CLIENT) then
           pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(sGen)
         else local iG = (tGen and #tGen or 0) -- Report that generic is missing so skip
           asmlib.LogInstance("Generic skip: "..asmlib.GetReport(iG, sGen), sLog..".Import")
-        end; sRow, tCon = asmlib.GetFileRow(fD)
+        end; sRow, tCon = asmlib.GetLineContent(fD)
         while(sRow) do
           if(not asmlib.IsBlank(sRow)) then local sKey, sPrg
             if(not asmlib.IsDisable(sRow)) then bAct = true else
@@ -838,7 +838,7 @@ if(CLIENT) then
               sPrg = sRow:sub(nE+1,-1)
             else sKey, sPrg = sRow, gsNoAV end
             pnListView:AddLine((bAct and "V" or "X"), sKey, sPrg):SetTooltip(sPrg)
-          end; sRow, tCon = asmlib.GetFileRow(fD, tCon)
+          end; sRow, tCon = asmlib.GetLineContent(fD, tCon)
         end -- If a data error is not present. File is closed automatically
       end; pnImport:DoClick()
       -- Export button. When clicked loads contents into the file

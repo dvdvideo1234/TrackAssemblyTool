@@ -537,7 +537,7 @@ end
  *    rC > The current row being worked in
  *    oC > The output contents received from the file
 ]]
-function GetFileRow(pF, oC)
+function GetLineContent(pF, oC)
   local oC, rC = oC, nil
   if(oC) then oC.ID = (oC.ID + 1)
     if(oC.RO) then rC = oC[oC.ID] else rC = pF:ReadLine() end
@@ -662,10 +662,10 @@ function SettingsLogs(sHash)
     LogInstance("Discard "..GetReport(sKey, fName)); return false end
   local S = file.Open(fName, "rb", "DATA"); table.Empty(tLogs)
   if(not S) then LogInstance("Failure "..GetReport(sKey, fName)); return false end
-  local sRow, tCon = GetFileRow(S)
+  local sRow, tCon = GetLineContent(S)
   while(sRow and not tCon.ER) do
     if(not IsBlank(sRow)) then table.insert(tLogs, sRow) end
-    sRow, tCon = GetFileRow(S, tCon)
+    sRow, tCon = GetLineContent(S, tCon)
   end; LogInstance("Success "..GetReport(sKey, fName)); return true
 end
 
@@ -3986,7 +3986,7 @@ function ImportCategory(vEq, sPref, bExp)
   local tCat = GetOpVar("TABLE_CATEGORIES")
   local sEq, nLen = ("="):rep(nEq), (nEq + 2)
   local cFr, cBk = GetConcat("[", sEq, "["), GetConcat("]", sEq, "]")
-  local sPar, isPar, sRow, tCon = "", false, GetFileRow(F)
+  local sPar, isPar, sRow, tCon = "", false, GetLineContent(F)
   while(sRow and not tCon.ER) do
     if(not IsBlank(sRow)) then
       local sFr, sBk = sRow:sub(1,nLen), sRow:sub(-nLen,-1)
@@ -4013,7 +4013,7 @@ function ImportCategory(vEq, sPref, bExp)
           else LogInstance("Function missing "..GetReport(sHew, key ,fName)) end
         else LogInstance("Name missing "..GetReport(sHew, txt, fName)) end
       else sPar = GetConcat(sPar, sRow, "\n") end
-    end; sRow, tCon = GetFileRow(F, tCon)
+    end; sRow, tCon = GetLineContent(F, tCon)
   end; LogInstance("Success "..GetReport(sHew, fName)); return true
 end
 
@@ -4124,7 +4124,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   if(bComm and sMoDB == "SQL") then
     sql.Query(makTab:Begin():Get()); LogInstance("Begin "..GetReport(sHew,fName), sTable)
   end
-  local iD, sRow, tCon = makTab:GetColumnID("LINEID"), GetFileRow(F)
+  local iD, sRow, tCon = makTab:GetColumnID("LINEID"), GetLineContent(F)
   while(sRow and not tCon.ER) do
     if(not (IsBlank(sRow) or IsDisable(sRow))) then
       local aRow = sDelim:Explode(sRow)
@@ -4137,7 +4137,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
         if(bComm) then makTab:Erase(aRow[1]) end
       end
       if(bComm) then makTab:Record(aRow) end
-    end; sRow, tCon = GetFileRow(F, tCon)
+    end; sRow, tCon = GetLineContent(F, tCon)
   end
   if(tCon.ER) then if(not tCon.RO) then F:Close() end
     LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
@@ -4176,7 +4176,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   if(file.Exists(fName, "DATA")) then
     local I = file.Open(fName, "rb", "DATA"); if(not I) then
       LogInstance("Open fail "..GetReport(sHew, fName),sTable); return false end
-    local sRow, tCon = GetFileRow(I)
+    local sRow, tCon = GetLineContent(I)
     while(sRow and not tCon.ER) do
       if((not IsBlank(sRow)) and (not IsDisable(sRow))) then
         local aRow = sDelim:Explode(sRow)
@@ -4193,7 +4193,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           LogInstance("Scatter line ID "..GetReport(sHew, vID, vK, fName),sTable); tCon.ER = true; break end
         fRec.Size = nID; fRec[nID] = {}; local fRow = fRec[nID] -- Register the new line
         for iC = 2, defTab.Size do fRow[iC-1] = aRow[iC] end -- Transfer the extracted data
-      end; sRow, tCon = GetFileRow(I, tCon) -- Read the next row
+      end; sRow, tCon = GetLineContent(I, tCon) -- Read the next row
     end -- The file contents are read locally then converted
     if(tCon.ER) then if(not tCon.RO) then I:Close() end
       LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
@@ -4293,13 +4293,13 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   local S = file.Open(sSrc, "rb", "DATA"); if(not S) then
     LogInstance("Open fail "..GetReport(sHew, sSrc),sTable); return false end
   local sFpr = GetOpVar("FORM_PREFIXFMT"):format(sMoDB:lower(), sMos.."tr", fPref)
-  local sEXP = GetLibraryPath(GetOpVar("DIRPATH_EXP"), sFpr, defTab.Name)
-  local I = file.Open(sEXP, "wb", "DATA"); if(not I) then
-    LogInstance("Open fail "..GetReport(sHew, sEXP),sTable); return false end
+  local fName = GetLibraryPath(GetOpVar("DIRPATH_EXP"), sFpr, defTab.Name)
+  local I = file.Open(fName, "wb", "DATA"); if(not I) then
+    LogInstance("Open fail "..GetReport(sHew, fName),sTable); return false end
   I:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
   I:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
-  local sRow, tCon = GetFileRow(S)
+  local sRow, tCon = GetLineContent(S)
   while(sRow and not tCon.ER) do
     if(not (IsBlank(sRow) or IsDisable(sRow))) then
       local aRow = sDelim:Explode(sRow)
@@ -4312,7 +4312,7 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
       if(not makTab:ArrayMatch(aRow, true, "\"", true)) then tCon.ER = true; break end
       if(not makTab:Trigger("ExportDSV", aRow)) then tCon.ER = true; break end
       I:Write(sFr); I:Write(table.concat(aRow, ", ")); I:Write(sBk)
-    end; sRow, tCon = GetFileRow(S, tCon)
+    end; sRow, tCon = GetLineContent(S, tCon)
   end; I:Flush(); I:Close()
   if(tCon.ER) then if(not tCon.RO) then S:Close() end
     LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
@@ -4343,7 +4343,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     if(file.Exists(fName, "DATA")) then local fPool = {}
       local F = file.Open(fName, "rb" ,"DATA"); if(not F) then
         LogInstance("Skip fail: "..GetReport(sProg, fPref, fName)); return false end
-      local sRow, tCon = GetFileRow(F)
+      local sRow, tCon = GetLineContent(F)
       while(sRow and not tCon.ER) do
         if(not IsBlank(sRow)) then local isAct = true
           if(IsDisable(sRow)) then isAct, sRow = false, sRow:sub(2,-1) end
@@ -4353,7 +4353,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
           local inf = fPool[prf]; if(not inf) then
             fPool[prf] = {Size = 0}; inf = fPool[prf] end
           table.insert(inf, {isAct and "V" or "X", src}); inf.Size = inf.Size + 1
-        end; sRow, tCon = GetFileRow(F, tCon)
+        end; sRow, tCon = GetLineContent(F, tCon)
       end
       if(fPool[fPref]) then local inf = fPool[fPref]
         for iP = 1, inf.Size do local tab = inf[iP]
@@ -4384,7 +4384,7 @@ function ProcessDSV(sDelim)
   local F = file.Open(fName, "rb" ,"DATA"); if(not F) then
     LogInstance("Open fail: "..GetReport(fName)); return false end
   local sGen = GetOpVar("DBEXP_PREFGEN")
-  local sRow, tCon = GetFileRow(F)
+  local sRow, tCon = GetLineContent(F)
   while(sRow and not tCon.ER) do
     if(not IsBlank(sRow)) then
       if(not IsDisable(sRow)) then
@@ -4403,7 +4403,7 @@ function ProcessDSV(sDelim)
           end -- What user puts there is a problem of his own
         end -- If the line is disabled/comment
       else LogInstance("Skipped "..GetReport(sRow)) end
-    end; sRow, tCon = GetFileRow(F, tCon)
+    end; sRow, tCon = GetLineContent(F, tCon)
   end
   for prf, tab in pairs(tProc) do
     if(tab.Size > 1) then
@@ -4545,7 +4545,7 @@ function ExportTypeRUN(sType, bSet)
     LogInstance("Generate fail "..GetReport(sN),defP.Nick); return end
   local fS = file.Open(sS, "rb", "DATA"); if(not fS) then
     fE:Close(); LogInstance("Source fail "..GetReport(sS),defP.Nick) return end
-  local bSkip, sIn, sRow, tCon = false, "  ", GetFileRow(fS)
+  local bSkip, sIn, sRow, tCon = false, "  ", GetLineContent(fS)
   while(sRow and not tCon.ER) do sRow = sRow:gsub("%s*$", "")
     if(tPat.Var and sRow:find(tPat.Var)) then bSkip = true
       fE:Write("local myAddon, myGroup = "); fE:Write(sSufx); fE:Write(".ComponentType(\"")
@@ -4715,7 +4715,7 @@ function ExportTypeRUN(sType, bSet)
       if(bSkip and IsBlank(sRow:Trim())) then bSkip = false end
     end
     if(not bSkip) then fE:Write(sRow); fE:Write("\n") end
-    sRow, tCon = GetFileRow(fS, tCon)
+    sRow, tCon = GetLineContent(fS, tCon)
   end; fE:Write("\n"); fE:Flush(); fE:Close()
   if(tCon.ER) then if(not tCon.RO) then fS:Close() end
     LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName)) end
