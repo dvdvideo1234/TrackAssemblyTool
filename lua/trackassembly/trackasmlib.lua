@@ -4228,7 +4228,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         fData[vK] = tRec; fData[vK].Size = #tRec -- We have to add the piece as well
       elseif(not tData[vK] and fData[vK]) then -- The piece was removed by the author
         -- Do nothing. The data has to be preserved and old piece stored
-      else LogInstance("Internal key mismatch "..GetReport(sHew, bRepl),sTable); return false end
+      else LogInstance("Internal key mismatch "..GetReport(sHew, bRepl, vK),sTable); return false end
     else -- Replace is not enabled so add the news stuff and keep the old ones
       if(tData[vK] and fData[vK]) then -- Both places have the same model
         -- Do nothing. Replace is not enabled and the old piece configuration must remain
@@ -4236,7 +4236,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         fData[vK] = tRec; fData[vK].Size = #tRec -- We have to add the piece as well
       elseif(not tData[vK] and fData[vK]) then -- The piece was removed by the author
         -- Do nothing. The data has to be preserved and old piece stored
-      else LogInstance("Internal key mismatch "..GetReport(sHew, bRepl),sTable); return false end
+      else LogInstance("Internal key mismatch "..GetReport(sHew, bRepl, vK),sTable); return false end
     end
   end
   TimeLap("SRC-DATA")
