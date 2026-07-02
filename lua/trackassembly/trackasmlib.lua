@@ -4192,7 +4192,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
         if((fRec.Size < 0) or (nID <= fRec.Size) or ((nID - fRec.Size) ~= 1)) then
           LogInstance("Scatter line ID "..GetReport(sHew, vID, vK, fName),sTable); tCon.ER = true; break end
         fRec.Size = nID; fRec[nID] = {}; local fRow = fRec[nID] -- Register the new line
-        for iC = 2, defTab.Size do fRow[iC-1] = aRow[iC] end -- Transfer the extracted data
+        for iC = 1, defTab.Size do fRow[iC] = aRow[iC] end -- Transfer the extracted data
       end; sRow, tCon = GetLineContent(I, tCon) -- Read the next row
     end -- The file contents are read locally then converted
     if(tCon.ER) then if(not tCon.RO) then I:Close() end
@@ -4219,7 +4219,6 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
           ..GetReport(sHew, iR, vID, nID, sID, sKey), sTable); return false end
       -- Check whenever triggers are available. Run them if present
       if(not makTab:Trigger("ImportDSV", tRow)) then return false end
-      table.remove(tRow, 1) -- Make sure to remove the PK after the validation
     end -- Register the read line to the output file
     if(bRepl) then -- Replace the data when enabled overwrites the file data
       if(tData[vK] and fData[vK]) then -- Both places have the same model
@@ -4254,8 +4253,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     if(not IsHere(vKey)) then O:Flush(); O:Close()
       LogInstance("Write matching PK failed "
         ..GetReport(sHew,sKey),sTable); return false end
-    for iR = 1, fRec.Size do
-      local fRow = fRec[iR]; table.insert(fRow, 1, sKey)
+    for iR = 1, fRec.Size do local fRow = fRec[iR]
       if(not makTab:Trigger("Record", fRow)) then O:Flush(); O:Close(); return false end
       O:Write(defTab.Name); O:Write(sDelim) -- Write down the table name for unified source
       if(not makTab:ArrayMatch(fRow, true, "\"", true)) then O:Flush(); O:Close(); return false end
