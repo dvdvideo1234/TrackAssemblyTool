@@ -4306,9 +4306,9 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   local S = file.Open(sSrc, "rb", "DATA"); if(not S) then
     LogInstance("Open fail "..GetReport(sHew, sSrc),sTable); return false end
   local sFpr = GetOpVar("FORM_PREFIXFMT"):format(sMoDB:lower(), sMos.."tr", fPref)
-  local fName = GetLibraryPath(GetOpVar("DIRPATH_EXP"), sFpr, defTab.Name)
-  local I = file.Open(fName, "wb", "DATA"); if(not I) then
-    LogInstance("Open fail "..GetReport(sHew, fName),sTable); return false end
+  local sDes = GetLibraryPath(GetOpVar("DIRPATH_EXP"), sFpr, defTab.Name)
+  local I = file.Open(sDes, "wb", "DATA"); if(not I) then
+    LogInstance("Open fail "..GetReport(sHew, sDes),sTable); return false end
   I:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
   I:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
@@ -4328,7 +4328,7 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
     end; sRow, tCon = GetLineContent(S, tCon)
   end; I:Flush(); I:Close()
   if(tCon.ER) then if(not tCon.RO) then S:Close() end
-    LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
+    LogInstance("Contents error "..GetReport(sHew, tCon.ID, sSrc),sTable); return false end
   LogInstance("Success "..GetReport(sHew, sSrc),sTable); return true
 end
 
