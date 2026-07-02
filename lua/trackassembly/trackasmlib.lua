@@ -4222,8 +4222,21 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       table.remove(tRow, 1) -- Make sure to remove the PK after the validation
     end -- Register the read line to the output file
     if(bRepl) then -- Replace the data when enabled overwrites the file data
-      if(tData[vK]) then -- Update the file with the new data
-        fData[vK] = tRec; fData[vK].Size = #tRec end
+      if(tData[vK] and fData[vK]) then -- Both places have the same model
+        fData[vK] = tRec; fData[vK].Size = #tRec -- Replace with the new model
+      elseif(tData[vK] and not fData[vK]) then -- Author added a new piece
+        fData[vK] = tRec; fData[vK].Size = #tRec -- We have to add the piece as well
+      elseif(not tData[vK] and fData[vK]) then -- The piece was removed by the author
+        -- Do nothing. The data has to be preserved and old piece stored
+      else LogInstance("Internal key mismatch "..GetReport(sHew, bRepl),sTable); return false end
+    else -- Replace is not enabled so add the news stuff and keep the old ones
+      if(tData[vK] and fData[vK]) then -- Both places have the same model
+        -- Do nothing. Replace is not enabled and the old piece configuration must remain
+      elseif(tData[vK] and not fData[vK]) then -- Author added a new piece
+        fData[vK] = tRec; fData[vK].Size = #tRec -- We have to add the piece as well
+      elseif(not tData[vK] and fData[vK]) then -- The piece was removed by the author
+        -- Do nothing. The data has to be preserved and old piece stored
+      else LogInstance("Internal key mismatch "..GetReport(sHew, bRepl),sTable); return false end
     end
   end
   TimeLap("SRC-DATA")
@@ -4234,13 +4247,15 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   O:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
   O:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   TimeLap("OUTC-INIT")
-  for iS = 1, tSort.Size do local key = tSort[iS].Key
-    local fRec, sKey = fData[key], makTab:Match(key,1,true,"\"",true)
-    if(not IsHere(sKey)) then O:Flush(); O:Close()
+  for iS = 1, tSort.Size do
+    local sKey = tSort[iS].Key -- Extract sorted key
+    local fRec = fData[sKey] -- Index the data pool
+    local vKey = makTab:Match(sKey,1,true,"\"",true)
+    if(not IsHere(vKey)) then O:Flush(); O:Close()
       LogInstance("Write matching PK failed "
-        ..GetReport(sHew,key),sTable); return false end
+        ..GetReport(sHew,sKey),sTable); return false end
     for iR = 1, fRec.Size do
-      local fRow = fRec[iR]; table.insert(fRow, 1, key)
+      local fRow = fRec[iR]; table.insert(fRow, 1, sKey)
       if(not makTab:Trigger("Record", fRow)) then O:Flush(); O:Close(); return false end
       O:Write(defTab.Name); O:Write(sDelim) -- Write down the table name for unified source
       if(not makTab:ArrayMatch(fRow, true, "\"", true)) then O:Flush(); O:Close(); return false end
