@@ -8,8 +8,6 @@ if(not asmlib.IsInit()) then -- Make sure the module is initialized
 --- Global References
 local gtLogs      = {"TOOL"}
 local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
-local gsDataRoot  = asmlib.GetOpVar("DIRPATH_BAS")
-local gsDataSet   = asmlib.GetOpVar("DIRPATH_SET")
 local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
 local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
@@ -22,7 +20,6 @@ local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
 local gsNoBS      = asmlib.GetOpVar("MISS_NOBS") -- No Body-group skin
 local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
 local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
-local gsNoAnchor  = gsNoID..gsSymRev..gsNoMD
 local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
 local conPalette  = asmlib.GetContainer("COLORS_LIST")
 local conWorkMode = asmlib.GetContainer("WORK_MODE")
@@ -30,8 +27,9 @@ local conElements = asmlib.GetContainer("LIST_VGUI")
 local varLanguage = GetConVar("gmod_language")
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
-  local sDSV = gsDataRoot..gsDataSet..gsLibName.."_dsv.txt"
-  asmlib.LogInstance("Processing DSV fail <"..sDSV..">")
+  local sS = asmlib.GetOpVar("DIRPATH_SET")
+  local sD = GetLibraryPath(sS, gsLibName, "_dsv")
+  asmlib.LogInstance("List settings error "..asmlib.GetReport(sD))
 end
 
 cleanup.Register(gsLimitName)
@@ -44,7 +42,7 @@ TOOL.ClientConVar = {
   [ "nexty"      ] = 0,
   [ "nextz"      ] = 0,
   [ "freeze"     ] = 1,
-  [ "anchor"     ] = gsNoAnchor,
+  [ "anchor"     ] = asmlib.GetIdentity(),
   [ "igntype"    ] = 0,
   [ "spnflat"    ] = 0,
   [ "angsnap"    ] = 15,
@@ -392,12 +390,10 @@ function TOOL:IntersectClear(bMute)
   local user = self:GetOwner()
   local stRay = asmlib.IntersectRayRead(user, "relate")
   if(stRay) then asmlib.IntersectRayClear(user, "relate")
-    if(SERVER) then local ryEnt, sRe = stRay.Ent, nil
+    if(SERVER) then local ryEnt = stRay.Ent
       net.Start(gsLibName.."SendIntersectClear"); net.WriteEntity(user); net.Send(user)
-      if(not (ryEnt and ryEnt:IsValid())) then sRe = gsNoID..gsSymRev..gsNoMD else
-        asmlib.UpdateColor(ryEnt, "intersect", "ry", false)
-        sRe = ryEnt:EntIndex()..gsSymRev..string.GetFileFromFilename(ryEnt:GetModel())
-      end -- If the entity is not valid show legend is unavailable
+      local sRe = asmlib.GetIdentity(ryEnt) -- If the entity is not valid show legend is unavailable
+      if(ryEnt and ryEnt:IsValid()) then asmlib.UpdateColor(ryEnt, "intersect", "ry", false) end
       if(not bMute) then
         asmlib.LogInstance("Relation cleared "..sRe, gtLogs)
         asmlib.Notify(user,("Intersect relation clear: %s !"):format(sRe),"CLEANUP")
@@ -414,10 +410,9 @@ function TOOL:IntersectRelate(oEnt, vHit)
   if(SERVER) then -- Only the server is allowed to define relation ray
     net.Start(gsLibName.."SendIntersectRelate")
     net.WriteEntity(oEnt); net.WriteVector(vHit); net.WriteEntity(user); net.Send(user)
-    if(not (oEnt and oEnt:IsValid())) then sRe = gsNoID..gsSymRev..gsNoMD else
-      sRe = oEnt:EntIndex()..gsSymRev..string.GetFileFromFilename(oEnt:GetModel())
-      asmlib.UpdateColor(oEnt, "intersect", "ry", true)
-    end; asmlib.Notify(user,("Intersect relation set: %s !"):format(sRe),"UNDO")
+    local sRe = asmlib.GetIdentity(oEnt) -- If the entity is not valid show legend is unavailable
+    if(oEnt and oEnt:IsValid()) then asmlib.UpdateColor(oEnt, "intersect", "ry", true) end
+    asmlib.Notify(user,("Intersect relation set: %s !"):format(sRe),"UNDO")
   end return true
 end
 
@@ -460,7 +455,7 @@ function TOOL:ClearAnchor(bMute)
   local user = self:GetOwner()
   local siAnc, svEnt = self:GetAnchor()
   if(CLIENT) then return false end; self:ClearObjects()
-  asmlib.SetAsmConvar(user,"anchor",gsNoAnchor)
+  asmlib.SetAsmConvar(user,"anchor", asmlib.GetIdentity())
   if(svEnt and svEnt:IsValid() and not svEnt:IsWorld()) then
     asmlib.UpdateColor(svEnt, "anchor", "an", false) end
   if(not bMute) then -- Notify the user when anchor is cleared
@@ -479,7 +474,7 @@ function TOOL:SetAnchor(stTrace)
   if(stTrace.HitWorld) then
     local trEnt = game.GetWorld()
     local phEnt = trEnt:GetPhysicsObject()
-    local sAnchor = "0"..gsSymRev.."worldspawn.mdl"
+    local sAnchor = asmlib.GetIdentity("0", "worldspawn.mdl")
     self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
     asmlib.SetAsmConvar(user,"anchor",sAnchor)
     asmlib.Notify(user,"Anchor: Set "..sAnchor.." !","UNDO")
@@ -489,7 +484,7 @@ function TOOL:SetAnchor(stTrace)
       asmlib.LogInstance("Trace no entity",gtLogs); return false end
     local phEnt = trEnt:GetPhysicsObject(); if(not (phEnt and phEnt:IsValid())) then
       asmlib.LogInstance("Trace no physics",gtLogs); return false end
-    local sAnchor = trEnt:EntIndex()..gsSymRev..string.GetFileFromFilename(trEnt:GetModel())
+    local sAnchor = asmlib.GetIdentity(trEnt)
     asmlib.UpdateColor(trEnt, "anchor", "an", true)
     self:SetObject(1,trEnt,stTrace.HitPos,phEnt,stTrace.PhysicsBone,stTrace.HitNormal)
     asmlib.SetAsmConvar(user,"anchor",sAnchor)
@@ -500,7 +495,7 @@ end
 
 function TOOL:GetAnchor()
   local svEnt = self:GetEnt(1)
-  local siAnc = (self:GetClientInfo("anchor") or gsNoAnchor)
+  local siAnc = (self:GetClientInfo("anchor") or asmlib.GetIdentity())
   if(svEnt) then
     if(not svEnt:IsWorld() and
        not svEnt:IsValid()) then svEnt = nil end
@@ -664,7 +659,7 @@ function TOOL:SetFlipOver(trEnt, bBrs)
   if(not asmlib.IsHere(trMoc)) then return nil end
   local trRec = asmlib.CacheQueryPiece(trMoc)
   if(not asmlib.IsHere(trRec)) then
-    asmlib.Notify(user,"Flip over not piece "..asmlib.GetReport(trCss,trMoc).." !","ERROR")
+    asmlib.Notify(user,"Flip over ["..trCss.."] not piece "..trMoc.." !","ERROR")
     asmlib.LogInstance("Flip over not piece "..asmlib.GetReport(trCss,trMoc),gtLogs)
     return nil -- Just disable overall flipping for the other models
   end
@@ -1318,17 +1313,17 @@ function TOOL:LeftClick(stTrace)
         for iK = oArg.stark, tS.Size do local tV, ePiece = tS[iK], nil
           oArg.spawn = asmlib.GetNormalSpawn(oPly, tV[1], tV[2], model, pointid, 0, 0, 0, 0, 0, 0, oArg.spawn)
           if(not oArg.spawn) then -- Make sure it persists to set it afterwards
-            self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Cannot obtain spawn data"); return false end
+            self:LogStatus(stTrace, "Cannot obtain spawn data "..asmlib.GetReport(oArg.wname, sItr)); return false end
           if(crvturnlm > 0 or crvleanlm > 0) then local nF, nU = asmlib.GetTurningFactor(oPly, tS, iK)
             if(nF and nF < crvturnlm) then
               oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node), ("%4.3f"):format(nF))
               asmlib.Notify(oPly, oArg.wname..": excessive turn at "..oArg.mundo.." !", "ERROR")
-              self:LogStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Turn excessive"); return false
+              self:LogStatus(stTrace, "Turn excessive "..asmlib.GetReport(oArg.wname, oArg.mundo)); return false
             end
             if(nU and nU < crvleanlm) then
               oArg.mundo = asmlib.GetReport(iD, asmlib.GetNearest(tV[1], tC.Node),("%4.3f"):format(nU))
               asmlib.Notify(oPly, oArg.wname..": excessive lean at "..oArg.mundo.." !", "ERROR")
-              self:LogStatus(stTrace,"("..oArg.wname..") "..oArg.mundo..": Lean excessive"); return false
+              self:LogStatus(stTrace,"Lean excessive "..asmlib.GetReport(oArg.wname, oArg.mundo)); return false
             end
           end
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
@@ -1338,11 +1333,11 @@ function TOOL:LeftClick(stTrace)
           oPly:SetNWFloat(gsToolPrefL.."progress", (oArg.imake / tC.SKept) * 100)
           if(ePiece) then -- We still have enough memory to preform the stacking
             if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-              self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply physical settings fail"); return false end
+              self:LogStatus(stTrace,"Apply physical settings fail "..asmlib.GetReport(oArg.wname, sItr)); return false end
             if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
-              self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply weld fail"); return false end
+              self:LogStatus(stTrace,"Apply weld fail "..asmlib.GetReport(oArg.wname, sItr)); return false end
             if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
-              self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Apply no-collide fail"); return false end
+              self:LogStatus(stTrace,"Apply no-collide fail "..asmlib.GetReport(oArg.wname, sItr)); return false end
             oArg.itrys, oArg.srate, oArg.entpo = 0, (oArg.srate - 1), ePiece -- When the routine item is still busy
             table.insert(oArg.eundo, ePiece) -- Add the entity to the undo list created at the end
             if(oArg.srate <= 0) then oArg.srate = spawnrate -- Renew the spawn rate
@@ -1351,18 +1346,18 @@ function TOOL:LeftClick(stTrace)
               else -- When there is more stuff to snap continue snapping the current
                 oArg.stark = (oArg.stark + 1) -- Move the snap cursor to the next snap
               end -- Write the logs that snap rate per tick has been reached
-              asmlib.LogInstance("("..oArg.wname..") "..sItr..":  Next "..asmlib.GetReport(oArg.stard, oArg.stark), gtLogs)
+              asmlib.LogInstance("Next "..asmlib.GetReport(oArg.wname, sItr, oArg.stard, oArg.stark), gtLogs)
               return true -- The server is still busy with the task
             end
           else oArg.mundo = sItr -- We still have enough memory to preform the stacking
             if(stackcnt > 0) then -- Output different log message when stack count is used for curve segments limit
-              self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Segment limit reached"); return false
-            else self:LogStatus(stTrace,"("..oArg.wname..") "..sItr..": Stack attempts fail"); return false end
+              self:LogStatus(stTrace,"Segment limit reached "..asmlib.GetReport(oArg.wname, sItr)); return false
+            else self:LogStatus(stTrace,"Stack attempts fail "..asmlib.GetReport(oArg.wname, sItr)); return false end
           end
         end
       end
       oPly:SetNWFloat(gsToolPrefL.."progress", 100)
-      asmlib.LogInstance("("..oArg.wname..") Success",gtLogs); return false
+      asmlib.LogInstance("Success "..asmlib.GetReport(oArg.wname, user),gtLogs); return false
     end, workname)
     poQueue:OnActive(user, function(oPly, oArg)
       oArg.eundo, oArg.mundo = {}, ""
@@ -1378,7 +1373,7 @@ function TOOL:LeftClick(stTrace)
         asmlib.UndoFinish(oPly, fInt:format(nU))
       else asmlib.UndoFinish(oPly) end
       oPly:SetNWFloat(gsToolPrefL.."progress", 0)
-      asmlib.LogInstance("("..oArg.wname..") Success", gtLogs)
+      asmlib.LogInstance("Success "..asmlib.GetReport(oArg.wname, user), gtLogs)
     end); return true
   elseif(workmode == 4 and self:IsFlipOver()) then
     if(poQueue:IsBusy(user)) then asmlib.Notify(user,"Server busy !","ERROR"); return true end
@@ -1418,7 +1413,7 @@ function TOOL:LeftClick(stTrace)
               return true -- The server is still busy with the task
             end
           else
-            asmlib.Notify(user, "Spawn data invalid "..asmlib.GetReport(iD, oArg.mundo).." !", "ERROR")
+            asmlib.Notify(user, "Spawn piece ["..iD.."] invalid:  "..oArg.mundo.." !", "ERROR")
             self:LogStatus(stTrace,"(Over) Spawn data invalid",trEnt); return false
           end
         end
@@ -1529,11 +1524,11 @@ function TOOL:LeftClick(stTrace)
           ePiece = asmlib.NewPiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
         if(ePiece) then -- Set position is valid and store reference to the track piece
           if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
-            self:LogStatus(stTrace,"(Stack) "..sItr..": Apply physical settings fail"); return false end
+            self:LogStatus(stTrace,"(Stack) Apply physical settings fail "..asmlib.GetReport(sItr, user)); return false end
           if(not asmlib.ApplyPhysicalAnchor(ePiece,(anEnt or oArg.entpo),weld,nil,nil,forcelim)) then
-            self:LogStatus(stTrace,"(Stack) "..sItr..": Apply weld fail"); return false end
+            self:LogStatus(stTrace,"(Stack) Apply weld fail "..asmlib.GetReport(sItr, user)); return false end
           if(not asmlib.ApplyPhysicalAnchor(ePiece,oArg.entpo,nil,nocollide,nocollidew,forcelim)) then
-            self:LogStatus(stTrace,"(Stack) "..sItr..": Apply no-collide fail"); return false end
+            self:LogStatus(stTrace,"(Stack) Apply no-collide fail "..asmlib.GetReport(sItr, user)); return false end
           oArg.vtemp:SetUnpacked(hdOffs.P:Get())
           oArg.vtemp:Rotate(oArg.spang); oArg.vtemp:Add(oArg.sppos)
           if(appangfst) then nextpic, nextyaw, nextrol, appangfst = 0, 0, 0, false end
@@ -1542,7 +1537,7 @@ function TOOL:LeftClick(stTrace)
             actrad, spnflat, igntype, nextx, nexty, nextz, nextpic, nextyaw, nextrol, oArg.spawn)
           if(not oArg.spawn) then -- Something happened spawn is not available and task must be removed
             asmlib.Notify(oPly,"Cannot obtain spawn data !", "ERROR")
-            self:LogStatus(stTrace,"(Stack) "..sItr..": Cannot obtain spawn data"); return false
+            self:LogStatus(stTrace,"(Stack) Cannot obtain spawn data "..asmlib.GetReport(sItr, user)); return false
           end -- Spawn data is valid for the current iteration iNdex
           oArg.sppos:Set(oArg.spawn.SPos); oArg.spang:Set(oArg.spawn.SAng)
           oArg.itrys, oArg.srate, oArg.entpo = 0, (oArg.srate - 1), ePiece
@@ -1551,12 +1546,12 @@ function TOOL:LeftClick(stTrace)
           -- Check whenever the routine item is still busy
           if(oArg.srate <= 0) then
             oArg.start, oArg.srate = (iD + 1), spawnrate
-            asmlib.LogInstance("(Stack) Next ["..oArg.start.."]",gtLogs);
+            asmlib.LogInstance("(Stack) Next "...asmlib.GetReport(oArg.start, user),gtLogs);
             return true -- The server is still busy with the task
           end
         else -- Something happened piece cannot be created and task must be removed
           asmlib.Notify(oPly,"Stack attempts extinct !", "ERROR")
-          self:LogStatus(stTrace,"(Stack) "..sItr..": Stack attempts extinct"); return false
+          self:LogStatus(stTrace,"(Stack) Stack attempts extinct "..asmlib.GetReport(sItr, user)); return false
         end -- We still have enough memory to preform the stacking
       end -- Update the progress and successfully tell the task we are not busy anymore
       oPly:SetNWFloat(gsToolPrefL.."progress", 100); return false
@@ -1634,8 +1629,8 @@ function TOOL:RightClick(stTrace)
   elseif(trEnt and trEnt:IsValid()) then
     if(enpntmscr or (user:KeyDown(IN_USE) and not enpntmscr)) then
       if(not self:SelectModel(trEnt:GetModel())) then
-        self:LogStatus(stTrace,"(Select,"..tostring(enpntmscr)..") Model not piece"); return false end
-      asmlib.LogInstance("(Select,"..tostring(enpntmscr)..") Success",gtLogs); return true
+        self:LogStatus(stTrace,"Model not piece "..asmlib.GetReport(enpntmscr,user)); return false end
+      asmlib.LogInstance("Success "..asmlib.GetReport(enpntmscr,user),gtLogs); return true
     end
   end
   if(not enpntmscr) then
@@ -1887,13 +1882,13 @@ end
 
 function TOOL:ElevateGhost(oEnt, oPly)
   if(not (oPly and oPly:IsValid() and oPly:IsPlayer())) then
-    asmlib.LogInstance("Player invalid <"..tostring(oPly)..">",gtLogs); return end
+    asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly), gtLogs); return end
   if(not (oEnt and oEnt:IsValid())) then return end
   local pointid, pnextid = self:GetPointID()
   local spawncn, elevpnt = self:GetSpawnCenter(), 0
   if(not spawncn) then -- Distance for the piece spawned on the ground
     elevpnt = (asmlib.GetPointElevation(oEnt, pointid) or 0); end
-  asmlib.LogInstance("("..tostring(spawncn)..") <"..tostring(elevpnt)..">",gtLogs)
+  asmlib.LogInstance("Elevate piece "..asmlib.GetReport(spawncn, elevpnt), gtLogs)
   asmlib.SetAsmConvar(oPly, "elevpnt", elevpnt)
 end
 
@@ -2549,7 +2544,7 @@ function TOOL.BuildCPanel(CPanel)
         local sN, sI = qNames[iNam], asmlib.ToIcon("property_name")
         pComboPhysName:AddChoice(sN, sN, false, sI)
       end
-    else asmlib.LogInstance("Property type <"..sVal.."> names mismatch",sLog) end
+    else asmlib.LogInstance("Property type mismatch "..asmlib.GetReport(nInd, sVal), sLog) end
   end
 
   cvars.RemoveChangeCallback(sName, sName..sCall)

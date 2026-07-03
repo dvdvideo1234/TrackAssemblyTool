@@ -365,6 +365,31 @@ function GetOwner(oEnt)
   end; return eOwn -- No owner is found. Nothing is returned
 end
 
+function GetIdentity(vIn, sMo)
+  local nD = tonumber(vIn)
+  local sI = GetOpVar("MISS_NOID")
+  local sM = GetOpVar("MISS_NOMD")
+  local sP = GetOpVar("PATTEM_NOPIECE")
+  if(nD) then
+    local nF = math.floor(nD)
+    local vE = Entity(nF)
+    if(vE and vE:IsValid()) then
+      sI = tostring(vE:EntIndex())
+      sM = string.GetFileFromFilename(vE:GetModel())
+    else
+      sI, sM = tostring(nF), tostring(sMo)
+    end
+  elseif(isstring(vIn)) then
+    sI, sM = tostring(vIn), tostring(sMo)
+  elseif(vIn and vIn:IsValid()) then
+    sI = tostring(vIn:EntIndex())
+    sM = string.GetFileFromFilename(vIn:GetModel())
+  else
+    sI, sM = tostring(vIn), tostring(sMo)
+    LogInstance("Mismatch "..GetReport(vIn, sMo))
+  end; return sP:format(sI, sM)
+end
+
 ------------------ LOGS ------------------------
 --[[
   sMsg > Message being displayed
@@ -832,6 +857,7 @@ function InitBase(sName, sPurp)
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
   SetOpVar("PATTEM_NEWLINE" , "[\n\r]+")
+  SetOpVar("PATTEM_NOPIECE" , GetConcat("%s", GetOpVar("OPSYM_REVISION"), "%s"))
   SetOpVar("PATTEM_EXDSVHED", {
     Sym = GetOpVar("OPSYM_REVISION"),
     Fmt = table.concat({"(%s","%s","%s)"}, GetOpVar("OPSYM_REVISION")),
