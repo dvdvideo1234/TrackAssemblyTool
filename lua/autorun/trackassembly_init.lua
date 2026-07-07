@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.889")
+asmlib.SetOpVar("TOOL_VERSION","9.890")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1500,9 +1500,9 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
               local tAnch = gsSymRev:Explode(sAnch)
               local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
-                asmlib.Notify(oPly, "ERROR", "Anchor mismatch %s !", sAnch) return false end
+                asmlib.Notify(oPly, "ERROR", "Anchor mismatch: %s !", sAnch) return false end
               local eBase = ents.GetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
-                asmlib.Notify(oPly, "ERROR", "Entity missing [%s] !", nAnch) return false end
+                asmlib.Notify(oPly, "ERROR", "Entity missing: %s !", nAnch) return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = math.Clamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,true,false,false,forcelim)
@@ -1531,9 +1531,9 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
               local tAnch = gsSymRev:Explode(sAnch)
               local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
-                asmlib.Notify(oPly, "ERROR", "Anchor mismatch %s !", sAnch) return false end
+                asmlib.Notify(oPly, "ERROR", "Anchor mismatch: %s !", sAnch) return false end
               local eBase = ents.GetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
-                asmlib.Notify(oPly, "ERROR", "Entity missing [%s] !", nAnch) return false end
+                asmlib.Notify(oPly, "ERROR", "Entity missing: %s !", nAnch) return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = math.Clamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,false,true,false,forcelim)
@@ -1557,7 +1557,7 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               if(not bH) then asmlib.Notify(oPly, "CLEANUP", "No constrains present !"); return true end
               local eCn = constraint.Find(ePiece, game.GetWorld(), tC[1], 0, 0)
               if(not (eCn and eCn:IsValid())) then
-                asmlib.Notify(oPly, "CLEANUP", "Missing: %s !", tC[2]); return true end
+                asmlib.Notify(oPly, "CLEANUP", "Nothing to remove: %s !", tC[2]); return true end
               eCn:Remove(); asmlib.Notify(oPly, "CLEANUP", "Remove: %s !", tC[2]); return true
             else
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
