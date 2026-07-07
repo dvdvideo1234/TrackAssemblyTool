@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.887")
+asmlib.SetOpVar("TOOL_VERSION","9.889")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1489,26 +1489,28 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
         })
       conContextMenu:Push(
         {"tool."..gsToolNameL..".weld", true,
-          function(ePiece, oPly, oTr, sKey)
-            if(oPly:KeyDown(IN_SPEED)) then
-              local tCn, ID = constraint.FindConstraints(ePiece, "Weld"), 1
-              while(tCn and tCn[ID]) do local eCn = tCn[ID].Constraint
-                if(eCn and eCn:IsValid()) then eCn:Remove() end; ID = (ID + 1)
-              end; asmlib.Notify(oPly, "CLEANUP", "Removed: Welds %s !", (ID - 1)); return true
+          function(ePiece, oPly, oTr, sKey) local sC = "Weld"
+            if(oPly:KeyDown(IN_SPEED)) then -- Remove all constraints
+              local bH = constraint.HasConstraints(ePiece)
+              if(not bH) then asmlib.Notify(oPly, "CLEANUP", "No constrains present !"); return true end
+              local bS, nC = constraint.RemoveConstraints(ePiece, sC)
+              if(not bS) then asmlib.Notify(oPly, "CLEANUP", "Nothing to remove: %s !", sC); return true end
+              asmlib.Notify(oPly, "CLEANUP", "Remove: %s %s(s) !", nC, sC); return true
             else
               local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
               local tAnch = gsSymRev:Explode(sAnch)
               local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
-                asmlib.Notify(oPly, "ERROR", "Anchor: Mismatch %s !", sAnch) return false end
+                asmlib.Notify(oPly, "ERROR", "Anchor mismatch %s !", sAnch) return false end
               local eBase = ents.GetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
-                asmlib.Notify(oPly, "ERROR", "Entity: Missing %s !", nAnch) return false end
+                asmlib.Notify(oPly, "ERROR", "Entity missing [%s] !", nAnch) return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = math.Clamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,true,false,false,forcelim)
               if(bSuc and cnW and cnW:IsValid()) then
                 local sIde = asmlib.GetConcat(ePiece:EntIndex(), gsSymDir, eBase:EntIndex())
-                asmlib.UndoCrate("TA Weld > "..asmlib.GetReport(sIde,cnW:GetClass()))
-                asmlib.UndoAddEntity(cnW); asmlib.UndoFinish(oPly); return true
+                asmlib.UndoCrate("TA > "..asmlib.GetReport(sC, sIde, cnW:GetClass()))
+                asmlib.UndoAddEntity(cnW); asmlib.UndoFinish(oPly)
+                asmlib.Notify(oPly, "UNDO", "Create: %s for entity [%s] !", sC, ePiece:EntIndex()); return true
               end; return false
             end
           end, nil,
@@ -1518,26 +1520,28 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
         })
       conContextMenu:Push(
         {"tool."..gsToolNameL..".nocollide", true,
-          function(ePiece, oPly, oTr, sKey)
-            if(oPly:KeyDown(IN_SPEED)) then
-              local tCn, ID = constraint.FindConstraints(ePiece, "NoCollide"), 1
-              while(tCn and tCn[ID]) do local eCn = tCn[ID].Constraint
-                if(eCn and eCn:IsValid()) then eCn:Remove() end; ID = (ID + 1)
-              end; asmlib.Notify(oPly, "CLEANUP", "Removed: NoCollides %s !", (ID - 1)); return true
+          function(ePiece, oPly, oTr, sKey) local sC = "NoCollide"
+            if(oPly:KeyDown(IN_SPEED)) then -- Remove all constraints
+              local bH = constraint.HasConstraints(ePiece)
+              if(not bH) then asmlib.Notify(oPly, "CLEANUP", "No constrains present !"); return true end
+              local bS, nC = constraint.RemoveConstraints(ePiece, sC)
+              if(not bS) then asmlib.Notify(oPly, "CLEANUP", "Nothing to remove: %s !", sC); return true end
+              asmlib.Notify(oPly, "CLEANUP", "Remove: %s %s(s) !", nC, sC); return true
             else -- Get anchor prop
               local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
               local tAnch = gsSymRev:Explode(sAnch)
               local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
-                asmlib.Notify(oPly, "ERROR", "Anchor: Mismatch %s !", sAnch) return false end
+                asmlib.Notify(oPly, "ERROR", "Anchor mismatch %s !", sAnch) return false end
               local eBase = ents.GetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
-                asmlib.Notify(oPly, "ERROR", "Entity: Missing %s !", nAnch) return false end
+                asmlib.Notify(oPly, "ERROR", "Entity missing [%s] !", nAnch) return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = math.Clamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,false,true,false,forcelim)
               if(bSuc and cnN and cnN:IsValid()) then
                 local sIde = asmlib.GetConcat(ePiece:EntIndex(), gsSymDir, eBase:EntIndex())
-                asmlib.UndoCrate("TA NoCollide > "..asmlib.GetReport(sIde,cnN:GetClass()))
-                asmlib.UndoAddEntity(cnN); asmlib.UndoFinish(oPly); return true
+                asmlib.UndoCrate("TA > "..asmlib.GetReport(sC, sIde, cnN:GetClass()))
+                asmlib.UndoAddEntity(cnN); asmlib.UndoFinish(oPly)
+                asmlib.Notify(oPly, "UNDO", "Create: %s for entity [%s] !", sC, ePiece:EntIndex()); return true
               end; return false
             end
           end, nil,
@@ -1547,19 +1551,22 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
         })
       conContextMenu:Push(
         {"tool."..gsToolNameL..".nocollidew", true,
-          function(ePiece, oPly, oTr, sKey)
+          function(ePiece, oPly, oTr, sKey) local tC = {"AdvBallsocket", "NoCollideWorld"}
             if(oPly:KeyDown(IN_SPEED)) then
-              local eCn = constraint.Find(ePiece, game.GetWorld(), "AdvBallsocket", 0, 0)
-              if(eCn and eCn:IsValid()) then eCn:Remove()
-                asmlib.Notify(oPly, "CLEANUP", "Removed: NoCollideWorld !")
-              else asmlib.Notify(oPly, "CLEANUP", "Missing: NoCollideWorld !") end
+              local bH = constraint.HasConstraints(ePiece)
+              if(not bH) then asmlib.Notify(oPly, "CLEANUP", "No constrains present !"); return true end
+              local eCn = constraint.Find(ePiece, game.GetWorld(), tC[1], 0, 0)
+              if(not (eCn and eCn:IsValid())) then
+                asmlib.Notify(oPly, "CLEANUP", "Missing: %s !", tC[2]); return true end
+              eCn:Remove(); asmlib.Notify(oPly, "CLEANUP", "Remove: %s !", tC[2]); return true
             else
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = math.Clamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,nil,false,false,true,forcelim)
               if(bSuc and cnG and cnG:IsValid()) then
-                asmlib.UndoCrate("TA NoCollideWorld > "..asmlib.GetReport(ePiece:EntIndex(),cnG:GetClass()))
-                asmlib.UndoAddEntity(cnG); asmlib.UndoFinish(oPly); return true
+                asmlib.UndoCrate("TA > "..asmlib.GetReport(tC[2], ePiece:EntIndex(), cnG:GetClass()))
+                asmlib.UndoAddEntity(cnG); asmlib.UndoFinish(oPly)
+                asmlib.Notify(oPly, "UNDO", "Create: %s for entity [%s] !", tC[2], ePiece:EntIndex()); return true
               end; return false
             end
           end, nil,
