@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.886")
+asmlib.SetOpVar("TOOL_VERSION","9.887")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1494,14 +1494,14 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local tCn, ID = constraint.FindConstraints(ePiece, "Weld"), 1
               while(tCn and tCn[ID]) do local eCn = tCn[ID].Constraint
                 if(eCn and eCn:IsValid()) then eCn:Remove() end; ID = (ID + 1)
-              end; asmlib.Notify(oPly,"Removed: Welds !","CLEANUP"); return true
+              end; asmlib.Notify(oPly, "CLEANUP", "Removed: Welds %s !", (ID - 1)); return true
             else
               local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
               local tAnch = gsSymRev:Explode(sAnch)
               local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
-                asmlib.Notify(oPly,"Anchor: Mismatch "..sAnch.." !","ERROR") return false end
+                asmlib.Notify(oPly, "ERROR", "Anchor: Mismatch %s !", sAnch) return false end
               local eBase = ents.GetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
-                asmlib.Notify(oPly,"Entity: Missing "..tostring(nAnch).." !","ERROR") return false end
+                asmlib.Notify(oPly, "ERROR", "Entity: Missing %s !", nAnch) return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = math.Clamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,true,false,false,forcelim)
@@ -1523,14 +1523,14 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
               local tCn, ID = constraint.FindConstraints(ePiece, "NoCollide"), 1
               while(tCn and tCn[ID]) do local eCn = tCn[ID].Constraint
                 if(eCn and eCn:IsValid()) then eCn:Remove() end; ID = (ID + 1)
-              end; asmlib.Notify(oPly,"Removed: NoCollides !","CLEANUP"); return true
+              end; asmlib.Notify(oPly, "CLEANUP", "Removed: NoCollides %s !", (ID - 1)); return true
             else -- Get anchor prop
               local sAnch = oPly:GetInfo(gsToolPrefL.."anchor", gsNoAnchor)
               local tAnch = gsSymRev:Explode(sAnch)
               local nAnch = tonumber(tAnch[1]); if(not asmlib.IsHere(nAnch)) then
-                asmlib.Notify(oPly,"Anchor: Mismatch "..sAnch.." !","ERROR") return false end
+                asmlib.Notify(oPly, "ERROR", "Anchor: Mismatch %s !", sAnch) return false end
               local eBase = ents.GetByIndex(nAnch); if(not (eBase and eBase:IsValid())) then
-                asmlib.Notify(oPly,"Entity: Missing "..nAnch.." !","ERROR") return false end
+                asmlib.Notify(oPly, "ERROR", "Entity: Missing %s !", nAnch) return false end
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = math.Clamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
               local bSuc, cnW, cnN, cnG = asmlib.ApplyPhysicalAnchor(ePiece,eBase,false,true,false,forcelim)
@@ -1551,8 +1551,8 @@ local conContextMenu = asmlib.GetContainer("CONTEXT_MENU")
             if(oPly:KeyDown(IN_SPEED)) then
               local eCn = constraint.Find(ePiece, game.GetWorld(), "AdvBallsocket", 0, 0)
               if(eCn and eCn:IsValid()) then eCn:Remove()
-                asmlib.Notify(oPly,"Removed: NoCollideWorld !","CLEANUP")
-              else asmlib.Notify(oPly,"Missing: NoCollideWorld !","CLEANUP") end
+                asmlib.Notify(oPly, "CLEANUP", "Removed: NoCollideWorld !")
+              else asmlib.Notify(oPly, "CLEANUP", "Missing: NoCollideWorld !") end
             else
               local maxforce = asmlib.GetAsmConvar("maxforce", "FLT")
               local forcelim = math.Clamp(oPly:GetInfoNum(gsToolPrefL.."forcelim", 0), 0, maxforce)
@@ -1594,7 +1594,7 @@ if(SERVER) then
       end
     else
       if(cTim > pTim[2]) then
-        asmlib.Notify(oPly,"Do not rush the context menu!","UNDO")
+        asmlib.Notify(oPly, "UNDO", "Do not rush the context menu!")
         pTim[2] = (cTim + nDel) -- For given amount of seconds
       end
     end

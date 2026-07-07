@@ -57,7 +57,6 @@ local isstring                = isstring
 local isvector                = isvector
 local ismatrix                = ismatrix
 local isentity                = isentity
-local IsEntity                = IsEntity
 local Material                = Material
 local tonumber                = tonumber
 local tostring                = tostring
@@ -172,7 +171,7 @@ end
 
 function IsPlayer(oPly)
   if(not IsHere(oPly))    then return false end
-  if(not IsEntity(oPly))  then return false end
+  if(not isentity(oPly))  then return false end
   if(not oPly:IsValid())  then return false end
   if(not oPly:IsPlayer()) then return false end
   return true
@@ -180,7 +179,7 @@ end
 
 function IsOther(oEnt)
   if(not IsHere(oEnt))   then return true end
-  if(not IsEntity(oEnt)) then return true end
+  if(not isentity(oEnt)) then return true end
   if(not oEnt:IsValid()) then return true end
   if(oEnt:IsPlayer())    then return true end
   if(oEnt:IsVehicle())   then return true end
@@ -2787,12 +2786,20 @@ function GetCacheCurve(pPly)
   return stData
 end
 
-function Notify(pPly,sText,sType)
-  if(not IsPlayer(pPly)) then
-    LogInstance("Player invalid "..GetReport(pPly)); return false end
-  if(SERVER) then -- Send notification to client that something happened
-    pPly:SendLua(GetOpVar("FORM_NTFGAME"):format(sText, sType))
-    pPly:SendLua(GetOpVar("FORM_NTFPLAY"):format(math.random(1, 4)))
+--[[
+ * Send notification to client that something happened
+ * oPly  > Player to set the notification to
+ * sType > Notification type: https://wiki.facepunch.com/gmod/Enums/NOTIFY
+ * sForm > Message format. All arguments are converted to strings
+ * ...   > Varargs of thing to display. Must the same count as format
+]]
+function Notify(oPly, sType, sForm, ...)
+  if(not IsPlayer(oPly)) then
+    LogInstance("Player invalid "..GetReport(oPly)); return false end
+  if(SERVER) then local nA, tA = select("#", ...), {...}
+    for iA = 1, nA do tA[iA] = tostring(select(iA, ...)) end
+    oPly:SendLua(GetOpVar("FORM_NTFGAME"):format(sForm:format(unpack(tA)), sType))
+    oPly:SendLua(GetOpVar("FORM_NTFPLAY"):format(math.random(1, 4)))
   end; return true
 end
 
@@ -5487,8 +5494,8 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
     LogInstance("Skip: "..GetReport(sMode)); return true end
   if(util.IsInWorld(vPos)) then ePiece:SetPos(vPos) else ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
-      Notify(oPly, "Position out of map bounds!", sMode) end
-    LogInstance("Position out of map bounds "..GetReport(sMode, oPly, vPos)); return false
+      Notify(oPly, sMode, "Position [%s] out of map bounds!", vPos) end
+    LogInstance("Position out of map bounds "..GetReport(sMode, oPly)); return false
   end; LogInstance("Success "..GetReport(sMode, oPly)); return true
 end
 
@@ -5505,14 +5512,14 @@ function InSpawnMargin(oPly,oRec,vPos,aAng)
       local nBpos = oRec.Mpos:Distance(vPos) -- Distance
       if(nBpos <= cMarg) then -- Check the margin area
         if(nMarg < 0) then -- When negative check position only
-          local sM = ("Spawn pos: "..GetReport(nBpos, nMarg))
-          Notify(oPly, sM, "ERROR"); LogInstance(sM); return true
+          Notify(oPly, "ERROR", "Spawn distance %s less than marging %s !", nBpos, nMarg)
+          LogInstance("Spawn distance: "..GetReport(nBpos, nMarg)); return true
         else -- Otherwise check the spawn direction ray for being the same
           local nBray = oRec.Mray:Dot(aAng:Forward())
           local nMray = (1 - (cMarg * GetOpVar("EPSILON_ZERO")))
           if(nBray >= nMray) then -- Positive checks position and direction
-            local sM = ("Spawn ray: "..GetReport(nBpos, nMarg, nBray, nMray))
-            Notify(oPly, sM, "ERROR"); LogInstance(sM); return true
+            Notify(oPly, "ERROR", "Spawn direction %s ray %s less than margin %s ray %s !", nBpos, nBray, nMarg, nMray)
+            LogInstance("Spawn direction: "..GetReport(nBpos, nMarg, nBray, nMray)); return true
           end -- Piece angles will not align when spawned
         end -- Negative checks position
       end; oRec.Mpos:Set(vPos); oRec.Mray:Set(aAng:Forward())
