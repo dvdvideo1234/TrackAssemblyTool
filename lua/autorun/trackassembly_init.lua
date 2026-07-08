@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.892")
+asmlib.SetOpVar("TOOL_VERSION","9.893")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 

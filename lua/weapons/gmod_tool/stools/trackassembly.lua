@@ -192,10 +192,6 @@ function TOOL:GetCurveSamples()
   return asmlib.GetAsmConvar("curvsmple", "INT")
 end
 
-function TOOL:ApplyAngularFirst()
-  return (self:GetClientNumber("appangfst", 0) ~= 0)
-end
-
 function TOOL:GetRadialMenu()
   return (self:GetClientNumber("enradmenu", 0) ~= 0)
 end
@@ -208,8 +204,12 @@ function TOOL:GetRadialAngle()
   return math.Clamp(self:GetClientNumber("rtradmenu", 0), -gnMaxRot, gnMaxRot)
 end
 
-function TOOL:ApplyLinearFirst()
+function TOOL:GetIsLinearFirst()
   return (self:GetClientNumber("applinfst", 0) ~= 0)
+end
+
+function TOOL:GetIsAngularFirst()
+  return (self:GetClientNumber("appangfst", 0) ~= 0)
 end
 
 function TOOL:GetContextMenuAll()
@@ -439,11 +439,11 @@ function TOOL:IntersectSnap(trEnt, vHit, stSpawn, bMute)
       asmlib.LogInstance("Model ray mismatch",gtLogs); return nil end
   end
   local aOrg, vx, vy, vz = stSpawn.OAng, stSpawn.PNxt:Unpack()
-  if(self:ApplyAngularFirst()) then aOrg = stRay1.Diw end
+  if(self:GetIsAngularFirst()) then aOrg = stRay1.Diw end
   mx:Rotate(stSpawn.SAng); mx:Mul(-1) -- Translate entity local intersection to world
   stSpawn.SPos:Set(mx); stSpawn.SPos:Add(xx); -- Update spawn position with the ray intersection
   local cx, cy, cz = aOrg:Forward(), aOrg:Right(), aOrg:Up()
-  if(self:ApplyLinearFirst()) then
+  if(self:GetIsLinearFirst()) then
     local dx = Vector(); dx:Set(o1); dx:Rotate(stSpawn.SAng)
           dx:Add(stSpawn.SPos); dx:Sub(stRay1.Orw)
     local dy = Vector(); dy:Set(o2); dy:Rotate(stSpawn.SAng)
@@ -598,8 +598,8 @@ function TOOL:LogStatus(stTr,vMsg,hdEnt)
   asmlib.LogInstance("    HD.IgnoreType:   "..asmlib.GetReport(self:GetIgnoreType()), gtLogs)
   asmlib.LogInstance("    HD.SurfSnap:     "..asmlib.GetReport(self:GetSurfaceSnap()), gtLogs)
   asmlib.LogInstance("    HD.SpawnCen:     "..asmlib.GetReport(self:GetSpawnCenter()), gtLogs)
-  asmlib.LogInstance("    HD.AppAngular:   "..asmlib.GetReport(self:ApplyAngularFirst()), gtLogs)
-  asmlib.LogInstance("    HD.AppLinear:    "..asmlib.GetReport(self:ApplyLinearFirst()), gtLogs)
+  asmlib.LogInstance("    HD.AppAngular:   "..asmlib.GetReport(self:GetIsAngularFirst()), gtLogs)
+  asmlib.LogInstance("    HD.AppLinear:    "..asmlib.GetReport(self:GetIsLinearFirst()), gtLogs)
   asmlib.LogInstance("    HD.EnCxMenuAll:  "..asmlib.GetReport(self:GetContextMenuAll()), gtLogs)
   asmlib.LogInstance("    HD.PntAssist:    "..asmlib.GetReport(self:GetPointAssist()), gtLogs)
   asmlib.LogInstance("    HD.StackCnt:     "..asmlib.GetReport(self:GetStackCount()), gtLogs)
@@ -1278,9 +1278,9 @@ function TOOL:LeftClick(stTrace)
   local bgskids    = self:GetBodyGroupSkin()
   local maxstatts  = self:GetStackAttempts()
   local ignphysgn  = self:GetIgnorePhysgun()
-  local applinfst  = self:ApplyLinearFirst()
+  local applinfst  = self:GetIsLinearFirst()
   local bnderrmod  = self:GetBoundErrorMode()
-  local appangfst  = self:ApplyAngularFirst()
+  local appangfst  = self:GetIsAngularFirst()
   local nocollidew = self:GetNocollideWorld()
   local fnmodel    = string.GetFileFromFilename(model)
   local siAnc  , anEnt   = self:GetAnchor()
@@ -1842,8 +1842,8 @@ function TOOL:UpdateGhost(oPly)
     local igntype   = self:GetIgnoreType()
     local stackcnt  = self:GetStackCount()
     local actrad    = self:GetActiveRadius()
-    local applinfst = self:ApplyLinearFirst()
-    local appangfst = self:ApplyAngularFirst()
+    local applinfst = self:GetIsLinearFirst()
+    local appangfst = self:GetIsAngularFirst()
     local stSpawn   = asmlib.GetEntitySpawn(oPly,trEnt,stTrace.HitPos,model,pointid,
                         actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(stSpawn) then
