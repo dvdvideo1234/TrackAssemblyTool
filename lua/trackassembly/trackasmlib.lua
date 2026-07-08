@@ -375,17 +375,16 @@ function GetIdentity(vIn, sMo)
     if(vE and vE:IsValid()) then
       sI = tostring(vE:EntIndex())
       sM = string.GetFileFromFilename(vE:GetModel())
-    else
-      sI, sM = tostring(nF), tostring(sMo)
-    end
+    else -- Entity is invalid but number is valid
+      sI, sM = tostring(nF or sI), tostring(sMo or sM)
+    end -- String assumes second argument is model
   elseif(isstring(vIn)) then
-    sI, sM = tostring(vIn), tostring(sMo)
+    sI, sM = tostring(vIn or sI), tostring(sMo or sM)
   elseif(vIn and vIn:IsValid()) then
     sI = tostring(vIn:EntIndex())
     sM = string.GetFileFromFilename(vIn:GetModel())
-  else
-    sI, sM = tostring(vIn), tostring(sMo)
-    LogInstance("Mismatch "..GetReport(vIn, sMo))
+  else -- By default default to missing
+    sI, sM = tostring(vIn or sI), tostring(sMo or sM)
   end; return sP:format(sI, sM)
 end
 
