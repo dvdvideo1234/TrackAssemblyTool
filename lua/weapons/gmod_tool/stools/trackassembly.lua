@@ -133,12 +133,19 @@ if(SERVER) then
   local vsHash  = "_"..poQueue:GetKey():lower()
   local cvTask  = asmlib.GetAsmConvar("enmultask", "OBJ")
   local gbMen, svName = cvTask:GetBool(), cvTask:GetName()
+
   cvars.RemoveChangeCallback(svName, svName..vsHash)
   cvars.AddChangeCallback(svName, function(sV, vO, vN)
-    gbMen = ((tonumber(vN) or 0) ~= 0) end, svName..vsHash)
-  hook.Add("Think", gsToolPrefL.."think_task", function() poQueue:Work():Next(gbMen) end)
+    gbMen = ((tonumber(vN) or 0) ~= 0)
+  end, svName..vsHash)
+
+  hook.Remove("Think", gsToolPrefL.."worker"..vsHash)
+  hook.Add("Think", gsToolPrefL.."worker"..vsHash, function() poQueue:Work():Next(gbMen) end)
+  hook.Remove("PlayerDisconnected", gsToolPrefL.."player_quit")
   hook.Add("PlayerDisconnected", gsToolPrefL.."player_quit", asmlib.GetActionCode("PLAYER_QUIT"))
+  hook.Remove("PhysgunDrop", gsToolPrefL.."physgun_drop_snap")
   hook.Add("PhysgunDrop", gsToolPrefL.."physgun_drop_snap", asmlib.GetActionCode("PHYSGUN_DROP"))
+
   duplicator.RegisterEntityModifier(gsToolPrefL.."dupe_phys_set",asmlib.GetActionCode("DUPE_PHYS_SETTINGS"))
 
   concommand.Remove(gsToolPrefL.."refreshdsv")
