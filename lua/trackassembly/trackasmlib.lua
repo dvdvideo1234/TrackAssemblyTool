@@ -829,11 +829,11 @@ function InitBase(sName, sPurp)
   SetOpVar("TABLE_BORDERS",{})
   SetOpVar("TABLE_MONITOR", {})
   SetOpVar("TABLE_CONTAINER",{})
-  SetOpVar("TYPEMT_POA",{})
-  SetOpVar("TYPEMT_QUEUE",{})
-  SetOpVar("TYPEMT_SCREEN",{})
-  SetOpVar("TYPEMT_BEAUTY",{})
-  SetOpVar("TYPEMT_CONTAINER",{})
+  SetOpVar("TYPEMT_POA",{__type = "POA"})
+  SetOpVar("TYPEMT_QUEUE",{__type = "QUEUE"})
+  SetOpVar("TYPEMT_SCREEN",{__type = "SCREEN"})
+  SetOpVar("TYPEMT_BEAUTY",{__type = "BEAUTY"})
+  SetOpVar("TYPEMT_CONTAINER",{__type = "CONTAINER"})
   SetOpVar("ARRAY_BNDERRMOD",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
   SetOpVar("ARRAY_MODEDB",{"LUA", "SQL", ["LUA"] = true, ["SQL"] = true})
   SetOpVar("ARRAY_MODETM",{"CQT", "OBJ", ["CQT"] = true, ["OBJ"] = true})
@@ -1634,17 +1634,22 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
   return self -- Register the screen under the key
 end
 
+--[[
+ * Creates a point of attachment object (point/origin/angle)
+ * This is used to process attachment point parameters in the DB
+]]
 function NewPOA(vA, vB, vC)
   local self = {0, 0, 0}
   local mtPOA = GetOpVar("TYPEMT_POA")
   setmetatable(self, mtPOA)
-  if(not mtPOA.__type) then
-    mtPOA.__fraw, mtPOA.__fnum = "%s+", "%10.3f"
-    mtPOA.__type, mtPOA.__index = "POA", mtPOA
-    mtPOA.__eoa = GetOpVar("OPSYM_ENTPOSANG")
-    mtPOA.__sep = GetOpVar("OPSYM_SEPARATOR")
-    mtPOA.__mis = GetOpVar("MISS_NOSQL")
-    mtPOA.__form = GetConcat(
+  if(not mtPOA.__index) then
+    mtPOA.__index = mtPOA
+    mtPOA.__fraw  = "%s+"
+    mtPOA.__fnum  = "%10.3f"
+    mtPOA.__mis   = GetOpVar("MISS_NOSQL")
+    mtPOA.__eoa   = GetOpVar("OPSYM_ENTPOSANG")
+    mtPOA.__sep   = GetOpVar("OPSYM_SEPARATOR")
+    mtPOA.__form  = GetConcat(
       mtPOA.__type,"{", mtPOA.__fnum,",",
       mtPOA.__fnum,",",mtPOA.__fnum,"}","[%s]")
     function mtPOA:Get() return unpack(self) end
@@ -3470,12 +3475,12 @@ function NewTable(sTable,defTab,bReload,bDelete)
   end
   -- Wipes a set of records via primary key
   function self:Erase(sKey)
-    local sKey, qtDef  = tostring(sKey or ""), self:GetDefinition()
+    local sKey, qtDef  = tostring(sKey or "*"), self:GetDefinition()
     local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debug.getinfo(1).name
     local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
-      LogInstance("Unsupported mode "..GetReport(sType)); return false end
+      LogInstance("Unsupported mode", qtDef.Nick); return false end
     if(sMoDB == "SQL") then local Q = nil
-      if(sKey == "") then
+      if(sKey == "*") then
         Q = self:Delete():Get(); if(not IsHere(Q)) then
           LogInstance("Build delete failed"); return false end
       else

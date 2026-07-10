@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.893")
+asmlib.SetOpVar("TOOL_VERSION","9.894")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1751,10 +1751,8 @@ asmlib.NewTable("PIECES",{
     end
   },
   Cache = {
-    Erase  = function(makTab, tCache, snPK)
-      local stData = tCache[snPK]; if(not stData) then
-        asmlib.LogInstance("Cache missing "..asmlib.GetReport(snPK)); return false end
-      if(snPK and snPK ~= "") then tCache[snPK] = nil else table.Empty(tCache) end; return true
+    Erase = function(makTab, tCache, snPK)
+      if(snPK and snPK ~= "*") then tCache[snPK] = nil else table.Empty(tCache) end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine)
       local stData = tCache[snPK]; if(not stData) then
@@ -1950,9 +1948,7 @@ asmlib.NewTable("ADDITIONS",{
   },
   Cache = {
     Erase = function(makTab, tCache, snPK)
-      local stData = tCache[snPK]; if(not stData) then
-        asmlib.LogInstance("Cache missing "..asmlib.GetReport(snPK)); return false end
-      if(snPK and snPK ~= "") then tCache[snPK] = nil else table.Empty(tCache) end; return true
+      if(snPK and snPK ~= "*") then tCache[snPK] = nil else table.Empty(tCache) end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine)
       local stData = tCache[snPK]; if(not stData) then
@@ -2028,14 +2024,14 @@ asmlib.NewTable("PHYSPROPERTIES",{
     end
   },
   Cache = {
-    Erase  = function(makTab, tCache, snPK)
+    Erase = function(makTab, tCache, snPK)
       local tProID = asmlib.GetOpVar("HASH_PROPERTY")
       local pN, pT = tProID.Name, tProID.Type
       local tNames = tCache[pN]; if(not tNames) then
-        asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK)); return false end
+        asmlib.LogInstance("Names missing "..asmlib.GetReport(snPK)); return false end
       local tTypes = tCache[pT]; if(not tTypes) then
-        asmlib.LogInstance("Config missing "..asmlib.GetReport(snPK)); return false end
-      if(snPK and snPK ~= "") then  -- Remove the type from the list
+        asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK)); return false end
+      if(snPK and snPK ~= "*") then  -- Remove the type from the list
         for iT = 1, tTypes.Size do; if(tTypes[iT] == snPK) then
           table.remove(tTypes, iT); tTypes.Size = (tTypes.Size - 1); break
         end; end; tNames[snPK] = nil -- Erase the names for the type as well
