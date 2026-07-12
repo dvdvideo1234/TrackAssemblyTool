@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.894")
+asmlib.SetOpVar("TOOL_VERSION","9.895")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -834,10 +834,13 @@ if(CLIENT) then
               bAct, sRow = false, sRow:sub(2,-1):Trim() end
             local nS, nE = sRow:find("%s+")
             if(nS and nE) then
-              sKey = sRow:sub(1, nS-1)
-              sPrg = sRow:sub(nE+1,-1)
-            else sKey, sPrg = sRow, gsNoAV end
-            pnListView:AddLine((bAct and "V" or "X"), sKey, sPrg):SetTooltip(sPrg)
+              sKey = sRow:sub(1, nS-1):Trim()
+              sPrg = sRow:sub(nE+1,-1):Trim()
+            else sKey, sPrg = sRow:Trim(), gsNoAV end
+            sAct = (bAct and "V" or "X")
+            sKey = GetTypePrefix(sKey):Trim()
+            sTip = asmlib.GetConcat(sKey, " : ", sPrg)
+            pnListView:AddLine(sAct, sKey, sPrg):SetTooltip(sTip)
           end; sRow, tCon = asmlib.GetLineContent(fD, tCon)
         end -- If a data error is not present. File is closed automatically
       end; pnImport:DoClick()
@@ -2032,7 +2035,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
       local tTypes = tCache[pT]; if(not tTypes) then
         asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK)); return false end
       if(snPK and snPK ~= "*") then  -- Remove the type from the list
-        for iT = 1, tTypes.Size do; if(tTypes[iT] == snPK) then
+        for iT = 1, tTypes.Size do if(tTypes[iT] == snPK) then
           table.remove(tTypes, iT); tTypes.Size = (tTypes.Size - 1); break
         end; end; tNames[snPK] = nil -- Erase the names for the type as well
       else -- Otherwise clear everything not just specific type

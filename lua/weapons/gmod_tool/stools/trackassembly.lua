@@ -167,8 +167,8 @@ if(SERVER) then
     end)
 end
 
-TOOL.Name       = language.GetPhrase and language.GetPhrase("tool."..gsToolNameL..".name")
-TOOL.Category   = language.GetPhrase and language.GetPhrase("tool."..gsToolNameL..".category")
+TOOL.Name       = language and language.GetPhrase("tool."..gsToolNameL..".name")
+TOOL.Category   = language and language.GetPhrase("tool."..gsToolNameL..".category")
 TOOL.Command    = nil -- Command on click (nil for default)
 TOOL.ConfigName = nil -- Configure file name (nil for default)
 

@@ -862,6 +862,7 @@ function InitBase(sName, sPurp)
     Hdr = "^#.*DSV.*%(.+%)", Par = "%(.+%)"
   })
   SetOpVar("HOVER_TRIGGER"  , {})
+  SetOpVar("TABLE_COMPONENTS", {})
   if(CLIENT) then
     SetOpVar("PATTEM_EXCATHED", {
       Sym = GetOpVar("OPSYM_REVISION"),
@@ -948,7 +949,6 @@ function InitBase(sName, sPurp)
     SetOpVar("TABLE_WSIDADDON", {ID = "^%d+$", Data = {}, Type = {}})
     SetOpVar("ARRAY_GHOST",{Size=0, Slot=GetOpVar("MISS_NOMD")})
     SetOpVar("TABLE_CATEGORIES", {})
-    SetOpVar("TABLE_COMPONENTS", {})
     SetOpVar("CLIPBOARD_TEXT","")
     SetOpVar("FMNODE_PATH","%s>%s")
   end; LogInstance("Success"); return true
@@ -2202,7 +2202,7 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
   pPanel:SetDelta(1, 8)
   pPanel:SetPadding(0, 0)
   pPanel:IsAutoResize(true, false)
-  pPanel:Dock(TOP)
+  pPanel:Dock(GENV . TOP)
   pPanel:SizeToChildren(true, false)
   pPanel:SizeToContentsY()
   pPanel:InvalidateChildren()
@@ -2875,7 +2875,7 @@ function RunComponentType(sT, fR)
   local bS, vR = pcall(fR, 0, sT); if(not bS) then
     LogInstance("Base error: "..GetReport(0, sT, vR), nil, nil, 3); return false end
   if(not vR) then LogInstance("Base fault: "..GetReport(0, sT, vR), nil, nil, 3); return false end
-  for iT = 1, nT do; local vT = tT[iT]; local bS, vR = pcall(fR, iT, vT)
+  for iT = 1, nT do local vT = tT[iT]; local bS, vR = pcall(fR, iT, vT)
     if(not bS) then LogInstance("Item error: "..GetReport(iT, vT, vR), nil, nil, 3); return false end
     if(not vR) then LogInstance("Item fault: "..GetReport(iT, vT, vR), nil, nil, 3); return false end
   end; return true
@@ -4398,7 +4398,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
         if(not IsBlank(sRow)) then local isAct = true
           if(IsDisable(sRow)) then isAct, sRow = false, sRow:sub(2,-1) end
           local tab = sDelim:Explode(sRow)
-          local prf = tostring(tab[1]):Trim()
+          local prf = GetTypePrefix(tab[1])
           local src = tostring(tab[2] or sMiss):Trim()
           local inf = fPool[prf]; if(not inf) then
             fPool[prf] = {Size = 0}; inf = fPool[prf] end
