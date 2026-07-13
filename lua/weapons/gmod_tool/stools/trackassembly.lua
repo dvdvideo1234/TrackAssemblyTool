@@ -967,12 +967,12 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
     asmlib.Notify(user, "CLEANUP", "Node index inserted: %s !", iH)
     net.Start(gsLibName.."SendInsertCurveNode")
       net.WriteEntity(user)           -- Player who applied the curve change
-      net.WriteVector(tC.Node[iC])    -- Current node location in the stack
-      net.WriteNormal(tC.Norm[iC])    -- Current node normal vector in the stack
-      net.WriteVector(tC.Base[iC])    -- Current node base location in the stack
-      net.WriteVector(tC.Rays[iC][1]) -- Player trace location curve data
-      net.WriteAngle (tC.Rays[iC][2]) -- Player trace angle curve data
-      net.WriteBool  (tC.Rays[iC][3]) -- Player trace hits POA location or not
+      net.WriteVector(tC.Node[iH])    -- Current node location in the stack
+      net.WriteNormal(tC.Norm[iH])    -- Current node normal vector in the stack
+      net.WriteVector(tC.Base[iH])    -- Current node base location in the stack
+      net.WriteVector(tC.Rays[iH][1]) -- Player trace location curve data
+      net.WriteAngle (tC.Rays[iH][2]) -- Player trace angle curve data
+      net.WriteBool  (tC.Rays[iH][3]) -- Player trace hits POA location or not
       net.WriteUInt  (iD, 16)         -- Equal to zero remove the end otherwise iC
       net.WriteUInt  (iC, 16)         -- The index to remove at when (iD > 0)
       net.WriteUInt  (iN, 16)         -- The index to apply the super elevation for

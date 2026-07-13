@@ -863,6 +863,52 @@ function InitBase(sName, sPurp)
   })
   SetOpVar("HOVER_TRIGGER"  , {})
   SetOpVar("TABLE_COMPONENTS", {})
+  SetOpVar("TABLE_MAPENUM", {
+    ["MOVETYPE"] = { Fme = "%s_%s", Fmt = "%-19s",
+      [tostring(GENV . MOVETYPE_NONE      )] = "NONE",
+      [tostring(GENV . MOVETYPE_ISOMETRIC )] = "ISOMETRIC",
+      [tostring(GENV . MOVETYPE_WALK      )] = "WALK",
+      [tostring(GENV . MOVETYPE_STEP      )] = "STEP",
+      [tostring(GENV . MOVETYPE_FLY       )] = "FLY",
+      [tostring(GENV . MOVETYPE_FLYGRAVITY)] = "FLYGRAVITY",
+      [tostring(GENV . MOVETYPE_VPHYSICS  )] = "VPHYSICS",
+      [tostring(GENV . MOVETYPE_PUSH      )] = "PUSH",
+      [tostring(GENV . MOVETYPE_NOCLIP    )] = "NOCLIP",
+      [tostring(GENV . MOVETYPE_LADDER    )] = "LADDER",
+      [tostring(GENV . MOVETYPE_OBSERVER  )] = "OBSERVER",
+      [tostring(GENV . MOVETYPE_CUSTOM    )] = "CUSTOM"
+    },
+    ["SOLID"] = { Fme = "%s_%s", Fmt = "%-14s",
+      [tostring(GENV . SOLID_NONE    )] = "NONE",
+      [tostring(GENV . SOLID_BSP     )] = "BSP",
+      [tostring(GENV . SOLID_BBOX    )] = "BBOX",
+      [tostring(GENV . SOLID_OBB     )] = "OBB",
+      [tostring(GENV . SOLID_OBB_YAW )] = "OBB_YAW",
+      [tostring(GENV . SOLID_CUSTOM  )] = "CUSTOM",
+      [tostring(GENV . SOLID_VPHYSICS)] = "VPHYSICS"
+    },
+    ["#"] = {
+      ["MOVETYPE_NONE"      ] = GENV . MOVETYPE_NONE,
+      ["MOVETYPE_ISOMETRIC" ] = GENV . MOVETYPE_ISOMETRIC,
+      ["MOVETYPE_WALK"      ] = GENV . MOVETYPE_WALK,
+      ["MOVETYPE_STEP"      ] = GENV . MOVETYPE_STEP,
+      ["MOVETYPE_FLY"       ] = GENV . MOVETYPE_FLY,
+      ["MOVETYPE_FLYGRAVITY"] = GENV . MOVETYPE_FLYGRAVITY,
+      ["MOVETYPE_VPHYSICS"  ] = GENV . MOVETYPE_VPHYSICS,
+      ["MOVETYPE_PUSH"      ] = GENV . MOVETYPE_PUSH,
+      ["MOVETYPE_NOCLIP"    ] = GENV . MOVETYPE_NOCLIP,
+      ["MOVETYPE_LADDER"    ] = GENV . MOVETYPE_LADDER,
+      ["MOVETYPE_OBSERVER"  ] = GENV . MOVETYPE_OBSERVER,
+      ["MOVETYPE_CUSTOM"    ] = GENV . MOVETYPE_CUSTOM,
+      ["SOLID_NONE"         ] = GENV . SOLID_NONE,
+      ["SOLID_BSP"          ] = GENV . SOLID_BSP,
+      ["SOLID_BBOX"         ] = GENV . SOLID_BBOX,
+      ["SOLID_OBB"          ] = GENV . SOLID_OBB,
+      ["SOLID_OBB_YAW"      ] = GENV . SOLID_OBB_YAW,
+      ["SOLID_CUSTOM"       ] = GENV . SOLID_CUSTOM,
+      ["SOLID_VPHYSICS"     ] = GENV . SOLID_VPHYSICS
+    }
+  })
   if(CLIENT) then
     SetOpVar("PATTEM_EXCATHED", {
       Sym = GetOpVar("OPSYM_REVISION"),
@@ -893,52 +939,6 @@ function InitBase(sName, sPurp)
       {name = "right"     , icon = "gui/rmb.png"},
       {name = "right_use" , icon = "gui/rmb.png" , icon2 = "gui/e.png"},
       {name = "reload"    , icon = "gui/r.png"  }
-    })
-    SetOpVar("TABLE_MAPENUM", {
-      ["MOVETYPE"] = { Fme = "%s_%s", Fmt = "%-19s",
-        [tostring(GENV . MOVETYPE_NONE      )] = "NONE",
-        [tostring(GENV . MOVETYPE_ISOMETRIC )] = "ISOMETRIC",
-        [tostring(GENV . MOVETYPE_WALK      )] = "WALK",
-        [tostring(GENV . MOVETYPE_STEP      )] = "STEP",
-        [tostring(GENV . MOVETYPE_FLY       )] = "FLY",
-        [tostring(GENV . MOVETYPE_FLYGRAVITY)] = "FLYGRAVITY",
-        [tostring(GENV . MOVETYPE_VPHYSICS  )] = "VPHYSICS",
-        [tostring(GENV . MOVETYPE_PUSH      )] = "PUSH",
-        [tostring(GENV . MOVETYPE_NOCLIP    )] = "NOCLIP",
-        [tostring(GENV . MOVETYPE_LADDER    )] = "LADDER",
-        [tostring(GENV . MOVETYPE_OBSERVER  )] = "OBSERVER",
-        [tostring(GENV . MOVETYPE_CUSTOM    )] = "CUSTOM"
-      },
-      ["SOLID"] = { Fme = "%s_%s", Fmt = "%-14s",
-        [tostring(GENV . SOLID_NONE    )] = "NONE",
-        [tostring(GENV . SOLID_BSP     )] = "BSP",
-        [tostring(GENV . SOLID_BBOX    )] = "BBOX",
-        [tostring(GENV . SOLID_OBB     )] = "OBB",
-        [tostring(GENV . SOLID_OBB_YAW )] = "OBB_YAW",
-        [tostring(GENV . SOLID_CUSTOM  )] = "CUSTOM",
-        [tostring(GENV . SOLID_VPHYSICS)] = "VPHYSICS"
-      },
-      ["#"] = {
-        ["MOVETYPE_NONE"      ] = GENV . MOVETYPE_NONE,
-        ["MOVETYPE_ISOMETRIC" ] = GENV . MOVETYPE_ISOMETRIC,
-        ["MOVETYPE_WALK"      ] = GENV . MOVETYPE_WALK,
-        ["MOVETYPE_STEP"      ] = GENV . MOVETYPE_STEP,
-        ["MOVETYPE_FLY"       ] = GENV . MOVETYPE_FLY,
-        ["MOVETYPE_FLYGRAVITY"] = GENV . MOVETYPE_FLYGRAVITY,
-        ["MOVETYPE_VPHYSICS"  ] = GENV . MOVETYPE_VPHYSICS,
-        ["MOVETYPE_PUSH"      ] = GENV . MOVETYPE_PUSH,
-        ["MOVETYPE_NOCLIP"    ] = GENV . MOVETYPE_NOCLIP,
-        ["MOVETYPE_LADDER"    ] = GENV . MOVETYPE_LADDER,
-        ["MOVETYPE_OBSERVER"  ] = GENV . MOVETYPE_OBSERVER,
-        ["MOVETYPE_CUSTOM"    ] = GENV . MOVETYPE_CUSTOM,
-        ["SOLID_NONE"         ] = GENV . SOLID_NONE,
-        ["SOLID_BSP"          ] = GENV . SOLID_BSP,
-        ["SOLID_BBOX"         ] = GENV . SOLID_BBOX,
-        ["SOLID_OBB"          ] = GENV . SOLID_OBB,
-        ["SOLID_OBB_YAW"      ] = GENV . SOLID_OBB_YAW,
-        ["SOLID_CUSTOM"       ] = GENV . SOLID_CUSTOM,
-        ["SOLID_VPHYSICS"     ] = GENV . SOLID_VPHYSICS
-      }
     })
     SetOpVar("TOOL_DEFMODE","gmod_tool")
     SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
