@@ -62,6 +62,7 @@ local tonumber                = tonumber
 local tostring                = tostring
 local GetConVar               = GetConVar
 local DermaMenu               = DermaMenu
+local RunString               = RunString
 local isfunction              = isfunction
 local LocalPlayer             = LocalPlayer
 local ErrorNoHalt             = ErrorNoHalt
@@ -2798,13 +2799,15 @@ end
  * ...   > Varargs of thing to display. Must the same count as format
 ]]
 function Notify(oPly, sType, sForm, ...)
-  if(not IsPlayer(oPly)) then
-    LogInstance("Player invalid "..GetReport(oPly)); return false end
-  if(SERVER) then local nA, tA = select("#", ...), {...}
-    for iA = 1, nA do tA[iA] = tostring(select(iA, ...)) end
-    oPly:SendLua(GetOpVar("FORM_NTFGAME"):format(sForm:format(unpack(tA)), sType))
-    oPly:SendLua(GetOpVar("FORM_NTFPLAY"):format(math.random(1, 4)))
-  end; return true
+  local nA, tA = select("#", ...), {...}
+  for iA = 1, nA do tA[iA] = tostring(select(iA, ...)) end
+  local sG = GetOpVar("FORM_NTFGAME"):format(sForm:format(unpack(tA)), sType)
+  local sP = GetOpVar("FORM_NTFPLAY"):format(math.random(1, 4))
+  if(SERVER) then
+    if(not IsPlayer(oPly)) then
+      LogInstance("Player invalid "..GetReport(oPly)); return false end
+    oPly:SendLua(sG); oPly:SendLua(sP)
+  else RunString(sG); RunString(sP) end; return true
 end
 
 function UndoCrate(vMsg)

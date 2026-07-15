@@ -578,12 +578,12 @@ function TOOL:LogStatus(stTr,vMsg,hdEnt)
   asmlib.LogInstance("    TR.Hit:          "..asmlib.GetReport(stTr and stTr.Hit or gsNoAV), gtLogs)
   asmlib.LogInstance("    TR.HitW:         "..asmlib.GetReport(stTr and stTr.HitWorld or gsNoAV), gtLogs)
   asmlib.LogInstance("    TR.ENT:          "..asmlib.GetReport(stTr and stTr.Entity or gsNoAV), gtLogs)
-  asmlib.LogInstance("    TR.Model:        "..asmlib.GetReport(trModel or gsNoAV), (trRec and trRec.Size or gsNoID), gtLogs)
+  asmlib.LogInstance("    TR.Model:        "..asmlib.GetReport((trModel or gsNoAV), (trRec and trRec.Size or gsNoID)), gtLogs)
   asmlib.LogInstance("    TR.File:         "..asmlib.GetReport(trModel and string.GetFileFromFilename(trModel) or gsNoAV), gtLogs)
   asmlib.LogInstance("  Dumping console variables state:", gtLogs)
-  asmlib.LogInstance("    HD.Workmode:     "..asmlib.GetReport(workmode or gsNoAV), (workname or gsNoAV), gtLogs)
+  asmlib.LogInstance("    HD.Workmode:     "..asmlib.GetReport((workmode or gsNoAV), (workname or gsNoAV)), gtLogs)
   asmlib.LogInstance("    HD.Entity:       "..asmlib.GetReport(hdEnt or gsNoAV), gtLogs)
-  asmlib.LogInstance("    HD.Model:        "..asmlib.GetReport(hdModel or gsNoAV), (hdRec and hdRec.Size or gsNoID), gtLogs)
+  asmlib.LogInstance("    HD.Model:        "..asmlib.GetReport((hdModel or gsNoAV), (hdRec and hdRec.Size or gsNoID)), gtLogs)
   asmlib.LogInstance("    HD.File:         "..asmlib.GetReport(hdModel and string.GetFileFromFilename(hdModel) or gsNoAV), gtLogs)
   asmlib.LogInstance("    HD.ModDataBase:  "..asmlib.GetReport(gsModeDataB, asmlib.GetAsmConvar("modedb" ,"STR")), gtLogs)
   asmlib.LogInstance("    HD.Anchor:       "..asmlib.GetReport((anEnt or gsNoAV), siAnc), gtLogs)
@@ -881,8 +881,9 @@ function TOOL:ApplySuperElevation(tC, tData, iD)
   local crvsuprev = self:GetSuperElevation()
   if(not (crvsuprev ~= 0 and not spnflat)) then
     asmlib.LogInstance("Auto roll disabled", gtLogs); return 0 end
-  local iN, nS = tonumber(iD), asmlib.GetOpVar("FULL_SLOPEDG")
-  if(iN) then
+  local nS = asmlib.GetOpVar("FULL_SLOPEDG")
+  local iN = math.floor(math.max(tonumber(iD) or 0, 0))
+  if(iN > 0) then
     local tR = tC.Rays
     local tO, tN = tC.Node, tC.Norm
     local vL, vP = tO[iN+1], tO[iN-1]
@@ -943,7 +944,7 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   local tC = self:CheckCurveNode(tData.Org, tC.Size + 1); if(not tC) then
     asmlib.LogInstance("Curve node too close", gtLogs); return nil end
-  local iN, vN = self:ApplySuperElevation(tC, tData)
+  local iN, vN = self:ApplySuperElevation(tC, tData, iD)
   local iC = ((iD > 0 and iD <= tC.Size) and iD or 0)
   if(iC > 0) then local iM, iP, tN = (iC - 1), (iC + 1), tC.Node
     -- We have to insert at the middle of the stack and node is selected
@@ -1120,35 +1121,46 @@ end
  * Validates curve client parameters and
  * initializes the curve structure for the holder model
 ]]
-function TOOL:CurveCheck()
+function TOOL:CurveCheck(bMute)
   local user = self:GetOwner()
   local model = self:GetModel()
   local fnmodel = string.GetFileFromFilename(model)
   local pointid, pnextid = self:GetPointID()
   local nEps = asmlib.GetOpVar("EPSILON_ZERO")
   -- Check the model in the database
-  local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
-    asmlib.LogInstance("Holder model not piece: "..fnmodel, gtLogs); return nil end
-  -- Disable for stack having less than two vertices
-  local tC = asmlib.GetCacheCurve(user); if(tC.Size and tC.Size < 2) then
-    asmlib.Notify(user, "ERROR", "Two vertices needed !")
-    asmlib.LogInstance("Two vertices needed: "..fnmodel, gtLogs); return nil
-  end
-  -- Disable for single active end track segments
+  local hdRec = asmlib.CacheQueryPiece(model)
+  if(not asmlib.IsHere(hdRec)) then
+    if(not bMute) then
+      asmlib.LogInstance("Holder model not piece: "..fnmodel, gtLogs)
+    end; return nil
+  end -- Disable for stack having less than two vertices
+  local tC = asmlib.GetCacheCurve(user)
+  if(tC.Size and tC.Size < 2) then
+    if(not bMute) then
+      asmlib.Notify(user, "ERROR", "Two vertices needed !")
+      asmlib.LogInstance("Two vertices needed: "..fnmodel, gtLogs)
+    end; return nil
+  end -- Disable for single active end track segments
   if(hdRec.Size <= 1) then
-    asmlib.Notify(user, "ERROR", "Segmented track needed !")
-    asmlib.LogInstance("Segmented track needed: "..fnmodel, gtLogs); return nil end
-  -- Disable for missing start track segments
-  local sPOA = asmlib.LocatePOA(hdRec, pointid); if(not sPOA) then
-    asmlib.Notify(user, "ERROR", "Start segment missing !")
-    asmlib.LogInstance("Start segment missing: "..fnmodel, gtLogs); return nil
-  end
-  -- Disable for missing end track segments
-  local ePOA = asmlib.LocatePOA(hdRec, pnextid); if(not ePOA) then
-    asmlib.Notify(user, "ERROR", "End segment missing !")
-    asmlib.LogInstance("End segment missing: "..fnmodel, gtLogs); return nil
-  end
-  -- Read the active point and check piece shape
+    if(not bMute) then
+      asmlib.Notify(user, "ERROR", "Segmented track needed !")
+      asmlib.LogInstance("Segmented track needed: "..fnmodel, gtLogs)
+    end; return nil
+  end -- Disable for missing start track segments
+  local sPOA = asmlib.LocatePOA(hdRec, pointid)
+  if(not sPOA) then
+    if(not bMute) then
+      asmlib.Notify(user, "ERROR", "Start segment missing !")
+      asmlib.LogInstance("Start segment missing: "..fnmodel, gtLogs)
+    end; return nil
+  end -- Disable for missing end track segments
+  local ePOA = asmlib.LocatePOA(hdRec, pnextid)
+  if(not ePOA) then
+    if(not bMute) then
+      asmlib.Notify(user, "ERROR", "End segment missing !")
+      asmlib.LogInstance("End segment missing: "..fnmodel, gtLogs)
+    end; return nil
+  end -- Read the active point and check piece shape
   local sO, sA = tC.Info.Pos[1], tC.Info.Ang[1]
         sO:SetUnpacked(sPOA.O:Get())
         sA:SetUnpacked(sPOA.A:Get())
@@ -1157,26 +1169,31 @@ function TOOL:CurveCheck()
         eO:SetUnpacked(ePOA.O:Get())
         eA:SetUnpacked(ePOA.A:Get())
   -- Disable for active points with zero distance
-  local nD = eO:DistToSqr(sO); if(nD <= nEps) then
-    asmlib.Notify(user, "ERROR", "Segment tiny %s !", fnmodel)
-    asmlib.LogInstance("Segment too tiny: "..fnmodel, gtLogs); return nil
-  end
-  -- Disable for non-straight track segments
+  local nD = eO:DistToSqr(sO)
+  if(nD <= nEps) then
+    if(not bMute) then
+      asmlib.Notify(user, "ERROR", "Segment tiny %s !", fnmodel)
+      asmlib.LogInstance("Segment too tiny: "..fnmodel, gtLogs)
+    end; return nil
+  end -- Disable for non-straight track segments
   if(sA:Forward():Cross(eA:Forward()):LengthSqr() >= nEps) then
-    asmlib.Notify(user, "ERROR", "Segment curved %s !", fnmodel)
-    asmlib.LogInstance("Segment curved: "..fnmodel, gtLogs); return nil
-  end
-  -- Disable for 180 curve track segments
+    if(not bMute) then
+      asmlib.Notify(user, "ERROR", "Segment curved %s !", fnmodel)
+      asmlib.LogInstance("Segment curved: "..fnmodel, gtLogs)
+    end; return nil
+  end -- Disable for 180 curve track segments
   if(sA:Forward():Dot(eA:Forward()) >= nEps) then
-    asmlib.Notify(user, "ERROR", "Segment overturn %s !", fnmodel)
-    asmlib.LogInstance("Segment overturn: "..fnmodel, gtLogs); return nil
-  end
-  -- Disable for ramp track segments
+    if(not bMute) then
+      asmlib.Notify(user, "ERROR", "Segment overturn %s !", fnmodel)
+      asmlib.LogInstance("Segment overturn: "..fnmodel, gtLogs)
+    end; return nil
+  end -- Disable for ramp track segments
   if(sA:Forward():Dot((sO - eO):GetNormalized()) < (1 - nEps)) then
-    asmlib.Notify(user, "ERROR", "Segment gradient %s !", fnmodel)
-    asmlib.LogInstance("Segment gradient: "..fnmodel, gtLogs); return nil
-  end
-  return tC, math.sqrt(nD) -- Returns the updated curve nodes table
+    if(not bMute) then
+      asmlib.Notify(user, "ERROR", "Segment gradient %s !", fnmodel)
+      asmlib.LogInstance("Segment gradient: "..fnmodel, gtLogs)
+    end; return nil
+  end; return tC, math.sqrt(nD) -- Returns the updated curve nodes table
 end
 
 function TOOL:NormalSpawn(stTrace, oPly)
@@ -1616,17 +1633,17 @@ function TOOL:RightClick(stTrace)
   local workmode  = self:GetWorkingMode()
   local enpntmscr = self:GetScrollMouse()
   if(workmode == 3 or workmode == 5) then
-    local bPnt, tC = user:KeyDown(IN_USE)
+    local bPnt = user:KeyDown(IN_USE)
     if(user:KeyDown(IN_SPEED)) then
-      tC = self:CurveUpdate(stTrace, bPnt)
+      return (self:CurveUpdate(stTrace, bPnt) ~= nil)
     elseif(user:KeyDown(IN_DUCK)) then
       local tC = asmlib.GetCacheCurve(user); if(not tC) then
         asmlib.LogInstance("Curve missing", gtLogs); return false end
       local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
-      tC = self:CurveInsert(stTrace, bPnt, mD)
+      return (self:CurveInsert(stTrace, bPnt, mD) ~= nil)
     else
-      tC = self:CurveInsert(stTrace, bPnt)
-    end; return (tC and true or false)
+      return (self:CurveInsert(stTrace, bPnt) ~= nil)
+    end; return false
   elseif(workmode == 4 and not user:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
   end
@@ -1755,7 +1772,7 @@ end
 
 function TOOL:UpdateGhostCurve()
   local user = self:GetOwner()
-  local tCrv, nD = self:CurveCheck()
+  local tCrv, nD = self:CurveCheck(true)
   if(tCrv and tCrv.Size and tCrv.Size > 1) then
     local model = self:GetModel()
     local stackcnt = self:GetStackCount()
@@ -1766,7 +1783,6 @@ function TOOL:UpdateGhostCurve()
       local workmode  = self:GetWorkingMode()
       local curvefact = self:GetCurveFactor()
       local curvsmple = self:GetCurveSamples()
-      asmlib.LogInstance("Calculate", gtLogs)
       user:SetNWBool(gsToolPrefL.."engcurve", false)
       if(workmode == 3) then
         asmlib.CalculateRomCurve(user, curvsmple, curvefact)
@@ -1776,6 +1792,7 @@ function TOOL:UpdateGhostCurve()
       for iD = 1, (tCrv.CSize - 1) do
         asmlib.UpdateCurveSnap(user, iD, nD)
       end
+      asmlib.Notify(nil, "UNDO", "Curve snap %s segments !", tCrv.SKept)
     end
     for iD = 1, tCrv.SSize do local tS = tCrv.Snap[iD]
       for iK = 1, tS.Size do iGho = (iGho + 1)
@@ -2079,7 +2096,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       oScreen:DrawCircle(xyD, nD)
       oScreen:DrawLine(xyF, xyD, "r")
       if(bCt) then -- TODO: Draw next id after trace id
-        oScreen:SetTextStart(xyD.x + 30, xyD.y - 30)
+        oScreen:SetTextStart(xyD.x + 15, xyD.y - 15)
         oScreen:DrawText(tostring(iD), "y", "SURF",{"DebugSpawnTA"})
       end
       oScreen:DrawLine(xyN, xyD, "b")
