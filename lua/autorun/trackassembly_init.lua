@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.895")
+asmlib.SetOpVar("TOOL_VERSION","9.896")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -532,11 +532,11 @@ if(CLIENT) then
     function(nLen) local oPly, sLog = net.ReadEntity(), "*INSERT_CURVE_NODE"
       local vNode, vNorm, vBase = net.ReadVector(), net.ReadNormal(), net.ReadVector()
       local vOrgw, aAngw, bRayw = net.ReadVector(), net.ReadAngle() , net.ReadBool()
-      local iD, iC, iN = net.ReadUInt(16), net.ReadUInt(16), net.ReadUInt(16)
-      local tC = asmlib.GetCacheCurve(oPly)
+      local iC, iN, tC = net.ReadUInt(16), net.ReadUInt(16), asmlib.GetCacheCurve(oPly)
+      if(not tC) then return end -- Nothing to do when the curve is not valid
       if(iN > 0) then tC.Norm[iN]:Set(net.ReadNormal()) end
       tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
-      if(iD > 0) then -- We have to insert at the middle of the stack
+      if(iC > 0) then -- We have to insert at the middle of the stack
         table.insert(tC.Node, iC, vNode); table.insert(tC.Norm, iC, vNorm)
         table.insert(tC.Base, iC, vBase); table.insert(tC.Rays, iC, {vOrgw, aAngw, bRayw})
       else -- Insert at the node stack end. Send the end to the client
@@ -546,11 +546,12 @@ if(CLIENT) then
     end)
 
   asmlib.SetAction("REMOVE_CURVE_NODE",
-    function(nLen) local oPly, sLog = net.ReadEntity(), "*REMOVE_CURVE_NODE"
-      local iD, iC = net.ReadUInt(16), net.ReadUInt(16)
+    function(nLen) local sLog = "*REMOVE_CURVE_NODE"
+      local oPly, iC = net.ReadEntity(), net.ReadUInt(16)
       local tC = asmlib.GetCacheCurve(oPly)
+      if(not tC or tC.Size <= 0) then return end
       tC.Size = (tC.Size - 1) -- Register the index
-      if(iD > 0) then -- Removing node that is not the last
+      if(iC > 0) then -- Removing node that is not the last
         table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
         table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
       else -- Remove the last node and reset the normal for (N-1)
@@ -565,6 +566,7 @@ if(CLIENT) then
       local vNode, vNorm, vBase = net.ReadVector(), net.ReadNormal(), net.ReadVector()
       local vOrgw, aAngw, bRayw = net.ReadVector(), net.ReadAngle() , net.ReadBool()
       local iD, tC = net.ReadUInt(16), asmlib.GetCacheCurve(oPly)
+      if(not tC) then return end -- Nothing to do when the curve is not valid
       tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm)
       tC.Base[iD]:Set(vBase); tC.Rays[iD] = {vOrgw, aAngw, bRayw}
     end)

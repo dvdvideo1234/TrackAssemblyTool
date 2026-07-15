@@ -936,23 +936,23 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
   local tC = self:CheckCurveNode(tData.Org, tC.Size + 1); if(not tC) then
     asmlib.LogInstance("Curve node too close", gtLogs); return nil end
   local iN, vN = self:ApplySuperElevation(tC, tData)
-  local iC = ((iD > 0 and iD <= tC.Size) and iD or nil)
-  if(iC) then local iB, iF, tN = (iC - 1), (iC + 1), tC.Node
+  local iC = ((iD > 0 and iD <= tC.Size) and iD or 0)
+  if(iC > 0) then local iM, iP, tN = (iC - 1), (iC + 1), tC.Node
     -- We have to insert at the middle of the stack and node is selected
     local vDO = Vector(tData.Org); vDO:Sub(tN[iC]) -- Calculate origin
-    local vDF; if(tN[iF]) then vDF = Vector(tN[iF]); vDF:Sub(tN[iC]) end
-    local vDB; if(tN[iB]) then vDB = Vector(tN[iB]); vDB:Sub(tN[iC]) end
-    if(vDB and vDF) then -- Insert in the middle. Use the next point not to twist the curve
-      if(vDO:Dot(vDN) > 0) then iC, iD = iF, iF else iC, iD = iC, iD end
-    elseif(vDF and not vDB) then -- The insert is at the beginning (stack bottom)
-      if(vDO:Dot(vDF) > 0) then iC, iD = iC + 1, iD + 1 else iC, iD = 1, 1 end
-    elseif(vDB and not vDF) then -- The insert is at the end (stack top)
-      if(vDO:Dot(vDB) > 0) then iC, iD = tC.Size, tC.Size else iC, iD = 0, 0 end
+    local vDP; if(tN[iP]) then vDP = Vector(tN[iP]); vDP:Sub(tN[iC]) end
+    local vDM; if(tN[iM]) then vDM = Vector(tN[iM]); vDM:Sub(tN[iC]) end
+    if(vDM and vDP) then -- Insert in the middle. Use the next point not to twist the curve
+      if(vDO:Dot(vDP) > 0) then iC = iP else iC = iC end
+    elseif(vDP and not vDM) then -- The insert is at the beginning (stack bottom)
+      if(vDO:Dot(vDP) > 0) then iC = iC + 1 else iC = 1 end
+    elseif(vDM and not vDP) then -- The insert is at the end (stack top)
+      if(vDO:Dot(vDM) > 0) then iC = tC.Size else iC = 0 end
     else -- In case we need to insert and only one node is available
-      iC, iD = 0, 0 -- The node is alpha and omega at once
+      iC = 0 -- The node is alpha and omega at once
     end -- Node selection insert has been processed. Transfer to client
-  else iC, iD = 0, 0 end -- Client insertion ID is not provided
-  if(iD > 0) then -- Insert a node in the middle of the stack
+  else iC = 0 end -- Client insertion ID is not provided
+  if(iC > 0) then -- Insert a node in the middle of the stack
     table.insert(tC.Node, iC, Vector(tData.Org))
     table.insert(tC.Norm, iC, tData.Ang:Up())
     table.insert(tC.Base, iC, Vector(tData.Hit))
@@ -962,9 +962,9 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
     table.insert(tC.Norm, tData.Ang:Up())
     table.insert(tC.Base, Vector(tData.Hit))
     table.insert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
-  end; tC.Size = (tC.Size + 1)-- Increment stack size. Adding stuff
-  if(not bMute) then local iH = ((iD > 0) and iC or tC.Size)
-    asmlib.Notify(user, "CLEANUP", "Node index inserted: %s !", iH)
+  end; tC.Size = (tC.Size + 1)-- Increment stack size. Adding a node
+  if(not bMute) then local iH = ((iC > 0) and iC or tC.Size)
+    asmlib.Notify(user, "CLEANUP", "Node inserted: %s !", iH)
     net.Start(gsLibName.."SendInsertCurveNode")
       net.WriteEntity(user)           -- Player who applied the curve change
       net.WriteVector(tC.Node[iH])    -- Current node location in the stack
@@ -973,12 +973,11 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
       net.WriteVector(tC.Rays[iH][1]) -- Player trace location curve data
       net.WriteAngle (tC.Rays[iH][2]) -- Player trace angle curve data
       net.WriteBool  (tC.Rays[iH][3]) -- Player trace hits POA location or not
-      net.WriteUInt  (iD, 16)         -- Equal to zero remove the end otherwise iC
-      net.WriteUInt  (iC, 16)         -- The index to remove at when (iD > 0)
+      net.WriteUInt  (iC, 16)         -- The index to insert at when requested
       net.WriteUInt  (iN, 16)         -- The index to apply the super elevation for
       if(iN > 0) then net.WriteNormal(vN) end -- The calculated super elevation
-    net.Send(user)
-    user:SetNWBool(gsToolPrefL.."engcurve", true)
+    net.Send(user) -- Send message to the current user with the updates
+    user:SetNWBool(gsToolPrefL.."engcurve", true) -- Recalculation
   end; return tC -- Returns the updated curve nodes table
 end
 
@@ -992,22 +991,25 @@ function TOOL:CurveRemove(iD, bMute)
   local user = self:GetOwner()
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
-  if(tC.Size <= 0) then -- Remove iD = Size will remove the last
+  if(tC.Size <= 0) then -- There are no nodes on the stack
     asmlib.LogInstance("Curve empty", gtLogs); return nil end
   local iD = math.floor(math.max(tonumber(iD) or 0, 0)) -- User pick
-  local iC = ((iD > 0 and iD < tC.Size) and iD or nil); iD = (iC or 0)
-  table.remove(tC.Node, iC); table.remove(tC.Norm, iC) -- Remove iC
-  table.remove(tC.Base, iC); table.remove(tC.Rays, iC) -- Remove top
-  -- Increment stack size is done after the message
-  if(not bMute) then local iH = ((iD > 0) and iC or tC.Size)
-    asmlib.Notify(user, "CLEANUP", "Node index removed: %s !", iH)
+  local iC = ((iD > 0 and iD < tC.Size) and iD or 0) -- Remove at the end
+  if(iC > 0) then -- Remove from an index that is not the end
+    table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
+    table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
+  else -- If the last or no node is picked. Remove from the end
+    table.remove(tC.Node); table.remove(tC.Norm)
+    table.remove(tC.Base); table.remove(tC.Rays)
+  end -- Decrement stack size after the message
+  if(not bMute) then local iH = ((iC > 0) and iC or tC.Size)
+    asmlib.Notify(user, "CLEANUP", "Node removed: %s !", iH)
     net.Start(gsLibName.."SendRemoveCurveNode")
       net.WriteEntity(user) -- Player who applied the curve change
-      net.WriteUInt(iD, 16) -- Equal to zero remove the end otherwise iC
-      net.WriteUInt(iC, 16) -- The index to remove at when (iD > 0)
-    net.Send(user)
-    user:SetNWBool(gsToolPrefL.."engcurve", true)
-  end; tC.Size = (tC.Size - 1); return tC -- The updated curve nodes table
+      net.WriteUInt(iC, 16) -- The index to remove at when requested
+    net.Send(user) -- Send message to the current user with the updates
+    user:SetNWBool(gsToolPrefL.."engcurve", true) -- Recalculation
+  end; tC.Size = (tC.Size - 1); return tC -- Updated curve nodes table
 end
 
 --[[
