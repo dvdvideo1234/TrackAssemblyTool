@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.896")
+asmlib.SetOpVar("TOOL_VERSION","9.897")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -284,17 +284,33 @@ asmlib.SetAction("REFRESH_ITEM_LIST",
     asmlib.RunBuilderCount(function(makTab, iD)
       local defTab = makTab:GetDefinition() -- Prefix and nick
       local sP, sT = asmlib.GetTypePrefix(sPref), defTab.Nick
+      local sLog = asmlib.GetConcat("*", sT, ".", tData.Slot)
       if(asmlib.IsBlank(sP)) then return true end
       local sFile = tData.DSV:format(sP, sT):lower()
       if(file.Exists(sFile, tData.SRC)) then
         if(not asmlib.ImportDSV(sT, tData.COM, sP, nil, nil, tData.RFS)) then
-          asmlib.LogInstance("Failed refreshing "..asmlib.GetReport(sT,sP)); return false end
+          asmlib.LogInstance("Failed refreshing "..asmlib.GetReport(sT,sP), sLog); return false end
       end; return true -- When the file is available use direct data import
     end); return true -- Exit success
   end, { -- Constants used across the action taken
     DSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt"):lower(),
     SRC = "DATA", COM = true, RFS = true -- Do not create values on call
   })
+
+asmlib.SetAction("CLEAR_CURVE_NODE",
+  function(tData, oPly, bMsg) -- Dedicated curve clear action
+    local tC = asmlib.GetCacheCurve(oPly)
+    if(not tC) then return false end -- Nothing to do when the curve is not valid
+    if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Nodes cleared: %s !", tC.Size) end
+    table.Empty(tC.Snap); tC.SSize = 0
+    table.Empty(tC.Node)
+    table.Empty(tC.Norm)
+    table.Empty(tC.Rays)
+    table.Empty(tC.Base); tC.Size = 0
+    table.Empty(tC.CNode)
+    table.Empty(tC.CNorm); tC.CSize = 0
+    return true
+  end)
 
 if(SERVER) then
 
@@ -569,18 +585,6 @@ if(CLIENT) then
       if(not tC) then return end -- Nothing to do when the curve is not valid
       tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm)
       tC.Base[iD]:Set(vBase); tC.Rays[iD] = {vOrgw, aAngw, bRayw}
-    end)
-
-  asmlib.SetAction("CLEAR_CURVE_NODE",
-    function(nLen) local oPly, sLog = net.ReadEntity(), "*CLEAR_CURVE_NODE"
-      local tC = asmlib.GetCacheCurve(oPly)
-      table.Empty(tC.Snap); tC.SSize = 0
-      table.Empty(tC.Node)
-      table.Empty(tC.Norm)
-      table.Empty(tC.Rays)
-      table.Empty(tC.Base); tC.Size = 0
-      table.Empty(tC.CNode)
-      table.Empty(tC.CNorm); tC.CSize = 0
     end)
 
   asmlib.SetAction("CLEAR_RELATION",

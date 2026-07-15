@@ -102,7 +102,12 @@ if(CLIENT) then
   net.Receive(gsLibName.."SendInsertCurveNode", asmlib.GetActionCode("INSERT_CURVE_NODE"))
   net.Receive(gsLibName.."SendUpdateCurveNode", asmlib.GetActionCode("UPDATE_CURVE_NODE"))
   net.Receive(gsLibName.."SendRemoveCurveNode", asmlib.GetActionCode("REMOVE_CURVE_NODE"))
-  net.Receive(gsLibName.."SendClearCurveNode" , asmlib.GetActionCode("CLEAR_CURVE_NODE"))
+
+  net.Receive(gsLibName.."SendClearCurveNode" ,
+    function(nLen) local oU, sID = net.ReadEntity(), "*CLEAR_CURVE_NODE" -- Read the player
+      local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU); if(not bS) then
+        asmlib.LogInstance("Clear curve error "..asmlib.GetReport(oU, sR), sID); return end
+    end)
 
   hook.Add("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
   hook.Add("PreDrawHalos", gsToolPrefL.."update_contextval", asmlib.GetActionCode("UPDATE_CONTEXTVAL"))
@@ -151,19 +156,22 @@ if(SERVER) then
   concommand.Remove(gsToolPrefL.."refreshdsv")
   concommand.Add(gsToolPrefL.."refreshdsv",
     function(oPly, oCom, oArgs) -- The command is intended for running in the server developer console
+      local sID = "*REFRESH_ITEM_LIST"
       if(game.SinglePlayer()) then -- During single player the database is refreshed via context menu
-        asmlib.LogInstance("Refresh routine single",gtLogs); return end -- Command does nothing in single
+        asmlib.LogInstance("Refresh routine single player", sID); return end -- Command does nothing in single
       local sP = tostring(oArgs[1] or ""); if(oPly ~= NULL) then -- Player will be when executed in the console
-        asmlib.LogInstance("Refresh routine skip "..asmlib.GetReport(sP,oPly),gtLogs); return end -- Exit routine
-      local bS, sR = asmlib.DoAction("REFRESH_ITEM_LIST", sP); if(not bS) then
-        asmlib.LogInstance("Refresh execute "..asmlib.GetReport(sP,sR),gtLogs); return end
+        asmlib.LogInstance("Refresh routine skip "..asmlib.GetReport(sP, oPly), sID); return end -- Exit routine
+      local bS, sR = asmlib.DoAction(sID:sub(2, -1), sP); if(not bS) then
+        asmlib.LogInstance("Refresh execute "..asmlib.GetReport(sP, sR), sID); return end
     end)
 
   net.Receive(gsLibName.."SendRefreshDSV",
-    function(nLen, oPly)
-      local sLog, sP = "*REFRESH_ITEM_LIST", net.ReadString()
-      local bS, vO = asmlib.DoAction("REFRESH_ITEM_LIST", sP); if(not bS) then
-        asmlib.LogInstance("Refresh execute: "..asmlib.GetReport(sP,sR),sLog); return end
+    function(nLen, oPly) -- This is intended for refreshing the DSV in case the routine is run in SP on the CL
+      local sID, sP = "*REFRESH_ITEM_LIST", net.ReadString() -- Read the DSV prefix and refresh SV as well
+      if(not game.SinglePlayer()) then -- During single player the database is refreshed via context menu
+        asmlib.LogInstance("Refresh routine multi player", sID); return end -- Command does nothing in single
+      local bS, vO = asmlib.DoAction(sID:sub(2, -1), sP); if(not bS) then
+        asmlib.LogInstance("Refresh execute: "..asmlib.GetReport(sP,sR), sID); return end
     end)
 end
 
@@ -1095,22 +1103,16 @@ end
  * bMute > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveClear(bMute)
-  local user = self:GetOwner()
-  local tC  = asmlib.GetCacheCurve(user); if(not tC) then
-    asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  local user, sID = self:GetOwner(), "*CLEAR_CURVE_NODE"
+  local tC = asmlib.GetCacheCurve(user); if(not tC) then
+    asmlib.LogInstance("Curve missing", sID); return nil end
   if(not bMute) then
-    asmlib.Notify(user, "CLEANUP", "Nodes cleared: %s !", tC.Size)
     net.Start(gsLibName.."SendClearCurveNode")
     net.WriteEntity(user); net.Send(user)
     user:SetNWBool(gsToolPrefL.."engcurve", false)
   end -- Show how many nodes are deleted then delete them
-  table.Empty(tC.Snap); tC.SSize = 0
-  table.Empty(tC.Node)
-  table.Empty(tC.Norm)
-  table.Empty(tC.Rays)
-  table.Empty(tC.Base); tC.Size = 0
-  table.Empty(tC.CNode)
-  table.Empty(tC.CNorm); tC.CSize = 0
+  local bS, sR = asmlib.DoAction(sID:sub(2, -1), user, true); if(not bS) then
+    asmlib.LogInstance("Clear curve error "..asmlib.GetReport(user, sR), sID); return nil end
   return tC -- Returns the updated curve nodes table
 end
 
