@@ -2800,8 +2800,8 @@ end
 ]]
 function Notify(oPly, sType, sForm, ...)
   local nA, tA = select("#", ...), {...}
-  for iA = 1, nA do tA[iA] = tostring(select(iA, ...)) end
-  local sG = GetOpVar("FORM_NTFGAME"):format(sForm:format(unpack(tA)), sType)
+  for iA = 1, nA do tA[iA] = tostring(tA[iA]) end
+  local sG = GetOpVar("FORM_NTFGAME"):format(sForm:format(unpack(tA, 1, nA)), sType)
   local sP = GetOpVar("FORM_NTFPLAY"):format(math.random(1, 4))
   if(SERVER) then
     if(not IsPlayer(oPly)) then
