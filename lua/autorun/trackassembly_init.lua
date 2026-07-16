@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.897")
+asmlib.SetOpVar("TOOL_VERSION","9.898")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -297,10 +297,60 @@ asmlib.SetAction("REFRESH_ITEM_LIST",
     SRC = "DATA", COM = true, RFS = true -- Do not create values on call
   })
 
+asmlib.SetAction("INSERT_CURVE_NODE",
+  function(tData, oPly, tNew, bMsg)
+    local sLog, iD, iN = "*"..tData.Slot, tNew.ID, tNew.IN
+    local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
+    if(iN > 0) then tC.Norm[iN]:Set(tNew.VN) end
+    tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
+    if(iC > 0) then -- We have to insert at the middle of the stack
+      table.insert(tC.Node, iC, Vector(tNew.Node)) -- Node location copy-constructor
+      table.insert(tC.Norm, iC, Vector(tNew.Norm)) -- Node normal copy-constructor
+      table.insert(tC.Base, iC, Vector(tNew.Base)) -- Node base copy-constructor
+      table.insert(tC.Rays, iC, {Vector(tNew.Orgw), Angle(tNew.Angw), tNew.Rayw})
+      if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node inserted: %s !", iC) end
+    else -- Insert at the node stack end. Send the end to the client
+      table.insert(tC.Node, Vector(tNew.Node)) -- Node location copy-constructor
+      table.insert(tC.Norm, Vector(tNew.Norm)) -- Node normal copy-constructor
+      table.insert(tC.Base, Vector(tNew.Base)) -- Node base copy-constructor
+      table.insert(tC.Rays, {Vector(tNew.Orgw), Angle(tNew.Angw), tNew.Rayw})
+      if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node inserted !") end
+    end
+  end)
+
+asmlib.SetAction("UPDATE_CURVE_NODE",
+  function(tData, oPly, tNew, bMsg)
+    local sLog, iD = "*"..tData.Slot, tNew.ID
+    local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
+    tC.Node[iD]:Set(tNew.Node); tC.Norm[iD]:Set(tNew.Norm); tC.Base[iD]:Set(tNew.Base)
+    tC.Rays[iD][1]:Set(tNew.Orgw); tC.Rays[iD][2]:Set(tNew.Angw); tC.Rays[iD][3] = tNew.Rayw
+    if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node updated: %s !", tC.Size) end
+    return true
+  end)
+
+asmlib.SetAction("REMOVE_CURVE_NODE",
+  function(tData, oPly, iID, bMsg) local sLog = "*"..tData.Slot
+    local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
+    if(tC and tC.Size and tC.Size <= 0) then return true end; tC.Size = (tC.Size - 1)
+    if(iC > 0) then -- Removing node that is not the last
+      table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
+      table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
+      if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node removed: %s !", iC) end
+    else -- Remove the last node and reset the normal for (N-1)
+      table.remove(tC.Node); table.remove(tC.Norm)
+      table.remove(tC.Base); table.remove(tC.Rays)
+      tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
+      if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node removed !") end
+    end; return true -- Register the index
+  end)
+
 asmlib.SetAction("CLEAR_CURVE_NODE",
-  function(tData, oPly, bMsg) -- Dedicated curve clear action
-    local tC = asmlib.GetCacheCurve(oPly)
-    if(not tC) then return false end -- Nothing to do when the curve is not valid
+  function(tData, oPly, bMsg) local sLog = "*"..tData.Slot
+    local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
     if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Nodes cleared: %s !", tC.Size) end
     table.Empty(tC.Snap); tC.SSize = 0
     table.Empty(tC.Node)
@@ -544,49 +594,6 @@ if(CLIENT) then
   asmlib.SetAction("CTXMENU_OPEN" , function() asmlib.IsFlag("tg_context_menu", true ) end)
   asmlib.SetAction("CTXMENU_CLOSE", function() asmlib.IsFlag("tg_context_menu", false) end)
 
-  asmlib.SetAction("INSERT_CURVE_NODE",
-    function(nLen) local oPly, sLog = net.ReadEntity(), "*INSERT_CURVE_NODE"
-      local vNode, vNorm, vBase = net.ReadVector(), net.ReadNormal(), net.ReadVector()
-      local vOrgw, aAngw, bRayw = net.ReadVector(), net.ReadAngle() , net.ReadBool()
-      local iC, iN, tC = net.ReadUInt(16), net.ReadUInt(16), asmlib.GetCacheCurve(oPly)
-      if(not tC) then return end -- Nothing to do when the curve is not valid
-      if(iN > 0) then tC.Norm[iN]:Set(net.ReadNormal()) end
-      tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
-      if(iC > 0) then -- We have to insert at the middle of the stack
-        table.insert(tC.Node, iC, vNode); table.insert(tC.Norm, iC, vNorm)
-        table.insert(tC.Base, iC, vBase); table.insert(tC.Rays, iC, {vOrgw, aAngw, bRayw})
-      else -- Insert at the node stack end. Send the end to the client
-        table.insert(tC.Node, vNode); table.insert(tC.Norm, vNorm)
-        table.insert(tC.Base, vBase); table.insert(tC.Rays, {vOrgw, aAngw, bRayw})
-      end
-    end)
-
-  asmlib.SetAction("REMOVE_CURVE_NODE",
-    function(nLen) local sLog = "*REMOVE_CURVE_NODE"
-      local oPly, iC = net.ReadEntity(), net.ReadUInt(16)
-      local tC = asmlib.GetCacheCurve(oPly)
-      if(not tC or tC.Size <= 0) then return end
-      tC.Size = (tC.Size - 1) -- Register the index
-      if(iC > 0) then -- Removing node that is not the last
-        table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
-        table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
-      else -- Remove the last node and reset the normal for (N-1)
-        table.remove(tC.Node); table.remove(tC.Norm)
-        table.remove(tC.Base); table.remove(tC.Rays)
-        tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
-      end
-    end)
-
-  asmlib.SetAction("UPDATE_CURVE_NODE",
-    function(nLen) local oPly, sLog = net.ReadEntity(), "*UPDATE_CURVE_NODE"
-      local vNode, vNorm, vBase = net.ReadVector(), net.ReadNormal(), net.ReadVector()
-      local vOrgw, aAngw, bRayw = net.ReadVector(), net.ReadAngle() , net.ReadBool()
-      local iD, tC = net.ReadUInt(16), asmlib.GetCacheCurve(oPly)
-      if(not tC) then return end -- Nothing to do when the curve is not valid
-      tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm)
-      tC.Base[iD]:Set(vBase); tC.Rays[iD] = {vOrgw, aAngw, bRayw}
-    end)
-
   asmlib.SetAction("CLEAR_RELATION",
     function(nLen) local oPly, sLog = net.ReadEntity(), "*CLEAR_RELATION"
       asmlib.LogInstance("Clear "..asmlib.GetReport(nLen,oPly), sLog)
@@ -679,7 +686,7 @@ if(CLIENT) then
             if(nB == iK) then asmlib.MidXY(vTx, vA, vB) end
           end -- Otherwise calculation is not triggered and does nothing
         end -- One segment for working mode selection is drawn
-        actMonitor:SetTextStart(vTx.x, vTx.y):DrawText(sW, "k", "SURF", {"Trebuchet24", true})
+        actMonitor:SetTextOrigin(vTx.x, vTx.y):DrawText(sW, "k", "SURF", {"Trebuchet24", true})
       end; asmlib.SetAsmConvar(oPly, "workmode", iW); return true
     end)
 

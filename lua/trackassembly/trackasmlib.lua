@@ -1453,23 +1453,23 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     DrawMeth[sKey] = sMeth
     DrawArgs[sMeth][sKey] = tArgs; return sMeth, tArgs
   end
-  function self:SetTextStart(nX, nY)
+  function self:SetTextOrigin(nX, nY)
     Text.ScrW, Text.ScrH = 0, 0 -- Rectangle where the text is drawn
     Text.LstW, Text.LstH = 0, 0 -- The size of the last text drawn
     Text.DrwX = (tonumber(nX) or 0) -- The location of the last text
     Text.DrwY = (tonumber(nY) or 0) -- Write draw position to center
     Text.DrcX, Text.DrcY = Text.DrwX, Text.DrwY; return self
   end
-  function self:GetTextStDraw(nX, nY)
+  function self:GetTextDraw(nX, nY)
     return (Text.DrwX + (tonumber(nX) or 0)), (Text.DrwY + (tonumber(nY) or 0))
   end
-  function self:GetTextStScreen(nW, nH)
+  function self:GetTextScreen(nW, nH)
     return (Text.ScrW + (tonumber(nW) or 0)), (Text.ScrH + (tonumber(nH) or 0))
   end
-  function self:GetTextStLast(nX, nY)
+  function self:GetTextLast(nX, nY)
     return (Text.LstW + (tonumber(nW) or 0)), (Text.LstH + (tonumber(nH) or 0))
   end
-  function self:GetTextStCenter(nX, nY)
+  function self:GetTextCenter(nX, nY)
     return (Text.DrxC + (tonumber(nW) or 0)), (Text.DryC + (tonumber(nH) or 0))
   end
   function self:DrawText(sText, keyCl, sMeth, tArgs)
@@ -1491,7 +1491,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
       LogInstance("Draw method invalid "..GetReport(sMeth), tLogs)
     end; return self
   end
-  function self:DrawTextRe(sText, keyCl, sMeth, tArgs)
+  function self:DrawTextMore(sText, keyCl, sMeth, tArgs)
     local sMeth, tArgs = self:GetDrawParam(sMeth,tArgs,"TXT")
     local rgbCl, keyCl = self:GetColor(keyCl, sMeth)
     local bCen = tobool(tArgs[2]); self:GetColor(keyCl, sMeth)
@@ -1622,8 +1622,8 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     end
     if(iIdx) then local nO = Rv / 5
       if(not stPOA.P:IsSame()) then
-        self:SetTextStart(Pp.x + nO, Pp.y - 24 - nO)
-      else self:SetTextStart(Op.x + nO, Op.y - 24 - nO) end
+        self:SetTextOrigin(Pp.x + nO, Pp.y - 24 - nO)
+      else self:SetTextOrigin(Op.x + nO, Op.y - 24 - nO) end
       self:DrawText(tostring(iIdx),"g","SURF",{"Trebuchet24"})
     end
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})

@@ -99,14 +99,38 @@ if(CLIENT) then
   net.Receive(gsLibName.."SendDeleteGhosts"   , asmlib.GetActionCode("CLEAR_GHOSTS"))
   net.Receive(gsLibName.."SendIntersectClear" , asmlib.GetActionCode("CLEAR_RELATION"))
   net.Receive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
-  net.Receive(gsLibName.."SendInsertCurveNode", asmlib.GetActionCode("INSERT_CURVE_NODE"))
-  net.Receive(gsLibName.."SendUpdateCurveNode", asmlib.GetActionCode("UPDATE_CURVE_NODE"))
-  net.Receive(gsLibName.."SendRemoveCurveNode", asmlib.GetActionCode("REMOVE_CURVE_NODE"))
+  net.Receive(gsLibName.."SendInsertCurveNode",
+    function(nLen)
+      local tU, oU, sID = {}, net.ReadEntity(), "*INSERT_CURVE_NODE"
+      tU.Node, tU.Norm, tU.Base = net.ReadVector(), net.ReadNormal(), net.ReadVector()
+      tU.Orgw, tU.Angw, tU.Rayw = net.ReadVector(), net.ReadAngle() , net.ReadBool()
+      tU.ID, tU.IN = net.ReadUInt(16), net.ReadUInt(16) -- Insert and normal ID
+      if(tU.IN > 0) then tU.VN = net.ReadNormal() else tU.VN = nil end
+      local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU, tU); if(not bS) then
+        asmlib.LogInstance("Update curve error "..asmlib.GetReport(oU, tU, sR), sID) end
+    end)
+
+  net.Receive(gsLibName.."SendUpdateCurveNode",
+    function(nLen) local
+      local tU, oU, sID = {}, net.ReadEntity(), "*UPDATE_CURVE_NODE"
+      tU.Node, tU.Norm, tU.Base = net.ReadVector(), net.ReadNormal(), net.ReadVector()
+      tU.Orgw, tU.Angw, tU.Rayw = net.ReadVector(), net.ReadAngle() , net.ReadBool()
+      tU.ID = net.ReadUInt(16) -- Store which ID is being updated with new values
+      local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU, tU); if(not bS) then
+        asmlib.LogInstance("Update curve error "..asmlib.GetReport(oU, tU, sR), sID) end
+    end)
+
+  net.Receive(gsLibName.."SendRemoveCurveNode",
+    function(nLen)
+      local oU, iC, sID = net.ReadEntity(), net.ReadUInt(16), "*REMOVE_CURVE_NODE"
+      local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU, iC); if(not bS) then
+        asmlib.LogInstance("Remove curve error "..asmlib.GetReport(oU, iC, sR), sID) end
+    end)
 
   net.Receive(gsLibName.."SendClearCurveNode" ,
     function(nLen) local oU, sID = net.ReadEntity(), "*CLEAR_CURVE_NODE" -- Read the player
       local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU); if(not bS) then
-        asmlib.LogInstance("Clear curve error "..asmlib.GetReport(oU, sR), sID); return end
+        asmlib.LogInstance("Clear curve error "..asmlib.GetReport(oU, sR), sID) end
     end)
 
   hook.Add("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
@@ -884,30 +908,25 @@ function TOOL:ApplySuperElevation(tC, tData, iD)
   local nS = asmlib.GetOpVar("FULL_SLOPEDG")
   local iN = math.floor(math.max(tonumber(iD) or 0, 0))
   if(iN > 0) then
-    local tR = tC.Rays
-    local tO, tN = tC.Node, tC.Norm
-    local vL, vP = tO[iN+1], tO[iN-1]
-    if(not (vL and vP)) then return 0 end
+    local tO, tN, tR = tC.Node, tC.Norm, tC.Rays
+    local vL, vP = tO[iN + 1], tO[iN - 1]
+    if(not (vL and vP)) then
+      asmlib.LogInstance("Not internal point "..asmlib.GetReport(iN), gtLogs); return 0 end
     local vD = Vector(vL); vD:Sub(tData.Org); vD:Normalize()
     local vF = Vector(vL); vF:Sub(vP); vF:Normalize()
     local aN = vF:AngleEx(tR[iN][2]:Up())
-    local nP = (crvsuprev * nS) * vD:Dot(aN:Right())
-    aN:RotateAroundAxis(vF, nP)
-    local vN = aN:Up(); tN[iN]:Set(vN)
-    return iN, vN
+    local nP = (crvsuprev * nS) * vD:Dot(aN:Right()); aN:RotateAroundAxis(vF, nP)
+    local vN = aN:Up(); tN[iN]:Set(vN); return iN, vN
   else
     if(not (tC.Size and tC.Size >= 2)) then
-      asmlib.LogInstance("Two vertices needed", gtLogs); return 0 end
-    local tR, iN = tC.Rays, tC.Size
-    local tO, tN = tC.Node, tC.Norm
+      asmlib.LogInstance("Two vertices needed "..asmlib.GetReport(tC.Size), gtLogs); return 0 end
+    local tO, tN, tR, iN = tC.Node, tC.Norm, tC.Rays, tC.Size
     local vL, vP = tO[iN], tO[iN - 1]
     local vD = Vector(tData.Org); vD:Sub(vL); vD:Normalize()
     local vF = Vector(tData.Org); vF:Sub(vP); vF:Normalize()
     local aN = vF:AngleEx(tR[iN][2]:Up())
-    local nP = (crvsuprev * nS) * vD:Dot(aN:Right())
-    aN:RotateAroundAxis(vF, nP)
-    local vN = aN:Up(); tN[iN]:Set(vN)
-    return iN, vN
+    local nP = (crvsuprev * nS) * vD:Dot(aN:Right()); aN:RotateAroundAxis(vF, nP)
+    local vN = aN:Up(); tN[iN]:Set(vN); return iN, vN
   end
 end
 
@@ -937,7 +956,8 @@ end
  * bMute   > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
-  local user, iD = self:GetOwner(), math.floor(math.max(tonumber(iD) or 0, 0))
+  local user, sID = self:GetOwner(), "*INSERT_CURVE_NODE"
+  local iD, tU = math.floor(math.max(tonumber(iD) or 0, 0)), {}
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
@@ -961,19 +981,13 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
       iC = 0 -- The node is alpha and omega at once
     end -- Node selection insert has been processed. Transfer to client
   else iC = 0 end -- Client insertion ID is not provided
-  if(iC > 0) then -- Insert a node in the middle of the stack
-    table.insert(tC.Node, iC, Vector(tData.Org))
-    table.insert(tC.Norm, iC, tData.Ang:Up())
-    table.insert(tC.Base, iC, Vector(tData.Hit))
-    table.insert(tC.Rays, iC, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
-  else -- Index is not defined so always insert at the end
-    table.insert(tC.Node, Vector(tData.Org))
-    table.insert(tC.Norm, tData.Ang:Up())
-    table.insert(tC.Base, Vector(tData.Hit))
-    table.insert(tC.Rays, {Vector(tData.Org), Angle(tData.Ang), (tData.POA ~= nil)})
-  end; tC.Size = (tC.Size + 1)-- Increment stack size. Adding a node
+  tU.Node, tU.Norm, tU.Base = tData.Org, tData.Ang:Up(), tData.Hit
+  tU.Orgw, tU.Angw, tU.Rayw = tData.Org, tData.Ang, (tData.POA ~= nil)
+  tU.ID, tU.IN = iC, iN -- Insert and super elevation normal and update ID
+  if(tU.IN > 0) then tU.VN = vN else tU.VN = nil end-- Increment stack size
+  local bS, sR = asmlib.DoAction(sID:sub(2, -1), user, tU, true); if(not bS) then
+    asmlib.LogInstance("Update curve error "..asmlib.GetReport(user, tU, sR), sID) end
   if(not bMute) then local iH = ((iC > 0) and iC or tC.Size)
-    asmlib.Notify(user, "CLEANUP", "Node inserted: %s !", iH)
     net.Start(gsLibName.."SendInsertCurveNode")
       net.WriteEntity(user)           -- Player who applied the curve change
       net.WriteVector(tC.Node[iH])    -- Current node location in the stack
@@ -997,22 +1011,16 @@ end
  * bMute > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveRemove(iD, bMute)
-  local user = self:GetOwner()
+  local user, sID = self:GetOwner(), "*REMOVE_CURVE_NODE"
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   if(tC.Size <= 0) then -- There are no nodes on the stack
     asmlib.LogInstance("Curve empty", gtLogs); return nil end
   local iD = math.floor(math.max(tonumber(iD) or 0, 0)) -- User pick
   local iC = ((iD > 0 and iD < tC.Size) and iD or 0) -- Remove at the end
-  if(iC > 0) then -- Remove from an index that is not the end
-    table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
-    table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
-  else -- If the last or no node is picked. Remove from the end
-    table.remove(tC.Node); table.remove(tC.Norm)
-    table.remove(tC.Base); table.remove(tC.Rays)
-  end -- Decrement stack size after the message
-  if(not bMute) then local iH = ((iC > 0) and iC or tC.Size)
-    asmlib.Notify(user, "CLEANUP", "Node removed: %s !", iH)
+  local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU, iC, true); if(not bS) then
+    asmlib.LogInstance("Remove curve error "..asmlib.GetReport(oU, iC, sR), sID) end
+  if(not bMute) then -- When not muted run the message to sync the client
     net.Start(gsLibName.."SendRemoveCurveNode")
       net.WriteEntity(user) -- Player who applied the curve change
       net.WriteUInt(iC, 16) -- The index to remove at when requested
@@ -1081,7 +1089,7 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
   end
   if(not bTr) then -- Try to apply the new super-elevation
     local iN, vN = self:ApplySuperElevation(tC, tData, mD)
-    if(iN > 0) then tC.Norm[iN]:Set(vN) end
+    if(iN > 0) then tC.Norm[mD]:Set(vN) end
   end
   if(not bMute) then
     asmlib.Notify(user, "CLEANUP", "Node index updated: %s !", mD)
@@ -1950,7 +1958,7 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   local arK = asmlib.GetOpVar("STRUCT_SPAWN")
   local fky = asmlib.GetOpVar("FORM_DRWSPKY")
   local w,h = oScreen:GetSize()
-  oScreen:SetTextStart(0, 260)
+  oScreen:SetTextOrigin(0, 260)
   oScreen:DrawText(tostring(arK.Name), sCol, sMeth, tArgs)
   while(arK[iD]) do local def, iK = arK[iD], 1
     oScreen:DrawText("---- "..tostring(def.Name).." ----")
@@ -2096,7 +2104,7 @@ function TOOL:DrawCurveNode(oScreen, oPly, stTrace)
       oScreen:DrawCircle(xyD, nD)
       oScreen:DrawLine(xyF, xyD, "r")
       if(bCt) then -- TODO: Draw next id after trace id
-        oScreen:SetTextStart(xyD.x + 15, xyD.y - 15)
+        oScreen:SetTextOrigin(xyD.x + 15, xyD.y - 15)
         oScreen:DrawText(tostring(iD), "y", "SURF",{"DebugSpawnTA"})
       end
       oScreen:DrawLine(xyN, xyD, "b")
@@ -2224,7 +2232,7 @@ function TOOL:DrawProgress(hudMonitor, oPly)
     xyP.x, xyP.y = ((nW / 2) - (xyS.x / 2)), (xyP.y + nD)
     hudMonitor:DrawRect(xyP, xyS,"pf","SURF",{"vgui/white", nil, 4})
     local ncX, ncY = (xyP.x + xyS.x / 2), (xyP.y + xyS.y / 2)
-    hudMonitor:SetTextStart(ncX, ncY):DrawText(fP:format(nPrg), "k", "SURF", {"Trebuchet24", true})
+    hudMonitor:SetTextOrigin(ncX, ncY):DrawText(fP:format(nPrg), "k", "SURF", {"Trebuchet24", true})
   end
 end
 
@@ -2341,7 +2349,7 @@ function TOOL:DrawHUD()
         self:DrawRelateIntersection(hudMonitor, user) end
       if(not self:GetDeveloperMode()) then return end
       local sX, sY = hudMonitor:GetSize()
-      hudMonitor:SetTextStart(0, sY / 2)
+      hudMonitor:SetTextOrigin(0, sY / 2)
       hudMonitor:DrawText("  POS: "..tostring(vPos),"k","SURF",{"DebugSpawnTA"})
       hudMonitor:DrawText("  ANG: "..tostring(aAng))
     else -- Relative to the active Point
@@ -2369,26 +2377,26 @@ function TOOL:DrawToolScreen(w, h)
   if(not scrTool) then return end -- Screen not yet created
   local xyT, xyB = scrTool:GetCorners()
   scrTool:DrawRect(xyT,xyB,"k","SURF",{"vgui/white"})
-  scrTool:SetTextStart(xyT.x, xyT.y)
+  scrTool:SetTextOrigin(xyT.x, xyT.y)
   local user = LocalPlayer()
   local stTrace = asmlib.GetCacheTrace(user)
   local siAnc, anEnt = self:GetAnchor()
   local tInfo = gsSymRev:Explode(siAnc)
   if(not (stTrace and stTrace.Hit)) then
     scrTool:DrawText("Trace status: Invalid","r","SURF",{"Trebuchet24"})
-    scrTool:DrawTextRe(asmlib.GetConcat("  [", (tInfo[1] or gsNoID), "]"), "an"); return
+    scrTool:DrawTextMore(asmlib.GetConcat("  [", (tInfo[1] or gsNoID), "]"), "an"); return
   end
   scrTool:DrawText("Trace status: Valid","g","SURF",{"Trebuchet24"})
-  scrTool:DrawTextRe(asmlib.GetConcat("  [", (tInfo[1] or gsNoID), "]"), "an")
+  scrTool:DrawTextMore(asmlib.GetConcat("  [", (tInfo[1] or gsNoID), "]"), "an")
   local model = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not asmlib.IsHere(hdRec)) then
     scrTool:DrawText("Holds Model: Invalid","r")
-    scrTool:DrawTextRe(asmlib.GetConcat("  [", gsModeDataB, "]"), "db")
+    scrTool:DrawTextMore(asmlib.GetConcat("  [", gsModeDataB, "]"), "db")
     return
   end
   scrTool:DrawText("Holds Model: Valid","g")
-  scrTool:DrawTextRe(asmlib.GetConcat("  [", gsModeDataB, "]"), "db")
+  scrTool:DrawTextMore(asmlib.GetConcat("  [", gsModeDataB, "]"), "db")
   local trEnt    = stTrace.Entity
   local actrad   = self:GetActiveRadius()
   local pointid, pnextid = self:GetPointID()
@@ -2423,8 +2431,8 @@ function TOOL:DrawToolScreen(w, h)
     " >> " , (pointid    or gsNoID), " (" ,(pnextid or gsNoID),
     ") ["  , (hdRec.Size or gsNoID), "]"),"g")
   scrTool:DrawText(asmlib.GetConcat("MaxCL: ", actrad, " < [", maxrad, "]"),"c")
-  local txW, txH = scrTool:GetTextStScreen()
-  local txsX, txsY = scrTool:GetTextStLast()
+  local txW, txH = scrTool:GetTextScreen()
+  local txsX, txsY = scrTool:GetTextLast()
   scrTool:DrawText(asmlib.GetConcat("Work: [", workmode, "] ", workname), "wm")
   scrTool:DrawText("CurAR: "..(trRLen or gsNoAV),"y")
   local nRad = math.Clamp(h - txH  - txsY / 1.2,0,h) / 2
