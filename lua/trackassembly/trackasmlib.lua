@@ -5501,7 +5501,7 @@ function SetPosBound(ePiece,vPos,oPly,sMode)
     LogInstance("Skip: "..GetReport(sMode)); return true end
   if(util.IsInWorld(vPos)) then ePiece:SetPos(vPos) else ePiece:Remove()
     if(sMode == "HINT" or sMode == "GENERIC" or sMode == "ERROR") then
-      Notify(oPly, sMode, "Position [%s] out of map bounds!", vPos) end
+      Notify(oPly, sMode, "Position [%s] out of map bounds !", vPos) end
     LogInstance("Position out of map bounds "..GetReport(sMode, oPly)); return false
   end; LogInstance("Success "..GetReport(sMode, oPly)); return true
 end

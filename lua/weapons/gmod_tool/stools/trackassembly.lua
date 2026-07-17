@@ -100,37 +100,46 @@ if(CLIENT) then
   net.Receive(gsLibName.."SendIntersectClear" , asmlib.GetActionCode("CLEAR_RELATION"))
   net.Receive(gsLibName.."SendIntersectRelate", asmlib.GetActionCode("CREATE_RELATION"))
   net.Receive(gsLibName.."SendInsertCurveNode",
-    function(nLen)
-      local tU, oU, sID = {}, net.ReadEntity(), "*INSERT_CURVE_NODE"
-      tU.Node, tU.Norm, tU.Base = net.ReadVector(), net.ReadNormal(), net.ReadVector()
-      tU.Orgw, tU.Angw, tU.Rayw = net.ReadVector(), net.ReadAngle() , net.ReadBool()
-      tU.ID, tU.IN = net.ReadUInt(16), net.ReadUInt(16) -- Insert and normal ID
-      if(tU.IN > 0) then tU.VN = net.ReadNormal() else tU.VN = nil end
-      local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU, tU); if(not bS) then
-        asmlib.LogInstance("Update curve error "..asmlib.GetReport(oU, tU, sR), sID) end
+    function(nLen) local tU = {}
+      oU    = net.ReadEntity() -- Player who applied the curve change     ( User )
+      tU[1] = net.ReadVector() -- Current node location in the stack      ( Node )
+      tU[2] = net.ReadNormal() -- Current node normal vector in the stack ( Norm )
+      tU[3] = net.ReadVector() -- Current node base location in the stack ( Base )
+      tU[4] = net.ReadVector() -- Player trace location curve data        ( RayO )
+      tU[5] = net.ReadAngle()  -- Player trace angle curve data           ( RayA )
+      tU[6] = net.ReadBool()   -- Player trace hits POA location or not   ( RayL )
+      tU[7] = net.ReadUInt(16) -- The index to change at when requested   (  ID  )
+      tU[8] = net.ReadUInt(16) -- The super-elevation index normal vector (  IN  )
+      tU[9] = net.ReadNormal() -- The super-elevation vector applied      ( Lean )
+      local bS, sR = asmlib.DoAction("INSERT_CURVE_NODE", oU, tU); if(not bS) then
+        asmlib.LogInstance("Insert curve error "..asmlib.GetReport(oU, tU[7], sR)) end
     end)
 
   net.Receive(gsLibName.."SendUpdateCurveNode",
-    function(nLen) local
-      local tU, oU, sID = {}, net.ReadEntity(), "*UPDATE_CURVE_NODE"
-      tU.Node, tU.Norm, tU.Base = net.ReadVector(), net.ReadNormal(), net.ReadVector()
-      tU.Orgw, tU.Angw, tU.Rayw = net.ReadVector(), net.ReadAngle() , net.ReadBool()
-      tU.ID = net.ReadUInt(16) -- Store which ID is being updated with new values
-      local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU, tU); if(not bS) then
-        asmlib.LogInstance("Update curve error "..asmlib.GetReport(oU, tU, sR), sID) end
+    function(nLen) local tU = {}
+      oU    = net.ReadEntity() -- Player who applied the curve change     ( User )
+      tU[1] = net.ReadVector() -- Current node location in the stack      ( Node )
+      tU[2] = net.ReadNormal() -- Current node normal vector in the stack ( Norm )
+      tU[3] = net.ReadVector() -- Current node base location in the stack ( Base )
+      tU[4] = net.ReadVector() -- Player trace location curve data        ( RayO )
+      tU[5] = net.ReadAngle()  -- Player trace angle curve data           ( RayA )
+      tU[6] = net.ReadBool()   -- Player trace hits POA location or not   ( RayL )
+      tU[7] = net.ReadUInt(16) -- The index to change at when requested   (  ID  )
+      local bS, sR = asmlib.DoAction("UPDATE_CURVE_NODE", oU, tU); if(not bS) then
+        asmlib.LogInstance("Update curve error "..asmlib.GetReport(oU, tU[7], sR)) end
     end)
 
   net.Receive(gsLibName.."SendRemoveCurveNode",
     function(nLen)
-      local oU, iC, sID = net.ReadEntity(), net.ReadUInt(16), "*REMOVE_CURVE_NODE"
-      local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU, iC); if(not bS) then
-        asmlib.LogInstance("Remove curve error "..asmlib.GetReport(oU, iC, sR), sID) end
+      local oU, iC = net.ReadEntity(), net.ReadUInt(16)
+      local bS, sR = asmlib.DoAction("REMOVE_CURVE_NODE", oU, iC); if(not bS) then
+        asmlib.LogInstance("Remove curve error "..asmlib.GetReport(oU, iC, sR)) end
     end)
 
   net.Receive(gsLibName.."SendClearCurveNode" ,
-    function(nLen) local oU, sID = net.ReadEntity(), "*CLEAR_CURVE_NODE" -- Read the player
-      local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU); if(not bS) then
-        asmlib.LogInstance("Clear curve error "..asmlib.GetReport(oU, sR), sID) end
+    function(nLen) local oU = net.ReadEntity()
+      local bS, sR = asmlib.DoAction("CLEAR_CURVE_NODE", oU); if(not bS) then
+        asmlib.LogInstance("Clear curve error "..asmlib.GetReport(oU, sR)) end
     end)
 
   hook.Add("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
@@ -956,8 +965,8 @@ end
  * bMute   > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
-  local user, sID = self:GetOwner(), "*INSERT_CURVE_NODE"
-  local iD, tU = math.floor(math.max(tonumber(iD) or 0, 0)), {}
+  local user, tU = self:GetOwner(), {}
+  local iD = math.floor(math.max(tonumber(iD) or 0, 0))
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
@@ -981,27 +990,18 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
       iC = 0 -- The node is alpha and omega at once
     end -- Node selection insert has been processed. Transfer to client
   else iC = 0 end -- Client insertion ID is not provided
-  tU.Node, tU.Norm, tU.Base = tData.Org, tData.Ang:Up(), tData.Hit
-  tU.Orgw, tU.Angw, tU.Rayw = tData.Org, tData.Ang, (tData.POA ~= nil)
-  tU.ID, tU.IN = iC, iN -- Insert and super elevation normal and update ID
-  if(tU.IN > 0) then tU.VN = vN else tU.VN = nil end-- Increment stack size
-  local bS, sR = asmlib.DoAction(sID:sub(2, -1), user, tU, true); if(not bS) then
-    asmlib.LogInstance("Update curve error "..asmlib.GetReport(user, tU, sR), sID) end
-  if(not bMute) then local iH = ((iC > 0) and iC or tC.Size)
-    net.Start(gsLibName.."SendInsertCurveNode")
-      net.WriteEntity(user)           -- Player who applied the curve change
-      net.WriteVector(tC.Node[iH])    -- Current node location in the stack
-      net.WriteNormal(tC.Norm[iH])    -- Current node normal vector in the stack
-      net.WriteVector(tC.Base[iH])    -- Current node base location in the stack
-      net.WriteVector(tC.Rays[iH][1]) -- Player trace location curve data
-      net.WriteAngle (tC.Rays[iH][2]) -- Player trace angle curve data
-      net.WriteBool  (tC.Rays[iH][3]) -- Player trace hits POA location or not
-      net.WriteUInt  (iC, 16)         -- The index to insert at when requested
-      net.WriteUInt  (iN, 16)         -- The index to apply the super elevation for
-      if(iN > 0) then net.WriteNormal(vN) end -- The calculated super elevation
-    net.Send(user) -- Send message to the current user with the updates
-    user:SetNWBool(gsToolPrefL.."engcurve", true) -- Recalculation
-  end; return tC -- Returns the updated curve nodes table
+  tU[1]  = tData.Org -- Current node location in the stack      ( Node )
+  tU[2]  = tData.Ang:Up() -- Current stack node normal vector   ( Norm )
+  tU[3]  = tData.Hit -- Current node base location in the stack ( Base )
+  tU[4]  = tData.Org -- Player trace location curve data        ( RayO )
+  tU[5]  = tData.Ang -- Player trace angle curve data           ( RayA )
+  tU[6]  = (tData.POA ~= nil) -- Player hits POA location       ( RayL )
+  tU[7]  = iC        -- The index to change at when requested   (  ID  )
+  tU[8]  = iN        -- The super-elevation index normal vector (  IL  )
+  tU[9]  = vN        -- The super-elevation vector applied      ( Lean )
+  local bS, sR = asmlib.DoAction("INSERT_CURVE_NODE", user, tU, bMute); if(not bS) then
+    asmlib.LogInstance("Insert curve error "..asmlib.GetReport(user, sR), gtLogs) end
+  return tC -- Returns the updated curve nodes table
 end
 
 --[[
@@ -1011,22 +1011,16 @@ end
  * bMute > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveRemove(iD, bMute)
-  local user, sID = self:GetOwner(), "*REMOVE_CURVE_NODE"
+  local user = self:GetOwner()
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   if(tC.Size <= 0) then -- There are no nodes on the stack
     asmlib.LogInstance("Curve empty", gtLogs); return nil end
   local iD = math.floor(math.max(tonumber(iD) or 0, 0)) -- User pick
   local iC = ((iD > 0 and iD < tC.Size) and iD or 0) -- Remove at the end
-  local bS, sR = asmlib.DoAction(sID:sub(2, -1), oU, iC, true); if(not bS) then
-    asmlib.LogInstance("Remove curve error "..asmlib.GetReport(oU, iC, sR), sID) end
-  if(not bMute) then -- When not muted run the message to sync the client
-    net.Start(gsLibName.."SendRemoveCurveNode")
-      net.WriteEntity(user) -- Player who applied the curve change
-      net.WriteUInt(iC, 16) -- The index to remove at when requested
-    net.Send(user) -- Send message to the current user with the updates
-    user:SetNWBool(gsToolPrefL.."engcurve", true) -- Recalculation
-  end; tC.Size = (tC.Size - 1); return tC -- Updated curve nodes table
+  local bS, sR = asmlib.DoAction("REMOVE_CURVE_NODE", user, iC, bMute); if(not bS) then
+    asmlib.LogInstance("Remove curve error "..asmlib.GetReport(user, sR), gtLogs) end
+  return tC -- Updated curve nodes table
 end
 
 --[[
@@ -1036,7 +1030,7 @@ end
  * bMute   > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveUpdate(stTrace, bPnt, bMute)
-  local user  = self:GetOwner()
+  local user, tU  = self:GetOwner(), {}
   local tData = self:GetCurveTransform(stTrace, bPnt); if(not tData) then
     asmlib.LogInstance("Transform missing", gtLogs); return nil end
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
@@ -1091,20 +1085,16 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
     local iN, vN = self:ApplySuperElevation(tC, tData, mD)
     if(iN > 0) then tC.Norm[mD]:Set(vN) end
   end
-  if(not bMute) then
-    asmlib.Notify(user, "CLEANUP", "Node index updated: %s !", mD)
-    net.Start(gsLibName.."SendUpdateCurveNode")
-      net.WriteEntity(user)
-      net.WriteVector(tC.Node[mD])
-      net.WriteNormal(tC.Norm[mD])
-      net.WriteVector(tC.Base[mD])
-      net.WriteVector(tC.Rays[mD][1])
-      net.WriteAngle (tC.Rays[mD][2])
-      net.WriteBool  (tC.Rays[mD][3])
-      net.WriteUInt(mD, 16)
-    net.Send(user)
-    user:SetNWBool(gsToolPrefL.."engcurve", true)
-  end; return tC -- Returns the updated curve nodes table
+  tU[1] = tC.Node[mD]    -- Current node location in the stack      ( Node )
+  tU[2] = tC.Norm[mD]    -- Current stack node normal vector        ( Norm )
+  tU[3] = tC.Base[mD]    -- Current node base location in the stack ( Base )
+  tU[4] = tC.Rays[mD][1] -- Player trace location curve data        ( RayO )
+  tU[5] = tC.Rays[mD][2] -- Player trace angle curve data           ( RayA )
+  tU[6] = tC.Rays[mD][3] -- Player hits POA location                ( RayL )
+  tU[7] = mD             -- The index to change at when requested   (  ID  )
+  local bS, sR = asmlib.DoAction("UPDATE_CURVE_NODE", user, tU, bMute); if(not bS) then
+    asmlib.LogInstance("Remove curve error "..asmlib.GetReport(user, sR), gtLogs) end
+  return tC -- Returns the updated curve nodes table
 end
 
 --[[
@@ -1112,16 +1102,12 @@ end
  * bMute > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveClear(bMute)
-  local user, sID = self:GetOwner(), "*CLEAR_CURVE_NODE"
+  local user, sID = self:GetOwner()
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
-    asmlib.LogInstance("Curve missing", sID); return nil end
-  if(not bMute) then
-    net.Start(gsLibName.."SendClearCurveNode")
-    net.WriteEntity(user); net.Send(user)
-    user:SetNWBool(gsToolPrefL.."engcurve", false)
-  end -- Show how many nodes are deleted then delete them
-  local bS, sR = asmlib.DoAction(sID:sub(2, -1), user, true); if(not bS) then
-    asmlib.LogInstance("Clear curve error "..asmlib.GetReport(user, sR), sID); return nil end
+    asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  -- Show how many nodes are deleted then delete them
+  local bS, sR = asmlib.DoAction("CLEAR_CURVE_NODE", user, bMute); if(not bS) then
+    asmlib.LogInstance("Clear curve error "..asmlib.GetReport(user, sR), gtLogs); return nil end
   return tC -- Returns the updated curve nodes table
 end
 

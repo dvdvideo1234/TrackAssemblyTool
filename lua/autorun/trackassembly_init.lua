@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.898")
+asmlib.SetOpVar("TOOL_VERSION","9.900")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -298,60 +298,108 @@ asmlib.SetAction("REFRESH_ITEM_LIST",
   })
 
 asmlib.SetAction("INSERT_CURVE_NODE",
-  function(tData, oPly, tNew, bMsg)
-    local sLog, iD, iN = "*"..tData.Slot, tNew.ID, tNew.IN
-    local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
+  function(tData, oPly, aNew, bMute) local sLog = "*"..tData.Slot
+    local vNode = aNew[1] -- Current node location in the stack      ( Node )
+    local vNorm = aNew[2] -- Current node normal vector in the stack ( Norm )
+    local vBase = aNew[3] -- Current node base location in the stack ( Base )
+    local vOrgw = aNew[4] -- Player trace location curve data        ( RayO )
+    local aAngw = aNew[5] -- Player trace angle curve data           ( RayA )
+    local bRayw = aNew[6] -- Player trace hits POA location or not   ( RayL )
+    local iD    = aNew[7] -- The index to change at when requested   (  ID  )
+    local iL    = aNew[8] -- The super-elevation index normal vector (  IL  )
+    local vLean = aNew[9] -- The super-elevation vector applied      ( Lean )
+    local tC    = asmlib.GetCacheCurve(oPly); if(not tC) then
       asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
-    if(iN > 0) then tC.Norm[iN]:Set(tNew.VN) end
+    if(iL > 0) then tC.Norm[iL]:Set(vLean) end
     tC.Size = (tC.Size + 1) -- Register the index after writing the data for drawing
     if(iC > 0) then -- We have to insert at the middle of the stack
-      table.insert(tC.Node, iC, Vector(tNew.Node)) -- Node location copy-constructor
-      table.insert(tC.Norm, iC, Vector(tNew.Norm)) -- Node normal copy-constructor
-      table.insert(tC.Base, iC, Vector(tNew.Base)) -- Node base copy-constructor
-      table.insert(tC.Rays, iC, {Vector(tNew.Orgw), Angle(tNew.Angw), tNew.Rayw})
-      if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node inserted: %s !", iC) end
+      table.insert(tC.Node, iC, Vector(vNode)) -- Node location copy-constructor
+      table.insert(tC.Norm, iC, Vector(vNorm)) -- Node normal copy-constructor
+      table.insert(tC.Base, iC, Vector(vBase)) -- Node base copy-constructor
+      table.insert(tC.Rays, iC, {Vector(vOrgw), Angle(aAngw), bRayw})
+      if(not bMute) then asmlib.Notify(oPly, "CLEANUP", "Node inserted: %s !", iC) end
     else -- Insert at the node stack end. Send the end to the client
-      table.insert(tC.Node, Vector(tNew.Node)) -- Node location copy-constructor
-      table.insert(tC.Norm, Vector(tNew.Norm)) -- Node normal copy-constructor
-      table.insert(tC.Base, Vector(tNew.Base)) -- Node base copy-constructor
-      table.insert(tC.Rays, {Vector(tNew.Orgw), Angle(tNew.Angw), tNew.Rayw})
-      if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node inserted !") end
+      table.insert(tC.Node, Vector(vNode)) -- Node location copy-constructor
+      table.insert(tC.Norm, Vector(vNorm)) -- Node normal copy-constructor
+      table.insert(tC.Base, Vector(vBase)) -- Node base copy-constructor
+      table.insert(tC.Rays, {Vector(vOrgw), Angle(aAngw), bRayw})
+      if(not bMute) then asmlib.Notify(oPly, "CLEANUP", "Node inserted !") end
+    end -- When not muted run the message to sync the client
+    if(SERVER and not bMute) then
+      net.Start(gsLibName.."SendInsertCurveNode")
+        net.WriteEntity(oPly)  -- Player who applied the curve change
+        net.WriteVector(vNode) -- Current node location in the stack
+        net.WriteNormal(vNorm) -- Current node normal vector in the stack
+        net.WriteVector(vBase) -- Current node base location in the stack
+        net.WriteVector(vOrgw) -- Player trace location curve data
+        net.WriteAngle (aAngw) -- Player trace angle curve data
+        net.WriteBool  (bRayw) -- Player trace hits POA location or not
+        net.WriteUInt  (iD, 16) -- The index to insert at when requested
+        net.WriteUInt  (iL, 16) -- The index to apply the super elevation
+        net.WriteNormal(vLean) -- The calculated super elevation
+      net.Send(oPly) -- Send message to the current user with the updates
+      oPly:SetNWBool(gsToolPrefL.."engcurve", true) -- Recalculation
     end
   end)
 
 asmlib.SetAction("UPDATE_CURVE_NODE",
-  function(tData, oPly, tNew, bMsg)
-    local sLog, iD = "*"..tData.Slot, tNew.ID
-    local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
+  function(tData, oPly, aNew, bMute) local sLog = "*"..tData.Slot
+    local vNode = aNew[1] -- Current node location in the stack      ( Node )
+    local vNorm = aNew[2] -- Current node normal vector in the stack ( Norm )
+    local vBase = aNew[3] -- Current node base location in the stack ( Base )
+    local vOrgw = aNew[4] -- Player trace location curve data        ( RayO )
+    local aAngw = aNew[5] -- Player trace angle curve data           ( RayA )
+    local bRayw = aNew[6] -- Player trace hits POA location or not   ( RayL )
+    local iD    = aNew[7] -- The index to change at when requested   (  ID  )
+    local tC    = asmlib.GetCacheCurve(oPly); if(not tC) then
       asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
-    tC.Node[iD]:Set(tNew.Node); tC.Norm[iD]:Set(tNew.Norm); tC.Base[iD]:Set(tNew.Base)
-    tC.Rays[iD][1]:Set(tNew.Orgw); tC.Rays[iD][2]:Set(tNew.Angw); tC.Rays[iD][3] = tNew.Rayw
-    if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node updated: %s !", tC.Size) end
-    return true
+    tC.Node[iD]:Set(vNode); tC.Norm[iD]:Set(vNorm); tC.Base[iD]:Set(vBase)
+    tC.Rays[iD][1]:Set(vOrgw); tC.Rays[iD][2]:Set(aAngw); tC.Rays[iD][3] = bRayw
+    if(not bMute) then asmlib.Notify(oPly, "CLEANUP", "Node updated: %s !", iD) end
+    if(SERVER and not bMute) then
+      net.Start(gsLibName.."SendUpdateCurveNode")
+        net.WriteEntity(oPly)
+        net.WriteVector(vNode)
+        net.WriteNormal(vNorm)
+        net.WriteVector(vBase)
+        net.WriteVector(vOrgw)
+        net.WriteAngle (aAngw)
+        net.WriteBool  (bRayw)
+        net.WriteUInt(iD, 16)
+      net.Send(oPly)
+      oPly:SetNWBool(gsToolPrefL.."engcurve", true)
+    end; return true
   end)
 
 asmlib.SetAction("REMOVE_CURVE_NODE",
-  function(tData, oPly, iID, bMsg) local sLog = "*"..tData.Slot
+  function(tData, oPly, iID, bMute) local sLog = "*"..tData.Slot
     local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
       asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
     if(tC and tC.Size and tC.Size <= 0) then return true end; tC.Size = (tC.Size - 1)
-    if(iC > 0) then -- Removing node that is not the last
-      table.remove(tC.Node, iC); table.remove(tC.Norm, iC)
-      table.remove(tC.Base, iC); table.remove(tC.Rays, iC)
-      if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node removed: %s !", iC) end
+    if(iID > 0) then -- Removing node that is not the last
+      table.remove(tC.Node, iID); table.remove(tC.Norm, iID)
+      table.remove(tC.Base, iID); table.remove(tC.Rays, iID)
+      if(not bMute) then asmlib.Notify(oPly, "CLEANUP", "Node removed: %s !", iID) end
     else -- Remove the last node and reset the normal for (N-1)
       table.remove(tC.Node); table.remove(tC.Norm)
       table.remove(tC.Base); table.remove(tC.Rays)
       tC.Norm[tC.Size]:Set(tC.Rays[tC.Size][2]:Up())
-      if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Node removed !") end
+      if(not bMute) then asmlib.Notify(oPly, "CLEANUP", "Node removed !") end
+    end -- When not muted run the message to sync the client
+    if(SERVER and not bMute) then
+      net.Start(gsLibName.."SendRemoveCurveNode")
+        net.WriteEntity(oPly) -- Player who applied the curve change
+        net.WriteUInt(iID, 16) -- The index to remove at when requested
+      net.Send(oPly) -- Send message to the current user with the updates
+      oPly:SetNWBool(gsToolPrefL.."engcurve", true) -- Recalculation
     end; return true -- Register the index
   end)
 
 asmlib.SetAction("CLEAR_CURVE_NODE",
-  function(tData, oPly, bMsg) local sLog = "*"..tData.Slot
+  function(tData, oPly, bMute) local sLog = "*"..tData.Slot
     local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
       asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
-    if(bMsg and SERVER) then asmlib.Notify(oPly, "CLEANUP", "Nodes cleared: %s !", tC.Size) end
+    if(not bMute) then asmlib.Notify(oPly, "CLEANUP", "Nodes cleared: %s !", tC.Size) end
     table.Empty(tC.Snap); tC.SSize = 0
     table.Empty(tC.Node)
     table.Empty(tC.Norm)
@@ -359,7 +407,11 @@ asmlib.SetAction("CLEAR_CURVE_NODE",
     table.Empty(tC.Base); tC.Size = 0
     table.Empty(tC.CNode)
     table.Empty(tC.CNorm); tC.CSize = 0
-    return true
+    if(SERVER and not bMute) then
+      net.Start(gsLibName.."SendClearCurveNode")
+      net.WriteEntity(oPly); net.Send(oPly)
+      oPly:SetNWBool(gsToolPrefL.."engcurve", false)
+    end; return true
   end)
 
 if(SERVER) then
@@ -1617,7 +1669,7 @@ if(SERVER) then
       end
     else
       if(cTim > pTim[2]) then
-        asmlib.Notify(oPly, "UNDO", "Do not rush the context menu!")
+        asmlib.Notify(oPly, "UNDO", "Do not rush the context menu !")
         pTim[2] = (cTim + nDel) -- For given amount of seconds
       end
     end
