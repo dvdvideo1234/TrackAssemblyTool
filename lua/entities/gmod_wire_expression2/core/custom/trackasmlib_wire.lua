@@ -18,6 +18,7 @@ local gsBErr = asmlib.GetAsmConvar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmConvar("enwiremod","BUL")
 local gnMaxMass = asmlib.GetAsmConvar("maxmass","FLT")
 local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
+local gsSymDir = asmlib.GetOpVar("OPSYM_DIRECTORY")
 local gsINS = "PIECES:Record({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\", \"%s\"})"
 local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\t\"%s\"\t\"%s\""
 
@@ -263,25 +264,24 @@ end
 local function newPiece(oPly, oEnt, sModel, vPos, aAng, nMass, sBgpID, nR, nG, nB, nA)
   if(not enFlag) then return nil end
   if(not asmlib.IsPlayer(oPly)) then return nil end
-  if(oEnt and not oEnt:IsValid()) then return nil end
-  local sMod, sBsID, nA, nMs, oCol = sModel, sBgpID, asmlib.ToColor(nA or 255), nMass, nR
-  if(not sMod and oEnt and oEnt:IsValid()) then sMod = oEnt:GetModel() end
-  local stRec = asmlib.CacheQueryPiece(sMod); if(not stRec) then return nil end
+  local sMo, sBs, nA, nMs, oCo = sModel, sBgpID, asmlib.ToColor(nA or 255), nMass, nR
+  if(not sMo and oEnt and oEnt:IsValid()) then sMo = oEnt:GetModel() end
+  local stRec = asmlib.CacheQueryPiece(sMo); if(not stRec) then return nil end
   if(not nMs and oEnt and oEnt:IsValid()) then local oPhy = oEnt:GetPhysicsObject()
     if(not (oPhy and oPhy:IsValid())) then return nil end; nMs = oPhy:GetMass() end
-  if(not sBsID) then local sDir = asmlib.GetOpVar("OPSYM_DIRECTORY")
-    if(not (oEnt and oEnt:IsValid())) then sBsID = "0/0" else -- Use bodygroup and skin
-      sBsID = asmlib.GetPropBodyGroup(oEnt)..sDir..asmlib.GetPropSkin(oEnt) end
+  if(not sBs) then sBs = "0/0" -- Default bodygroup and skin to zero. Clear setting
+    if(oEnt and oEnt:IsValid()) then -- Use bodygroup and skin from the entity provided
+      sBs = asmlib.GetConcat(asmlib.GetPropBodyGroup(oEnt), gsSymDir, asmlib.GetPropSkin(oEnt)) end
   end -- Color handling. Apply color based on the conditions
-  if(isnumber(oCol)) then -- Color specifier is a number
-    oCol = asmlib.GetColor(nR,nG,nB,nA) -- Try last 4 arguments as numbers
-  elseif(istable(oCol)) then -- Attempt to extract keys information from the table
-    oCol = asmlib.GetColor((oCol[1] or oCol["r"]), -- Numerical indices are with priority to hash
-                           (oCol[2] or oCol["g"]), -- Numerical indices are with priority to hash
-                           (oCol[3] or oCol["b"]), -- Numerical indices are with priority to hash
-                     nA or (oCol[4] or oCol["a"])) -- Use argument alpha with priority
-  else oCol = asmlib.GetColor(255,255,255,nA) end -- Use white for default color value
-  return asmlib.NewPiece(oPly,stRec.Slot,vPos,aAng,math.Clamp(nMs,1,gnMaxMass),sBsID,oCol,gsBErr)
+  if(isnumber(oCo)) then -- Color specifier is a number
+    oCo = asmlib.GetColor(nR, nG, nB, nA) -- Try last 4 arguments as numbers
+  elseif(istable(oCo)) then -- Attempt to extract keys information from the table
+    oCo = asmlib.GetColor((oCo[1] or oCo["r"]), -- Numerical indices are with priority to hash
+                          (oCo[2] or oCo["g"]), -- Numerical indices are with priority to hash
+                          (oCo[3] or oCo["b"]), -- Numerical indices are with priority to hash
+                    nA or (oCo[4] or oCo["a"])) -- Use argument alpha with priority
+  else oCo = asmlib.GetColor(255,255,255,nA) end -- Use white for default color value
+  return asmlib.NewPiece(oPly,stRec.Slot,vPos,aAng,math.Clamp(nMs,1,gnMaxMass),sBs,oCo,gsBErr)
 end
 
 __e2setcost(50)
