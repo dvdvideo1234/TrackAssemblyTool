@@ -401,7 +401,7 @@ function Log(vMsg, bCon)
   local sInst = (SERVER and "SERVER" or (CLIENT and "CLIENT" or "NOINST"))
   local sMoDB, sToMD = GetOpVar("MODE_DATABASE"), GetOpVar("TOOLNAME_NU")
   local sMsg = tLoc.Fmt:format(tLoc.Cur, GetDateTime(), sMoDB, sInst, sToMD, tostring(vMsg))
-  if(tLoc.Brs > 0  and not bCon) then -- We still have burst rate rows
+  if(tLoc.Brs > 0 and not bCon) then -- We still have burst rate rows
     local tTbr, sLn = tLoc.Tbr, ("\n") -- Index burst table and new line
     tTbr.Size = ((tonumber(tTbr.Size) or 0) + 1) --Read current size
     table.insert(tTbr, sMsg) -- Write to the table. Dump the table in the file
@@ -568,8 +568,8 @@ function GetLineContent(pF, oC)
   else -- Allocate file read configuration
     local bW = IsFlag("file_read_once")
     if(bW) then -- File at once fast I/O
-      local sN = GetOpVar("PATTEM_NEWLINE")
-      oC = sN:Explode(pF:Read(), true); pF:Close()
+      local sN = GetOpVar("OPSYM_NEWLINE")
+      oC = sN:Explode(pF:Read()); pF:Close()
       oC.ID, oC.RO, oC.ER = 1, bW, false
       rC = oC[oC.ID] -- Index the next row
     else -- Read it line by line less memory
@@ -717,6 +717,7 @@ function InitBase(sName, sPurp)
   SetOpVar("OPSYM_DISABLE","#")
   SetOpVar("OPSYM_DIVIDER","_")
   SetOpVar("OPSYM_VERTDIV","|")
+  SetOpVar("OPSYM_NEWLINE","\n")
   SetOpVar("OPSYM_REVISION","@")
   SetOpVar("OPSYM_DIRECTORY","/")
   SetOpVar("OPSYM_SEPARATOR",",")
@@ -855,7 +856,6 @@ function InitBase(sName, sPurp)
     filter = function(oEnt) -- Valid but not the main entity, world or TRACE_FILTER
       if(oEnt and oEnt:IsValid() and oEnt ~= GetOpVar("TRACE_FILTER") and
         GetOpVar("TRACE_CLASS")[oEnt:GetClass()]) then return true end end })
-  SetOpVar("PATTEM_NEWLINE" , "[\n\r]+")
   SetOpVar("PATTEM_NOPIECE" , GetConcat("%s", GetOpVar("OPSYM_REVISION"), "%s"))
   SetOpVar("PATTEM_EXDSVHED", {
     Sym = GetOpVar("OPSYM_REVISION"),
@@ -2238,7 +2238,7 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
   return vCen -- Returns X-Y OBB centered model
 end
 
-function GetTransformOBB(eBase, wOrg, vNorm, nX, nY, nZ, rP, rY, rR)
+function GetTransformOver(eBase, wOrg, vNorm, nX, nY, nZ, rP, rY, rR)
   local vOBB = eBase:OBBCenter()
   local wOBB = eBase:LocalToWorld(vOBB)
   local wAng = eBase:GetAngles()
@@ -2248,9 +2248,9 @@ function GetTransformOBB(eBase, wOrg, vNorm, nX, nY, nZ, rP, rY, rR)
   local nRot = (GetOpVar("MAX_ROTATION") / 2)
         wAng:RotateAroundAxis(vNorm, nRot)
   local wDir = Vector(); wDir:Set(wOrg); wDir:Sub(wOBB)
-  local pDir = 2 * wDir:Dot(vNorm)
+  local nDir = 2 * wDir:Dot(vNorm)
   local wPos = Vector(); wPos:Set(wOrg)
-        wPos:Add(wDir); wPos:Sub(pDir * vNorm)
+        wPos:Add(wDir); wPos:Sub(nDir * vNorm)
         vOBB:Rotate(wAng)
   local wAim = (wPos - wOBB):AngleEx(vNorm)
         wPos:Sub(vOBB)
@@ -2968,14 +2968,14 @@ function NewTable(sTable,defTab,bReload,bDelete)
     end
   end
   -- Reads the query configurations
-  function self:GetQuery(sType, sFunc)
+  function self:GetQuery(sFunc)
     local qtDef = self:GetDefinition()
     local sFunc = tostring(sFunc or debug.getinfo(2).name)
     local tQ = qtDef.Query; if(not tQ) then
-      LogInstance("Query missing", qtDef.Nick); return nil end
+      LogInstance("Query missing "..GetReport(sFunc), qtDef.Nick); return nil end
     local tE = tQ[sFunc]; if(not tE) then
-      LogInstance("Entry missing", qtDef.Nick); return nil end
-    return (IsHere(sType) and tE[sType] or tE)
+      LogInstance("Entry missing"..GetReport(sFunc), qtDef.Nick); return nil end
+    return tE -- Return the query configuration otherwise report missing
   end
   -- Returns ID of the found column valid > 0
   function self:GetColumnID(sN)
@@ -3489,7 +3489,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       else
         local qsKey = GetOpVar("FORM_KEYSTMT")
         local qIndx, qKey = qsKey:format(sFunc, ""), self:Match(sKey,1,true)
-        local Q = self:Get(qIndx, qKey); if(not IsHere(Q)) then local tQ = self:GetQuery()
+        local Q = self:Get(qIndx, qKey); if(not IsHere(Q)) then local tQ = self:GetQuery(sFunc)
           Q = self:Delete():Where(unpack(tQ.W)):Store(qIndx):Get(qIndx, qKey) end
         if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, qKey),qtDef.Nick); return false end
       end
@@ -3516,7 +3516,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
     if(sMoDB == "SQL") then local qsKey = GetOpVar("FORM_KEYSTMT")
       if(not self:ArrayMatch(arLine, true)) then return false end
       local qIndx = qsKey:format(sFunc, qtDef.Nick)
-      local Q = self:Get(qIndx, unpack(arLine)); if(not IsHere(Q)) then local tQ = self:GetQuery()
+      local Q = self:Get(qIndx, unpack(arLine)); if(not IsHere(Q)) then local tQ = self:GetQuery(sFunc)
         Q = self:Insert():Values(unpack(tQ.V)):Store(qIndx):Get(qIndx, unpack(arLine)) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,arLine[1]),qtDef.Nick); return false end
       local qRez = sql.Query(Q); if(not qRez and isbool(qRez)) then
@@ -3646,7 +3646,7 @@ function CacheQueryPiece(sModel)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
-      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
+      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = makTab:GetQuery(sFunc)
         Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, qModel)); return nil end
       local qData = sql.Query(Q); if(not qData and isbool(qData)) then
@@ -3695,7 +3695,7 @@ function CacheQueryAdditions(sModel)
       LogInstance("Save >> "..GetReport(sModel))
       tCache[sModel] = {}; stData = tCache[sModel]; stData.Size = 0
       local qIndx = qsKey:format(sFunc, "")
-      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
+      local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = makTab:GetQuery(sFunc)
         Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return nil end
       local qData = sql.Query(Q); if(not qData and isbool(qData)) then
@@ -3772,7 +3772,7 @@ function CacheQueryTree()
     libCache[keyPan] = {}; stPan = libCache[keyPan]
     if(sMoDB == "SQL") then
       local qIndx = qsKey:format(sFunc,"")
-      local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
+      local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = makTab:GetQuery(sFunc)
         Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
       if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
       local qData = sql.Query(Q); if(not qData and isbool(qData)) then
@@ -3827,7 +3827,7 @@ function CacheQueryProperty(sType)
         arNames[sType] = {}; stName = arNames[sType]; stName.Size = 0
         local qType = makTab:Match(sType,1,true)
         local qIndx = qsKey:format(sFunc,pN)
-        local Q = makTab:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = makTab:GetQuery().N
+        local Q = makTab:Get(qIndx, qType); if(not IsHere(Q)) then local tQ = makTab:GetQuery(sFunc).N
           Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qType) end
         if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,qType)); return nil end
         local qData = sql.Query(Q); if(not qData and isbool(qData)) then
@@ -3857,7 +3857,7 @@ function CacheQueryProperty(sType)
       if(sMoDB == "SQL") then
         tCache[pT] = {}; stType = tCache[pT]; stType.Size = 0
         local qIndx = qsKey:format(sFunc,pT)
-        local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = makTab:GetQuery().T
+        local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then local tQ = makTab:GetQuery(sFunc).T
           Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
         if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx,1)); return nil end
         local qData = sql.Query(Q); if(not qData and isbool(qData)) then
@@ -3929,7 +3929,7 @@ function ExportSyncDB(sDelim)
   F:Write(tHea.Tco:format(defTab.Nick, makTab:GetColumnList(nil,1,2,3)))
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
-    local qIndx, tQ = qsKey:format(sFunc, ""), makTab:GetQuery()
+    local qIndx, tQ = qsKey:format(sFunc, ""), makTab:GetQuery(sFunc)
     local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then
       Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
     if(not IsHere(Q)) then LogInstance("Build statement failed "..GetReport(sHew)); F:Flush(); F:Close(); return false end
@@ -4094,7 +4094,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   if(sMoDB == "SQL") then
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qIndx = qsKey:format(sFunc, sTable)
-    local Q = makTab:Get(qIndx); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
+    local Q = makTab:Get(qIndx); if(not IsHere(Q)) then local tQ = makTab:GetQuery(sFunc)
       Q = makTab:Select():Order(unpack(tQ.O)):Store(qIndx):Get(qIndx) end
     if(not IsHere(Q)) then F:Flush(); F:Close()
       LogInstance("Build statement failed "..GetReport(sHew, fName, qIndx), sTable); return false end
@@ -4104,7 +4104,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
       LogInstance("No data found "..GetReport(sHew, fName, Q), sTable); return false end
     F:Write(tHea.Qry:format(#qData, Q))
     for iR = 1, #qData do local aRow = makTab:GetRowToArray(qData[iR])
-      if(not self:ArrayMatch(aRow, true, "\"", true)) then F:Flush(); F:Close(); return false end
+      if(not makTab:ArrayMatch(aRow, true, "\"", true)) then F:Flush(); F:Close(); return false end
       if(not makTab:Trigger("ExportDSV", aRow)) then F:Flush(); F:Close(); return false end
       F:Write(defTab.Name); F:Write(sDelim); F:Write(table.concat(aRow, sDelim)); F:Write("\n")
     end -- Matching will not crash as it is matched during insertion
@@ -4511,7 +4511,7 @@ function SetAdditionsRUN(sModel, qList)
     local qsKey = GetOpVar("FORM_KEYSTMT")
     local qModel = makTab:Match(tostring(sModel or ""), 1, true)
     local qIndx = qsKey:format(sFunc, "ADDITIONS")
-    local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = makTab:GetQuery()
+    local Q = makTab:Get(qIndx, qModel); if(not IsHere(Q)) then local tQ = makTab:GetQuery(sFunc)
       Q = makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qModel) end
     if(not IsHere(Q)) then LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return false end
     qData = sql.Query(Q); if(not qData and isbool(qData)) then
@@ -4576,7 +4576,7 @@ function ExportTypeRUN(sType, bSet)
     local qIndx = qsKey:format(sFunc, defP.Nick)
     if(not RunComponentType(sType, function(iTy, sTy)
       local qTy = makP:Match(sTy, makP:GetColumnID("TYPE"), true)
-      local Q = makP:Get(qIndx, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery()
+      local Q = makP:Get(qIndx, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery(sFunc)
         Q = makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, qTy) end
       if(not Q) then
         LogInstance("Build statement failed "..GetReport(qIndx,qTy),defP.Nick); return false end
@@ -4701,6 +4701,9 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(table.concat(aRow, ", ")); fE:Write("})\n")
         end
         fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n")
+      elseif(sMak == "PHYSPROPERTIES") then
+        fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Begin() end\n")
+        fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n")
       end
       fE:Write("end\n");
     elseif(tPat.Tar and sRow:find(tPat.Tar)) then bSkip = true
@@ -4818,7 +4821,7 @@ function ExportTypeDSV(sType, sDelim)
     local qInxA = qsKey:format(sFunc, defA.Nick)
     if(not RunComponentType(sType, function(iTy, sTy)
       local qTy = makP:Match(sTy, makP:GetColumnID("TYPE"), true)
-      local Q = makP:Get(qInxP, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery()
+      local Q = makP:Get(qInxP, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery(sFunc)
         Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qTy) end
       if(not IsHere(Q)) then
         LogInstance("Build statement failed "..GetReport(iTy,sTy),defP.Nick); return false end
@@ -4831,13 +4834,13 @@ function ExportTypeDSV(sType, sDelim)
     local cMo, cLn = makP:GetColumnID("MODEL"), makP:GetColumnID("LINEID")
     for iP = 1, #qP do
       local aP = makP:GetRowToArray(qP[iP])
-      local sMo = aRow[cMo]; makP:ArrayMatch(aP,true,"\"",true)
+      local sMo = aP[cMo]; makP:ArrayMatch(aP,true,"\"",true)
       if(not makP:Trigger("ExportDSV", aP)) then
         P:Flush(); P:Close(); A:Flush(); A:Close(); return end
       P:Write(defP.Name); P:Write(sDelim); P:Write(table.concat(aP, sDelim))
       if(aP[cLn] == 1) then
         local qMo = makP:Match(sMo, cMo, true)
-        local Q = makA:Get(qInxA, qMo); if(not IsHere(Q)) then local tQ = makA:GetQuery()
+        local Q = makA:Get(qInxA, qMo); if(not IsHere(Q)) then local tQ = makA:GetQuery(sFunc)
           Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxA):Get(qInxA, qMo) end
         if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
           LogInstance("Build statement failed "..GetReport(sType, sPref),defA.Nick); return end
@@ -5570,7 +5573,7 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece:Activate()
   ePiece:SetRenderMode(GENV . RENDERMODE_TRANSALPHA)
   ePiece:SetColor(clColor or GetColor(255,255,255,255))
-  ePiece:DrawShadow(false)
+  ePiece:DrawShadow(true)
   ePiece:PhysWake()
   local pPiece = ePiece:GetPhysicsObject()
   if(not (pPiece and pPiece:IsValid())) then ePiece:Remove()

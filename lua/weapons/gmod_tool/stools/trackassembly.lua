@@ -1019,7 +1019,7 @@ function TOOL:CurveRemove(iD, bMute)
   local iD = math.floor(math.max(tonumber(iD) or 0, 0)) -- User pick
   local iC = ((iD > 0 and iD < tC.Size) and iD or 0) -- Remove at the end
   local bS, sR = asmlib.DoAction("REMOVE_CURVE_NODE", user, iC, bMute); if(not bS) then
-    asmlib.LogInstance("Remove curve error "..asmlib.GetReport(user, sR), gtLogs) end
+    asmlib.LogInstance("Remove curve error "..asmlib.GetReport(user, iC, sR), gtLogs) end
   return tC -- Updated curve nodes table
 end
 
@@ -1125,34 +1125,35 @@ function TOOL:CurveCheck(bMute)
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not asmlib.IsHere(hdRec)) then
     if(not bMute) then
+      asmlib.Notify(user, "ERROR", "Holder model not piece: %s !", fnmodel)
       asmlib.LogInstance("Holder model not piece: "..fnmodel, gtLogs)
     end; return nil
   end -- Disable for stack having less than two vertices
   local tC = asmlib.GetCacheCurve(user)
   if(tC.Size and tC.Size < 2) then
     if(not bMute) then
-      asmlib.Notify(user, "ERROR", "Two vertices needed !")
-      asmlib.LogInstance("Two vertices needed: "..fnmodel, gtLogs)
+      asmlib.Notify(user, "ERROR", "Two vertices are needed !")
+      asmlib.LogInstance("Two vertices are needed: "..fnmodel, gtLogs)
     end; return nil
   end -- Disable for single active end track segments
   if(hdRec.Size <= 1) then
     if(not bMute) then
-      asmlib.Notify(user, "ERROR", "Segmented track needed !")
+      asmlib.Notify(user, "ERROR", "Segmented track needed: %s !", fnmodel)
       asmlib.LogInstance("Segmented track needed: "..fnmodel, gtLogs)
     end; return nil
   end -- Disable for missing start track segments
   local sPOA = asmlib.LocatePOA(hdRec, pointid)
   if(not sPOA) then
     if(not bMute) then
-      asmlib.Notify(user, "ERROR", "Start segment missing !")
-      asmlib.LogInstance("Start segment missing: "..fnmodel, gtLogs)
+      asmlib.Notify(user, "ERROR", "Segment start missing: %s !", fnmodel)
+      asmlib.LogInstance("Segment start missing: "..fnmodel, gtLogs)
     end; return nil
   end -- Disable for missing end track segments
   local ePOA = asmlib.LocatePOA(hdRec, pnextid)
   if(not ePOA) then
     if(not bMute) then
-      asmlib.Notify(user, "ERROR", "End segment missing !")
-      asmlib.LogInstance("End segment missing: "..fnmodel, gtLogs)
+      asmlib.Notify(user, "ERROR", "Segment end missing: %s !", fnmodel)
+      asmlib.LogInstance("Segment end missing: "..fnmodel, gtLogs)
     end; return nil
   end -- Read the active point and check piece shape
   local sO, sA = tC.Info.Pos[1], tC.Info.Ang[1]
@@ -1166,26 +1167,26 @@ function TOOL:CurveCheck(bMute)
   local nD = eO:DistToSqr(sO)
   if(nD <= nEps) then
     if(not bMute) then
-      asmlib.Notify(user, "ERROR", "Segment tiny %s !", fnmodel)
-      asmlib.LogInstance("Segment too tiny: "..fnmodel, gtLogs)
+      asmlib.Notify(user, "ERROR", "Segment is too tiny: %s !", fnmodel)
+      asmlib.LogInstance("Segment is too tiny: "..fnmodel, gtLogs)
     end; return nil
   end -- Disable for non-straight track segments
   if(sA:Forward():Cross(eA:Forward()):LengthSqr() >= nEps) then
     if(not bMute) then
-      asmlib.Notify(user, "ERROR", "Segment curved %s !", fnmodel)
-      asmlib.LogInstance("Segment curved: "..fnmodel, gtLogs)
+      asmlib.Notify(user, "ERROR", "Segment is curvy: %s !", fnmodel)
+      asmlib.LogInstance("Segment is curvy: "..fnmodel, gtLogs)
     end; return nil
   end -- Disable for 180 curve track segments
   if(sA:Forward():Dot(eA:Forward()) >= nEps) then
     if(not bMute) then
-      asmlib.Notify(user, "ERROR", "Segment overturn %s !", fnmodel)
-      asmlib.LogInstance("Segment overturn: "..fnmodel, gtLogs)
+      asmlib.Notify(user, "ERROR", "Segment is overturn: %s !", fnmodel)
+      asmlib.LogInstance("Segment is overturn: "..fnmodel, gtLogs)
     end; return nil
   end -- Disable for ramp track segments
   if(sA:Forward():Dot((sO - eO):GetNormalized()) < (1 - nEps)) then
     if(not bMute) then
-      asmlib.Notify(user, "ERROR", "Segment gradient %s !", fnmodel)
-      asmlib.LogInstance("Segment gradient: "..fnmodel, gtLogs)
+      asmlib.Notify(user, "ERROR", "Segment is a ramp: %s !", fnmodel)
+      asmlib.LogInstance("Segment is a ramp: "..fnmodel, gtLogs)
     end; return nil
   end; return tC, math.sqrt(nD) -- Returns the updated curve nodes table
 end
@@ -1420,7 +1421,7 @@ function TOOL:LeftClick(stTrace)
         local eID, ePiece = oArg.tents[iD], nil
         if(not asmlib.IsOther(eID)) then
           oArg.mundo, oArg.munid = eID:GetModel(), eID:EntIndex()
-          local spPos, spAng = asmlib.GetTransformOBB(eID, oArg.wover, oArg.wnorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
+          local spPos, spAng = asmlib.GetTransformOver(eID, oArg.wover, oArg.wnorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
             ePiece = asmlib.NewPiece(oPly,oArg.mundo,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
           if(ePiece) then
@@ -1499,7 +1500,7 @@ function TOOL:LeftClick(stTrace)
       if(not (anEnt and anEnt:IsValid())) then return false end
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         self:LogStatus(stTrace,"(Over) Failed to apply physical settings",trEnt); return false end
-      local spPos, spAng = asmlib.GetTransformOBB(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()),
+      local spPos, spAng = asmlib.GetTransformOver(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()),
                              stTrace.HitNormal, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
       local ePiece = asmlib.NewPiece(user,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePiece) then
@@ -1752,7 +1753,7 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
       local eID, gID = tE[iD], atGho[iD]
       if(not asmlib.IsOther(eID) and gID and gID:IsValid()) then
         local wOver, wNorm = self:GetFlipOverOrigin(stTrace, bPK)
-        local spPos, spAng = asmlib.GetTransformOBB(eID, wOver, wNorm,
+        local spPos, spAng = asmlib.GetTransformOver(eID, wOver, wNorm,
                                nextx, nexty, nextz, nextpic, nextyaw, nextrol)
         gID:SetPos(spPos); gID:SetAngles(spAng)
         gID:SetModel(eID:GetModel()); gID:SetNoDraw(false)
@@ -2172,7 +2173,7 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   for iD = 1, nE do local eID = tE[iD]
     if(not asmlib.IsOther(eID)) then
       local vePos = eID:GetPos()
-      local spPos, spAng = asmlib.GetTransformOBB(eID, wOv, wNr,
+      local spPos, spAng = asmlib.GetTransformOver(eID, wOv, wNr,
                              nextx, nexty, nextz, nextpic, nextyaw, nextrol)
       local Os = vePos:ToScreen()
       local Oe = spPos:ToScreen()
