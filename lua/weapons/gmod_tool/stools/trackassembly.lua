@@ -743,14 +743,29 @@ function TOOL:ClearFlipOver(bMute)
   end -- Make sure to delete the relation on both client and server
 end
 
+function TOOL:UpdateOrigin(vPos, aAng)
+  local nextx  , nexty  , nextz   = self:GetPosOffsets()
+  local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+  local vOrg, aOrg = Vector(vPos), Angle(aAng)
+  aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
+  aAng:RotateAroundAxis(aAng:Right()  , nextpic)
+  aAng:RotateAroundAxis(aAng:Forward(), nextrol)
+  vPos:Add(nextx * aAng:Forward())
+  vPos:Add(nexty * aAng:Right())
+  vPos:Add(nextz * aAng:Up())
+  return vOrg, aOrg
+end
+
 function TOOL:GetFlipOverOrigin(stTrace, bPnt)
-  local trEnt, trHit = stTrace.Entity, stTrace.HitNormal
-  local wOver, wNorm = Vector(), Vector()
+  local trEnt = stTrace.Entity
+  local wOver, aOver = Vector(), Angle()
   if(not (trEnt and trEnt:IsValid())) then
-    wOver:Set(stTrace.HitPos); wNorm:Set(trHit)
-    return wOver, wNorm
+    wOver:Set(stTrace.HitPos)
+    local wNror, aNror = self:UpdateOrigin(wOver, aOver)
+    return wOver, aOver, wNror, aNror
+  else
+    wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter()))
   end
-  wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter())); wNorm:Set(trHit)
   if(bPnt) then
     local wOrig, wAucs = Vector(), Angle()
     local model, trMod = self:GetModel(), trEnt:GetModel()
@@ -765,22 +780,23 @@ function TOOL:GetFlipOverOrigin(stTrace, bPnt)
         vO1:Set(trEnt:LocalToWorld(vO1))
         vO2:Set(trEnt:LocalToWorld(vO2))
         wAucs:SetUnpacked(trPOA.A:Get())
-        wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
-        wNorm:Set(wAucs:Up())
-        return wOver, wNorm, wOrig, vO1, vO2
+        aOver:Set(trEnt:LocalToWorldAngles(wAucs))
+        self:UpdateOrigin(wOver, aOver)
+        return wOver, aOver, wNror, aNror, wOrig, vO1, vO2
       end
     else
       if(trPOA) then
         wOrig:SetUnpacked(trPOA.O:Get())
         wOrig:Set(trEnt:LocalToWorld(wOrig))
         wAucs:SetUnpacked(trPOA.A:Get())
-        wAucs:Set(trEnt:LocalToWorldAngles(wAucs))
-        wNorm:Set(wAucs:Up())
-        return wOver, wNorm, wOrig
+        aOver:Set(trEnt:LocalToWorldAngles(wAucs))
+        local wNror, aNror = self:UpdateOrigin(wOver, aOver)
+        return wOver, aOver, wNror, aNror, wOrig
       end
     end
   end
-  return wOver, wNorm
+  local wNror, aNror = self:UpdateOrigin(wOver, aOver)
+  return wOver, aOver, wNror, aNror
 end
 
 function TOOL:SelectModel(sModel)
@@ -1398,7 +1414,7 @@ function TOOL:LeftClick(stTrace)
     end); return true
   elseif(workmode == 4 and self:IsFlipOver()) then
     if(poQueue:IsBusy(user)) then asmlib.Notify(user, "ERROR", "Server busy !"); return true end
-    local wOver, wNorm = self:GetFlipOverOrigin(stTrace, user:KeyDown(IN_SPEED))
+    local wOver, aOver = self:GetFlipOverOrigin(stTrace, user:KeyDown(IN_SPEED))
     local tE, nE = self:GetFlipOver(true)
     local tC, nC = asmlib.GetConstraintOver(tE)
     if(not tE or nE <= 0) then
@@ -1414,14 +1430,14 @@ function TOOL:LeftClick(stTrace)
       icons = nC,
       srate = spawnrate,
       wover = Vector(wOver),
-      wnorm = Vector(wNorm)
+      aover = Angle (aOver)
     }, function(oPly, oArg)
       for iD = oArg.start, oArg.ients do
         oPly:SetNWFloat(gsToolPrefL.."progress", 100 * (iD / oArg.ients))
         local eID, ePiece = oArg.tents[iD], nil
         if(not asmlib.IsOther(eID)) then
           oArg.mundo, oArg.munid = eID:GetModel(), eID:EntIndex()
-          local spPos, spAng = asmlib.GetTransformOver(eID, oArg.wover, oArg.wnorm, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
+          local spPos, spAng = asmlib.GetTransformOver(eID, oArg.wover, oArg.aover, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
             ePiece = asmlib.NewPiece(oPly,oArg.mundo,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
           if(ePiece) then
@@ -1500,8 +1516,8 @@ function TOOL:LeftClick(stTrace)
       if(not (anEnt and anEnt:IsValid())) then return false end
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         self:LogStatus(stTrace,"(Over) Failed to apply physical settings",trEnt); return false end
-      local spPos, spAng = asmlib.GetTransformOver(anEnt, trEnt:LocalToWorld(trEnt:OBBCenter()),
-                             stTrace.HitNormal, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
+      local vOvr, aOvr = self:GetFlipOverOrigin(stTrace, user:KeyDown(IN_SPEED))
+      local spPos, spAng = asmlib.GetTransformOver(anEnt, vOvr, aOvr)
       local ePiece = asmlib.NewPiece(user,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePiece) then
         if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
@@ -1752,9 +1768,8 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
       local bPK = input.IsKeyDown(KEY_LSHIFT)
       local eID, gID = tE[iD], atGho[iD]
       if(not asmlib.IsOther(eID) and gID and gID:IsValid()) then
-        local wOver, wNorm = self:GetFlipOverOrigin(stTrace, bPK)
-        local spPos, spAng = asmlib.GetTransformOver(eID, wOver, wNorm,
-                               nextx, nexty, nextz, nextpic, nextyaw, nextrol)
+        local wOver, aOver, wNror, aNror = self:GetFlipOverOrigin(stTrace, bPK)
+        local spPos, spAng = asmlib.GetTransformOver(eID, wOver, aOver, wNror, aNror)
         gID:SetPos(spPos); gID:SetAngles(spAng)
         gID:SetModel(eID:GetModel()); gID:SetNoDraw(false)
       end
@@ -2158,25 +2173,22 @@ end
 function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   if(not self:GetPointAssist()) then return end
   local model, trEnt = self:GetModel(), stTrace.Entity
-  local actrad, vT = self:GetActiveRadius(), Vector()
+  local actrad, vF, vU = self:GetActiveRadius(), Vector(), Vector()
   local bAct, xH = input.IsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
-  local wOv, wNr, wOr, wO1, wO2  = self:GetFlipOverOrigin(stTrace, bAct)
-  local nextx  , nexty  , nextz   = self:GetPosOffsets()
-  local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  vT:Set(wNr); vT:Mul(actrad); vT:Add(wOv)
-  local oO, oN = wOv:ToScreen(), vT:ToScreen()
-  hudMonitor:DrawLine(oO, oN, "y", "SURF")
-  hudMonitor:DrawCircle(oN, asmlib.GetViewRadius(oPly, vT, 0.5), "r")
+  local wOv, aOv, wBv, aBv, wOr, wO1, wO2 = self:GetFlipOverOrigin(stTrace, bAct)
+  vF:Set(aOv:Forward()); vF:Mul(actrad); vF:Add(wOv)
+  vU:Set(aOv:Up()); vU:Mul(actrad); vU:Add(wOv)
+  local oO, oF, oU = wOv:ToScreen(), vF:ToScreen(), vU:ToScreen()
+  hudMonitor:DrawLine(oO, oU, "b", "SURF")
+  hudMonitor:DrawLine(oO, oF, "r")
   hudMonitor:DrawLine(oO, xH, "g")
   hudMonitor:DrawCircle(xH, asmlib.GetViewRadius(oPly, stTrace.HitPos, 0.5))
   local tE, nE = self:GetFlipOver(true, true)
   for iD = 1, nE do local eID = tE[iD]
     if(not asmlib.IsOther(eID)) then
       local vePos = eID:GetPos()
-      local spPos, spAng = asmlib.GetTransformOver(eID, wOv, wNr,
-                             nextx, nexty, nextz, nextpic, nextyaw, nextrol)
-      local Os = vePos:ToScreen()
-      local Oe = spPos:ToScreen()
+      local spPos, spAng = asmlib.GetTransformOver(eID, wOv, aOv, wBv, aBv)
+      local Os, Oe = vePos:ToScreen(), spPos:ToScreen()
       hudMonitor:DrawLine(oO, Os, "y", "SEGM", {20})
       hudMonitor:DrawLine(oO, Oe, "y")
       hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, vePos), "c", "SURF")
@@ -2185,7 +2197,7 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   end
   if(bAct and not stTrace.HitWorld and wOr) then
     local Op = wOr:ToScreen()
-    hudMonitor:DrawLine(xH, Op, "r")
+    hudMonitor:DrawLine(xH, Op, "y")
     if(model == trEnt:GetModel() and wO1 and wO2) then
       local Op1 = wO1:ToScreen()
       local Op2 = wO2:ToScreen()
@@ -2255,6 +2267,8 @@ function TOOL:DrawHUD()
     self:DrawCurveNode(hudMonitor, user, stTrace)
     if(not self:GetDeveloperMode()) then return end
     self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"}); return
+  elseif(workmode == 4 and self:IsFlipOver()) then
+    self:DrawFlipAssist(hudMonitor, user, stTrace); return
   end
   local trEnt, trHit, trRec = stTrace.Entity, stTrace.HitPos
   local pointid, pnextid = self:GetPointID()
@@ -2272,15 +2286,13 @@ function TOOL:DrawHUD()
     local stSpawn = asmlib.GetEntitySpawn(user,trEnt,trHit,model,pointid,
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then
-      if(workmode == 1) then
+      if(workmode == 1 or workmode == 4) then
         self:DrawSnapAssist(hudMonitor, user, stTrace)
       elseif(workmode == 2) then
         self:DrawRelateAssist(hudMonitor, user, stTrace)
-      elseif(workmode == 4) then
-        self:DrawFlipAssist(hudMonitor, user, stTrace)
-      end; return -- The return is very very important ... Must stop on invalid spawn
+      end; return -- Must stop on invalid spawn
     else -- Patch the drawing for certain working modes
-      if(workmode == 1) then
+      if(workmode == 1 or workmode == 4) then
         self:DrawNextPoint(hudMonitor, user, stSpawn)
         self:DrawSnapRegular(hudMonitor, user, stSpawn, trHit)
       elseif(workmode == 2) then -- Draw point intersection
@@ -2306,16 +2318,12 @@ function TOOL:DrawHUD()
           hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(user, stSpawn.SPos),"c")
         end
       elseif(workmode == 4) then
-        self:DrawSnapRegular(hudMonitor, user, stSpawn, trHit)
-        if(self:IsFlipOver()) then
-          self:DrawFlipAssist(hudMonitor, user, stTrace) end
+
       end
       if(not self:GetDeveloperMode()) then return end
       self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
     end
   else
-    if(workmode == 4 and self:IsFlipOver()) then
-      self:DrawFlipAssist(hudMonitor, user, stTrace); return end
     local angsnap  = self:GetAngSnap()
     local elevpnt  = self:GetElevation()
     local surfsnap = self:GetSurfaceSnap()

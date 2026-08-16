@@ -1846,6 +1846,21 @@ function GetNodeTypeRoot(pnBase, iRep, sSym)
   end; return pT, table.concat(tP):sub(sD:len()+1, -1)
 end
 
+function AutoCloseLuapadTab(sName)
+  if(SERVER) then return end
+  local luapad = GENV . luapad
+  if(not luapad) then return end
+  if(not luapad.PropertySheet) then return end
+  local tTab = luapad.PropertySheet:GetItems() -- Luapad is installed and present.
+  for iD = 1, #tTab do local inf = tTab[iD] -- The context menu option is available
+    if(inf and inf.Name and inf.Name:find(sName, 1, true)) then
+      luapad.PropertySheet:CloseTab(inf.Tab); inf.Tab:Remove(); inf.Panel:Remove()
+      local iK = table.KeyFromValue(luapad.OpenFiles, sName)
+      if(iK) then table.remove(luapad.OpenFiles, iK) end
+    end
+  end; luapad.PropertySheet:InvalidateLayout()
+end
+
 function ExportAttachToMenu(pnMenu, sType, bDisp)
   local bEx = GetAsmConvar("exportdb", "BUL")
   if(not bEx) then LogInstance("Export disabled"); return end
@@ -2238,25 +2253,19 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
   return vCen -- Returns X-Y OBB centered model
 end
 
-function GetTransformOver(eBase, wOrg, vNorm, nX, nY, nZ, rP, rY, rR)
-  local vOBB = eBase:OBBCenter()
+function GetTransformOver(eBase, vOrg, aOrg, vNro, aNro)
+  local vOBB= eBase:OBBCenter()
   local wOBB = eBase:LocalToWorld(vOBB)
-  local wAng = eBase:GetAngles()
-        wAng:RotateAroundAxis(wAng:Up(), (tonumber(rY) or 0))
-        wAng:RotateAroundAxis(wAng:Right(), (tonumber(rP) or 0))
-        wAng:RotateAroundAxis(wAng:Forward(), (tonumber(rR) or 0))
   local nRot = (GetOpVar("MAX_ROTATION") / 2)
-        wAng:RotateAroundAxis(vNorm, nRot)
-  local wDir = Vector(); wDir:Set(wOrg); wDir:Sub(wOBB)
-  local nDir = 2 * wDir:Dot(vNorm)
-  local wPos = Vector(); wPos:Set(wOrg)
-        wPos:Add(wDir); wPos:Sub(nDir * vNorm)
-        vOBB:Rotate(wAng)
-  local wAim = (wPos - wOBB):AngleEx(vNorm)
-        wPos:Sub(vOBB)
-        wPos:Add((tonumber(nX) or 0) * wAim:Forward())
-        wPos:Add((tonumber(nY) or 0) * wAim:Right())
-        wPos:Add((tonumber(nZ) or 0) * wAim:Up())
+  local wPos, wAng = Vector(vOrg), Angle(aOrg)
+  local wDir = Vector(vOrg); wDir:Sub(wOBB)
+  local ePos, eAng = eBase:GetPos(), eBase:GetAngles()
+  local x, y, z = BasisVector(wDir, wAng):Unpack()
+  wPos:Add(x * wAng:Forward())
+  wPos:Add(y * wAng:Right())
+  wPos:Add(z * wAng:Up())
+  wAng:Add(aOrg + aOrg - eAng); wAng:Normalize()
+  vOBB:Rotate(wAng); wPos:Sub(vOBB)
   return wPos, wAng
 end
 
@@ -3482,16 +3491,19 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debug.getinfo(1).name
     local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
       LogInstance("Unsupported mode", qtDef.Nick); return false end
-    if(sMoDB == "SQL") then local Q = nil
+    if(sMoDB == "SQL") then
+      local Q, qsKey = nil, GetOpVar("FORM_KEYSTMT")
       if(sKey == "*") then
-        Q = self:Delete():Get(); if(not IsHere(Q)) then
-          LogInstance("Build delete failed"); return false end
+        local qIndx = qsKey:format(sFunc, sKey); Q = self:Get(qIndx)
+        if(not IsHere(Q)) then Q = self:Delete():Store(qIndx):Get(qIndx) end
+        if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx), qtDef.Nick); return false end
       else
-        local qsKey = GetOpVar("FORM_KEYSTMT")
-        local qIndx, qKey = qsKey:format(sFunc, ""), self:Match(sKey,1,true)
-        local Q = self:Get(qIndx, qKey); if(not IsHere(Q)) then local tQ = self:GetQuery(sFunc)
+        local snCon = self:GetColumnName(1)
+        local qIndx = qsKey:format(sFunc, snCon)
+        local qKey  = self:Match(sKey, 1, true); Q = self:Get(qIndx, qKey)
+        if(not IsHere(Q)) then local tQ = self:GetQuery(sFunc)
           Q = self:Delete():Where(unpack(tQ.W)):Store(qIndx):Get(qIndx, qKey) end
-        if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, qKey),qtDef.Nick); return false end
+        if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, sKey),qtDef.Nick); return false end
       end
       local qData = sql.Query(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sql.LastError(), Q),qtDef.Nick); return false end

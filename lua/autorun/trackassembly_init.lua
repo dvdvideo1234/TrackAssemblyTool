@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.901")
+asmlib.SetOpVar("TOOL_VERSION","9.902")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -798,8 +798,10 @@ if(CLIENT) then
         if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
-      local fDSV = asmlib.GetConcat(gsDrcDSV, "%s", gsToolPrefL, "%s.txt"):lower()
-      local sNam = asmlib.GetConcat(gsDrcSET, gsLibName, "_dsv.txt"):lower()
+      local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
+      local uNam = asmlib.GetConcat(gsLibName, "_dsv.txt"):lower()
+      local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
+      local sNam = asmlib.GetConcat(gsDrcSET, uNam):lower()
       local nW, nH = pnFrame:GetSize()
       local sDel, nB, nT = "\t", 22, 23
       xyPos.x, xyPos.y = xyDsz.x, (xyDsz.y + nT)
@@ -1056,15 +1058,18 @@ if(CLIENT) then
                   function() SetClipboardText(tostring(file.Size(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
-                    if(luapad) then -- Luapad is installed and present. The context menu option is available
+                    if(luapad) then
                       asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
+                      asmlib.AutoCloseLuapadTab(uDSV:format(sP, defTab.Nick):lower())
+                      if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+                        asmlib.AutoCloseLuapadTab(uDSV:format(sP, "category"):lower()) end
                       if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
-                      luapad.AddTab("["..sP.."]["..defTab.Nick.."]", file.Read(sFile, "DATA"), gsDrcDSV);
                       if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
                         local sCats = fDSV:format(sP, "category"):lower(); if(file.Exists(sCats,"DATA")) then
-                          luapad.AddTab("["..sP.."][CATEGORY]", file.Read(sCats, "DATA"), gsDrcDSV);
+                          luapad.AddTab(uDSV:format(sP, "category"):lower(), file.Read(sCats, "DATA"), gsDrcDSV)
                         end -- This is done so we can distinguish between luapad and other panels
                       end -- Luapad is designed not to be closed so we need to make it invisible
+                      luapad.AddTab(uDSV:format(sP, defTab.Nick):lower(), file.Read(sFile, "DATA"), gsDrcDSV)
                       luapad.Frame:SetVisible(true); luapad.Frame:Center()
                       luapad.Frame:MakePopup(); conElements:Push({luapad.Frame, "SetVisible", false})
                     else -- Luapad is not installed. Open the link to install it
