@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.902")
+asmlib.SetOpVar("TOOL_VERSION","9.903")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1842,7 +1842,7 @@ asmlib.NewTable("PIECES",{
   },
   Cache = {
     Erase = function(makTab, tCache, snPK)
-      if(snPK and snPK ~= "*") then tCache[snPK] = nil else table.Empty(tCache) end; return true
+      if(snPK) then tCache[snPK] = nil else table.Empty(tCache) end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine)
       local stData = tCache[snPK]; if(not stData) then
@@ -2038,7 +2038,7 @@ asmlib.NewTable("ADDITIONS",{
   },
   Cache = {
     Erase = function(makTab, tCache, snPK)
-      if(snPK and snPK ~= "*") then tCache[snPK] = nil else table.Empty(tCache) end; return true
+      if(snPK) then tCache[snPK] = nil else table.Empty(tCache) end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine)
       local stData = tCache[snPK]; if(not stData) then
@@ -2082,7 +2082,7 @@ asmlib.NewTable("ADDITIONS",{
   [8]  = {"PHYSINIT" , "INTEGER", "FLR",  nil },
   [9]  = {"DRSHADOW" , "INTEGER", "FLR",  nil },
   [10] = {"PHMOTION" , "INTEGER", "FLR",  nil },
-  [11] = {"PHYSLEEP" , "INTEGER", "FLR",  nil },
+  [11] = {"PHYACTIV" , "INTEGER", "FLR",  nil },
   [12] = {"SETSOLID" , "INTEGER", "FLR",  nil },
 },true,true)
 
@@ -2121,7 +2121,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
         asmlib.LogInstance("Names missing "..asmlib.GetReport(snPK)); return false end
       local tTypes = tCache[pT]; if(not tTypes) then
         asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK)); return false end
-      if(snPK and snPK ~= "*") then  -- Remove the type from the list
+      if(snPK) then  -- Remove the type from the list
         for iT = 1, tTypes.Size do if(tTypes[iT] == snPK) then
           table.remove(tTypes, iT); tTypes.Size = (tTypes.Size - 1); break
         end; end; tNames[snPK] = nil -- Erase the names for the type as well

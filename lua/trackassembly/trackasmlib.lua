@@ -3486,31 +3486,29 @@ function NewTable(sTable,defTab,bReload,bDelete)
     return true -- The operator is successfully executed. Return success
   end
   -- Wipes a set of records via primary key
-  function self:Erase(sKey)
-    local sKey, qtDef  = tostring(sKey or "*"), self:GetDefinition()
+  function self:Erase(snPK)
+    local qtDef = self:GetDefinition()
     local sMoDB, sFunc = GetOpVar("MODE_DATABASE"), debug.getinfo(1).name
     local tDBmo = GetOpVar("ARRAY_MODEDB"); if(not tDBmo[sMoDB]) then
       LogInstance("Unsupported mode", qtDef.Nick); return false end
-    if(sMoDB == "SQL") then
-      local Q, qsKey = nil, GetOpVar("FORM_KEYSTMT")
-      if(sKey == "*") then
-        local qIndx = qsKey:format(sFunc, sKey); Q = self:Get(qIndx)
-        if(not IsHere(Q)) then Q = self:Delete():Store(qIndx):Get(qIndx) end
-        if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx), qtDef.Nick); return false end
-      else
+    if(sMoDB == "SQL") then local Q = nil -- Local query reference
+      if(snPK) then -- Primary key is available use it to remove the records
         local snCon = self:GetColumnName(1)
+        local qsKey = GetOpVar("FORM_KEYSTMT")
         local qIndx = qsKey:format(sFunc, snCon)
-        local qKey  = self:Match(sKey, 1, true); Q = self:Get(qIndx, qKey)
+        local qKey  = self:Match(snPK, 1, true); Q = self:Get(qIndx, qKey)
         if(not IsHere(Q)) then local tQ = self:GetQuery(sFunc)
           Q = self:Delete():Where(unpack(tQ.W)):Store(qIndx):Get(qIndx, qKey) end
-        if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, sKey),qtDef.Nick); return false end
+        if(not Q) then LogInstance("Build statement failed "..GetReport(qIndx, snPK),qtDef.Nick); return false end
+      else -- Clear the entire table by utilizing standard delete generation
+        Q = self:Delete():Get() -- Update the query reference with the delete
       end
       local qData = sql.Query(Q); if(not qData and isbool(qData)) then
         LogInstance("SQL exec error "..GetReport(sql.LastError(), Q),qtDef.Nick); return false end
     end -- Clear the entry from the table cache too
     local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing",qtDef.Nick); return false end
-    return self:Operator(sFunc, self, tCache, sKey)
+    return self:Operator(sFunc, self, tCache, snPK)
   end
   -- Uses the given array to create a record in the table
   function self:Record(arLine)
@@ -4176,7 +4174,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   if(bComm and sMoDB == "SQL") then
     sql.Query(makTab:Begin():Get()); LogInstance("Begin "..GetReport(sHew,fName), sTable)
   end
-  local iD, sRow, tCon = makTab:GetColumnID("LINEID"), GetLineContent(F)
+  local sRow, tCon = GetLineContent(F)
+  local iD = makTab:GetColumnID("LINEID")
   while(sRow and not tCon.ER) do
     if(not (IsBlank(sRow) or IsDisable(sRow))) then
       local aRow = sDelim:Explode(sRow)
@@ -5417,17 +5416,20 @@ function AttachAdditions(ePiece)
     if(nPh >= 0) then eBonus:PhysicsInit(nPh)
       LogInstance(saFM:format("ENT", "PhysicsInit", tostring(nPh))) end
     local nSh = (tonumber(arRec[coDR]) or 0)
-    if(nSh ~= 0) then bF = (nSh > 0); eBonus:DrawShadow(bF)
+    if(nSh ~= 0) then local bF = (nSh > 0); eBonus:DrawShadow(bF)
       LogInstance(saFM:format("ENT", "DrawShadow", tostring(bF))) end
     eBonus:SetParent(ePiece); LogInstance("ENT:SetParent(PIECE)")
     eBonus:Spawn(); LogInstance("ENT:Spawn()")
-    pPonus = eBonus:GetPhysicsObject()
-    if(pPonus and pPonus:IsValid()) then
+    pBonus = eBonus:GetPhysicsObject()
+    if(pBonus and pBonus:IsValid()) then
       local nEm = (tonumber(arRec[coPM]) or 0)
-      if(nEm ~= 0) then bF = (nEm > 0); pPonus:EnableMotion(nEm > 0)
+      if(nEm ~= 0) then local bF = (nEm > 0); pBonus:EnableMotion(nEm > 0)
         LogInstance(saFM:format("ENT", "EnableMotion", tostring(bF))) end
       local nZe = (tonumber(arRec[coPS]) or 0)
-      if(nZe > 0) then pPonus:Sleep(); LogInstance("ENT:Sleep()") end
+      if(nZe ~= 0) then local bF = (nZe > 0)
+        if(bF) then pBonus:Sleep(); LogInstance("ENT:Sleep()")
+        else pBonus:Wake(); LogInstance("ENT:Wake()") end
+      end
     end
     eBonus:Activate(); LogInstance("ENT:Activate()")
     ePiece:DeleteOnRemove(eBonus); LogInstance("PIECE:DeleteOnRemove(ENT)")

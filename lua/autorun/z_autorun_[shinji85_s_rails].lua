@@ -348,7 +348,7 @@ if(not bS) then ThrowError("PIECES error: "..vO) end
  * In the square brackets goes your MODELBASE,
  * and then for every active point, you must have one array of
  * strings and numbers, where the elements match the following data settings.
- * {MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYSLEEP, SETSOLID}
+ * {MODELBASE, MODELADD, ENTCLASS, LINEID, POSOFF, ANGOFF, MOVETYPE, PHYSINIT, DRSHADOW, PHMOTION, PHYACTIV, SETSOLID}
  * MODELBASE > This string contains the path to your base /*.mdl/ file the additions will be attached to.
  *             It is mandatory and taken in pairs with LINEID, it forms the unique identifier of every record.
  *             When used in /DSV/ mode ( like seen below ) it is used as a hash index.
@@ -371,20 +371,21 @@ if(not bS) then ThrowError("PIECES error: "..vO) end
  * PHMOTION  > This internally calls /PhysObj:EnableMotion/ if the database parameter is not zero on the validated physics object.
  *             The call evaluates to /true/ for positive numbers and /false/ for negative.
  *             When the parameter is equal to zero skips the call of /Entity:EnableMotion/
- * PHYSLEEP  > This internally calls /PhysObj:Sleep/ if the database parameter is grater than zero on the validated physics object.
- *             When the parameter is equal or less than zero skips the call of /Entity:Sleep/
+ * PHYACTIV  > This internally calls /PhysObj/ activation if the database parameter is not zero on the validated physics object.
+ *             The call evaluates to /PhysObj:Wake/ for positive numbers and /PhysObj:Sleep/ for negative.
+ *             When the parameter is equal to zero skips the call of /PhysObj/ activation
  * SETSOLID  > This internally calls /Entity:SetSolid/ if the database parameter is zero or greater.
 ]]--
 local myAdditions = {
   ["models/shinji85/train/rail_l_switch.mdl"] = {
-    {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,-125,0", "0,180,0", -1, -1, 1, 0, -1, -1},
-    {"models/shinji85/train/rail_l_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, 1, -1, 1, SOLID_VPHYSICS},
-    {"models/shinji85/train/rail_l_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, 1,  0, 0, SOLID_NONE}
+    {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,-125,0", "0,180,0", -1, -1, 1, 0, 0, -1},
+    {"models/shinji85/train/rail_l_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, 0, -1, -1, SOLID_VPHYSICS},
+    {"models/shinji85/train/rail_l_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, 0,  0,  0, SOLID_NONE}
   },
   ["models/shinji85/train/rail_r_switch.mdl"] = {
-    {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,125,0", gsMissDB, -1, -1, 1, 0, -1, -1},
-    {"models/shinji85/train/rail_r_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, 1, -1, 1, SOLID_VPHYSICS},
-    {"models/shinji85/train/rail_r_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, 1,  0, 0, SOLID_NONE}
+    {"models/shinji85/train/sw_lever.mdl", "buttonswitch", gsSymOff, "-100,125,0", gsMissDB, -1, -1, 1, 0, 0, -1},
+    {"models/shinji85/train/rail_r_switcher1.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, 0, -1, -1, SOLID_VPHYSICS},
+    {"models/shinji85/train/rail_r_switcher2.mdl", "prop_dynamic", gsSymOff, gsMissDB, gsMissDB, MOVETYPE_VPHYSICS, SOLID_VPHYSICS, 0,  0,  0, SOLID_NONE}
   }
 }
 
