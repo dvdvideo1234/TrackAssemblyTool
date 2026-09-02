@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.903")
+asmlib.SetOpVar("TOOL_VERSION","9.904")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1072,6 +1072,16 @@ if(CLIENT) then
                       luapad.AddTab(uDSV:format(sP, defTab.Nick):lower(), file.Read(sFile, "DATA"), gsDrcDSV)
                       luapad.Frame:SetVisible(true); luapad.Frame:Center()
                       luapad.Frame:MakePopup(); conElements:Push({luapad.Frame, "SetVisible", false})
+                    elseif(WireLib) then -- Luapad is missing and wiremod is installed
+                      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
+                        asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly), sLog..".ListView"); return end
+                      oPly:ConCommand("wire_expression2_editor"); if(not IsValid(wire_expression2_editor)) then
+                        asmlib.LogInstance("Editor invalid "..asmlib.GetReport(oPly), sLog..".ListView"); return end
+                      if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+                        local sCats = fDSV:format(sP, "category"):lower(); if(file.Exists(sCats,"DATA")) then
+                          wire_expression2_editor:Open(sCats, file.Read(sCats, "DATA"), false)
+                        end -- Category is already opened. Trigger one more tab for the table
+                      end; wire_expression2_editor:Open(uDSV:format(sP, defTab.Nick):lower(), file.Read(sFile, "DATA"), false)
                     else -- Luapad is not installed. Open the link to install it
                       local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
                       local sID = asmlib.WorkshopID("Luapad for GMod 13"); gui.OpenURL(sUR:format(sID))
