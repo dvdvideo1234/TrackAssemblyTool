@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.904")
+asmlib.SetOpVar("TOOL_VERSION","9.905")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -626,7 +626,8 @@ if(CLIENT) then
   asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
 
   -- Workshop matching stuff
-  asmlib.WorkshopID("Luapad for GMod 13"          , "107905654")
+  asmlib.WorkshopID("Wiremod"                     , "160250458")
+  asmlib.WorkshopID("Luapad"                      , "107905654")
   asmlib.WorkshopID("SligWolf's Rerailer"         , "132843280")
   asmlib.WorkshopID("SligWolf's Mini Trains"      , "149759773")
   asmlib.WorkshopID("SProps"                      , "173482196")
@@ -1058,7 +1059,7 @@ if(CLIENT) then
                   function() SetClipboardText(tostring(file.Size(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
-                    if(luapad) then
+                    if(luapad and false) then
                       asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
                       asmlib.AutoCloseLuapadTab(uDSV:format(sP, defTab.Nick):lower())
                       if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
@@ -1072,20 +1073,48 @@ if(CLIENT) then
                       luapad.AddTab(uDSV:format(sP, defTab.Nick):lower(), file.Read(sFile, "DATA"), gsDrcDSV)
                       luapad.Frame:SetVisible(true); luapad.Frame:Center()
                       luapad.Frame:MakePopup(); conElements:Push({luapad.Frame, "SetVisible", false})
-                    elseif(WireLib) then -- Luapad is missing and wiremod is installed
-                      local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
-                        asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly), sLog..".ListView"); return end
-                      oPly:ConCommand("wire_expression2_editor"); if(not IsValid(wire_expression2_editor)) then
-                        asmlib.LogInstance("Editor invalid "..asmlib.GetReport(oPly), sLog..".ListView"); return end
+                    elseif(WireLib and false) then -- Luapad is missing and wiremod is installed
+                      if(wire_expression2_editor == nil) then -- Expression 2 editor is not present
+                        wire_expression2_editor = vgui.Create("Expression2EditorFrame")
+                        wire_expression2_editor:Setup("Expression 2 Editor", "expression2", "E2")
+                      end -- Expression 2 editor is available then use is to display track contents
                       if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                        local sCats = fDSV:format(sP, "category"):lower(); if(file.Exists(sCats,"DATA")) then
-                          wire_expression2_editor:Open(sCats, file.Read(sCats, "DATA"), false)
+                        local sCats = fDSV:format(sP, "category"):lower(); if(file.Exists(sCats, "DATA")) then
+                          wire_expression2_editor:Open(uDSV:format(sP, "category"):lower(), file.Read(sCats, "DATA"), false)
                         end -- Category is already opened. Trigger one more tab for the table
-                      end; wire_expression2_editor:Open(uDSV:format(sP, defTab.Nick):lower(), file.Read(sFile, "DATA"), false)
+                      end -- When the table dedicated file is present  then open the source
+                      if(file.Exists(sFile, "DATA")) then -- Set the tane to the file name and read contents
+                        wire_expression2_editor:Open(uDSV:format(sP, defTab.Nick):lower(), file.Read(sFile, "DATA"), false)
+                      end
                     else -- Luapad is not installed. Open the link to install it
-                      local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
-                      local sID = asmlib.WorkshopID("Luapad for GMod 13"); gui.OpenURL(sUR:format(sID))
-                      asmlib.LogInstance("Skipped "..asmlib.GetReport(sFile), sLog..".ListView"); return
+                      local pnLink = vgui.Create("DFrame") -- Create a Frame to contain everything.
+                      pnLink:SetTitle("Test editor")
+                      pnLink:SetSize(scrW / 4, scrH / 4)
+                      pnLink:Center()
+                      pnLink:MakePopup()
+                      pnLink:SetDeleteOnClose(true)
+                      conElements:Push({pnLink, "Close"})
+                      local nW, nH = pnLink:GetSize()
+                      local nX = (nW - 3 * xyDsz.x) / 2
+                      local nY = (nH - 2 * xyDsz.y)
+                      local pnEdit = vgui.Create("DButton", pnLink)
+                      pnEdit:SetPos(xyDsz.x, 5 * xyDsz.y)
+                      pnEdit:SetSize(nX, nY)
+                      pnEdit:SetText("Luapad")
+                      function pnEdit:DoClick()
+                        local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
+                        local sID = asmlib.WorkshopID(self:GetText())
+                        gui.OpenURL(sUR:format(sID))
+                      end
+                      local pnWire = vgui.Create("DButton", pnLink)
+                      pnWire:SetPos(2 * xyDsz.x + nX, 5 * xyDsz.y)
+                      pnWire:SetSize(nX, nY)
+                      pnWire:SetText("Wiremod")
+                      function pnWire:DoClick()
+                        local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
+                        local sID = asmlib.WorkshopID(self:GetText())
+                        gui.OpenURL(sUR:format(sID))
+                      end
                     end -- Luapad is not installed and missing. Open the addon homepage
                   end):SetImage(asmlib.ToIcon(sI.."sted"))
                 pTb:AddOption(language.GetPhrase(sT.."stdl"),
