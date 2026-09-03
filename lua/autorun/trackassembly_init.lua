@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.906")
+asmlib.SetOpVar("TOOL_VERSION","9.907")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1060,6 +1060,7 @@ if(CLIENT) then
                   function() SetClipboardText(tostring(file.Size(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
+                    local sForm = asmlib.GetOpVar("FORM_STRING") -- File format string
                     local nEdit = asmlib.GetAsmConvar("conteditor", "INT") -- Current editor
                     if(luapad and nEdit == 1) then -- Luapad is available and configured as editor
                       if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
@@ -1068,14 +1069,16 @@ if(CLIENT) then
                       if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
                         local fC = fDSV:format(sP, "category"):lower()
                         local uC = uDSV:format(sP, "category"):lower()
-                        if(file.Exists(fC,"DATA")) then -- We cave category for the tracks
-                          luapad.AddTab(uC, file.Read(fC, "DATA"), "data/"..gsDrcDSV)
+                        local oC = sForm:format(sP)..string.upper("category")
+                        if(file.Exists(fC,"DATA")) then luapad.CloseTabName(nil, oC, true)
+                          luapad.AddTab(uC, file.Read(fC, "DATA"), "data/"..gsDrcDSV, oC, "chart_organisation")
                         end -- This is done so we can distinguish between luapad and other panels
                       end -- Luapad is designed not to be closed so we need to make it invisible
                       local fF = fDSV:format(sP, defTab.Nick):lower()
                       local uF = uDSV:format(sP, defTab.Nick):lower()
-                      if(file.Exists(fF,"DATA")) then -- We cave category for the tracks
-                        luapad.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV)
+                      local oF = sForm:format(sP)..string.upper(defTab.Nick)
+                      if(file.Exists(fF,"DATA")) then luapad.CloseTabName(nil, oF, true)
+                        luapad.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "database_connect")
                       end -- This is done so we can distinguish between luapad and other panels
                       luapad.Frame:SetVisible(true); luapad.Frame:Center()
                       luapad.Frame:MakePopup(); conElements:Push({luapad.Frame, "SetVisible", false})
@@ -1099,9 +1102,6 @@ if(CLIENT) then
                       wire_expression2_editor:SetVisible(true); wire_expression2_editor:Center()
                       wire_expression2_editor:MakePopup(); conElements:Push({wire_expression2_editor, "Close"})
                     else -- Luapad is not installed. Open the link to install it
-                      local nE = conEditorDB:GetSize() -- Editors list size
-                      local sUR = asmlib.GetOpVar("FORM_URLADDON") -- URL format
-                      local sForm = asmlib.GetOpVar("FORM_STRING")
                       local pnLink = vgui.Create("DFrame") -- Create a Frame to contain everything.
                       pnLink:SetTitle(language.GetPhrase(sT.."stedxt"))
                       pnLink:SetSize(scrW / 4, scrH / 4)
@@ -1109,15 +1109,17 @@ if(CLIENT) then
                       pnLink:MakePopup()
                       pnLink:SetDeleteOnClose(true)
                       function pnLink:CustomPopulate()
-                        self:Clear()
-                        local nW, nH = self:GetSize()
-                        local nX, nY = 5, (20 + xyDsz.y)
-                        local sX = (nW - 2 * xyDsz.x)
-                        local sY = (nY - nE * xyDsz.y) / nE
+                        local nE = conEditorDB:GetSize()    -- Editors list size
+                        local nW, nH = self:GetSize(); self:Clear()
+                        local nX, nY = 5, (20 + xyDsz.y)    -- Start location
+                        local sX = (nW - 2 * xyDsz.x)       -- Size button X
+                        local sY = (nY - nE * xyDsz.y) / nE -- Size button Y
+                        local cE = asmlib.GetAsmConvar("conteditor", "INT")
+                        local sUR = asmlib.GetOpVar("FORM_URLADDON") -- URL format
                         for iE = 1, nE do
                           local pnBtn = vgui.Create("DButton", self)
                           local sName = conEditorDB:Select(iE)
-                          local sText = ((iE == nEdit) and sForm:format(sName) or sName)
+                          local sText = ((iE == cE) and sForm:format(sName) or sName)
                           pnBtn:SetPos(nX, nY); pnBtn:SetSize(sX, sY); pnBtn:SetText(sText)
                           pnBtn:SetTooltip(sUR:format(asmlib.WorkshopID(self:GetText())))
                           function pnBtn:DoClick() gui.OpenURL(self:GetTooltip()) end
