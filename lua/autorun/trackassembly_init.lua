@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.905")
+asmlib.SetOpVar("TOOL_VERSION","9.906")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -166,6 +166,7 @@ local conPalette = asmlib.GetContainer("COLORS_LIST")
       conPalette:Record("pf",asmlib.GetColor(150, 255, 150, 240)) -- Progress bar foreground
       conPalette:Record("pb",asmlib.GetColor(150, 150, 255, 190)) -- Progress bar background
 
+local conEditorDB = asmlib.GetContainer("FILE_EDIT")
 local conElements = asmlib.GetContainer("LIST_VGUI")
 local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
@@ -626,8 +627,8 @@ if(CLIENT) then
   asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
 
   -- Workshop matching stuff
-  asmlib.WorkshopID("Wiremod"                     , "160250458")
-  asmlib.WorkshopID("Luapad"                      , "107905654")
+  asmlib.WorkshopID("Luapad for Gmod 13"          , "107905654"); conEditorDB:Push("Luapad for Gmod 13")
+  asmlib.WorkshopID("Wiremod by WireTeam"         , "160250458"); conEditorDB:Push("Wiremod by WireTeam")
   asmlib.WorkshopID("SligWolf's Rerailer"         , "132843280")
   asmlib.WorkshopID("SligWolf's Mini Trains"      , "149759773")
   asmlib.WorkshopID("SProps"                      , "173482196")
@@ -1059,62 +1060,74 @@ if(CLIENT) then
                   function() SetClipboardText(tostring(file.Size(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
-                    if(luapad and false) then
-                      asmlib.LogInstance("Modify "..asmlib.GetReport(sFile), sLog..".ListView")
-                      asmlib.AutoCloseLuapadTab(uDSV:format(sP, defTab.Nick):lower())
+                    local nEdit = asmlib.GetAsmConvar("conteditor", "INT") -- Current editor
+                    if(luapad and nEdit == 1) then -- Luapad is available and configured as editor
                       if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
                         asmlib.AutoCloseLuapadTab(uDSV:format(sP, "category"):lower()) end
                       if(luapad.Frame) then luapad.Frame:SetVisible(true); luapad.Frame:Center() else luapad.Toggle() end
                       if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                        local sCats = fDSV:format(sP, "category"):lower(); if(file.Exists(sCats,"DATA")) then
-                          luapad.AddTab(uDSV:format(sP, "category"):lower(), file.Read(sCats, "DATA"), gsDrcDSV)
+                        local fC = fDSV:format(sP, "category"):lower()
+                        local uC = uDSV:format(sP, "category"):lower()
+                        if(file.Exists(fC,"DATA")) then -- We cave category for the tracks
+                          luapad.AddTab(uC, file.Read(fC, "DATA"), "data/"..gsDrcDSV)
                         end -- This is done so we can distinguish between luapad and other panels
                       end -- Luapad is designed not to be closed so we need to make it invisible
-                      luapad.AddTab(uDSV:format(sP, defTab.Nick):lower(), file.Read(sFile, "DATA"), gsDrcDSV)
+                      local fF = fDSV:format(sP, defTab.Nick):lower()
+                      local uF = uDSV:format(sP, defTab.Nick):lower()
+                      if(file.Exists(fF,"DATA")) then -- We cave category for the tracks
+                        luapad.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV)
+                      end -- This is done so we can distinguish between luapad and other panels
                       luapad.Frame:SetVisible(true); luapad.Frame:Center()
                       luapad.Frame:MakePopup(); conElements:Push({luapad.Frame, "SetVisible", false})
-                    elseif(WireLib and false) then -- Luapad is missing and wiremod is installed
+                    elseif(WireLib and nEdit == 2) then -- Wiremod is selected and configured as editor
                       if(wire_expression2_editor == nil) then -- Expression 2 editor is not present
                         wire_expression2_editor = vgui.Create("Expression2EditorFrame")
                         wire_expression2_editor:Setup("Expression 2 Editor", "expression2", "E2")
                       end -- Expression 2 editor is available then use is to display track contents
                       if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
-                        local sCats = fDSV:format(sP, "category"):lower(); if(file.Exists(sCats, "DATA")) then
-                          wire_expression2_editor:Open(uDSV:format(sP, "category"):lower(), file.Read(sCats, "DATA"), false)
-                        end -- Category is already opened. Trigger one more tab for the table
+                        local fC = fDSV:format(sP, "category"):lower()
+                        local uC = uDSV:format(sP, "category"):lower()
+                        if(file.Exists(fC,"DATA")) then -- We cave category for the tracks
+                          wire_expression2_editor:Open(fC, file.Read(fC, "DATA"), false)
+                        end -- This is done so we can distinguish between E2 and other panels
                       end -- When the table dedicated file is present  then open the source
-                      if(file.Exists(sFile, "DATA")) then -- Set the tane to the file name and read contents
-                        wire_expression2_editor:Open(uDSV:format(sP, defTab.Nick):lower(), file.Read(sFile, "DATA"), false)
+                      local fF = fDSV:format(sP, defTab.Nick):lower()
+                      local uF = uDSV:format(sP, defTab.Nick):lower()
+                      if(file.Exists(fF, "DATA")) then -- Set the file name and read contents
+                        wire_expression2_editor:Open(fF, file.Read(fF, "DATA"), false)
                       end
+                      wire_expression2_editor:SetVisible(true); wire_expression2_editor:Center()
+                      wire_expression2_editor:MakePopup(); conElements:Push({wire_expression2_editor, "Close"})
                     else -- Luapad is not installed. Open the link to install it
+                      local nE = conEditorDB:GetSize() -- Editors list size
+                      local sUR = asmlib.GetOpVar("FORM_URLADDON") -- URL format
+                      local sForm = asmlib.GetOpVar("FORM_STRING")
                       local pnLink = vgui.Create("DFrame") -- Create a Frame to contain everything.
-                      pnLink:SetTitle("Test editor")
+                      pnLink:SetTitle(language.GetPhrase(sT.."stedxt"))
                       pnLink:SetSize(scrW / 4, scrH / 4)
                       pnLink:Center()
                       pnLink:MakePopup()
                       pnLink:SetDeleteOnClose(true)
+                      function pnLink:CustomPopulate()
+                        self:Clear()
+                        local nW, nH = self:GetSize()
+                        local nX, nY = 5, (20 + xyDsz.y)
+                        local sX = (nW - 2 * xyDsz.x)
+                        local sY = (nY - nE * xyDsz.y) / nE
+                        for iE = 1, nE do
+                          local pnBtn = vgui.Create("DButton", self)
+                          local sName = conEditorDB:Select(iE)
+                          local sText = ((iE == nEdit) and sForm:format(sName) or sName)
+                          pnBtn:SetPos(nX, nY); pnBtn:SetSize(sX, sY); pnBtn:SetText(sText)
+                          pnBtn:SetTooltip(sUR:format(asmlib.WorkshopID(self:GetText())))
+                          function pnBtn:DoClick() gui.OpenURL(self:GetTooltip()) end
+                          function pnBtn:DoRightClick() SetClipboardText(self:GetTooltip()) end
+                          function pnBtn:DoMiddleClick() self:CustomPopulate(); asmlib.SetAsmConvar(oPly, "conteditor", iE) end
+                          nY = (nY + sY + xyDsz.y) -- One button and one delta
+                        end
+                      end
+                      pnLink:CustomPopulate()
                       conElements:Push({pnLink, "Close"})
-                      local nW, nH = pnLink:GetSize()
-                      local nX = (nW - 3 * xyDsz.x) / 2
-                      local nY = (nH - 2 * xyDsz.y)
-                      local pnEdit = vgui.Create("DButton", pnLink)
-                      pnEdit:SetPos(xyDsz.x, 5 * xyDsz.y)
-                      pnEdit:SetSize(nX, nY)
-                      pnEdit:SetText("Luapad")
-                      function pnEdit:DoClick()
-                        local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
-                        local sID = asmlib.WorkshopID(self:GetText())
-                        gui.OpenURL(sUR:format(sID))
-                      end
-                      local pnWire = vgui.Create("DButton", pnLink)
-                      pnWire:SetPos(2 * xyDsz.x + nX, 5 * xyDsz.y)
-                      pnWire:SetSize(nX, nY)
-                      pnWire:SetText("Wiremod")
-                      function pnWire:DoClick()
-                        local sUR = asmlib.GetOpVar("FORM_URLADDON") -- Workshop URL format
-                        local sID = asmlib.WorkshopID(self:GetText())
-                        gui.OpenURL(sUR:format(sID))
-                      end
                     end -- Luapad is not installed and missing. Open the addon homepage
                   end):SetImage(asmlib.ToIcon(sI.."sted"))
                 pTb:AddOption(language.GetPhrase(sT.."stdl"),

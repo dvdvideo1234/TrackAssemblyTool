@@ -779,6 +779,7 @@ function InitBase(sName, sPurp)
   SetOpVar("FORM_PROGRESS", "%5.2f%%")
   SetOpVar("FORM_CONCMD", "%s \"%s\"\n")
   SetOpVar("FORM_INTEGER", "[%d]")
+  SetOpVar("FORM_STRING", "[%s]")
   SetOpVar("FORM_KEYSTMT","%s(%s)")
   SetOpVar("FORM_PREFIXFMT", "[%s-%s]%s")
   SetOpVar("FORM_HEADEREXP", {
@@ -1844,21 +1845,6 @@ function GetNodeTypeRoot(pnBase, iRep, sSym)
     table.insert(tP, pC:GetText())
     pT = pC; pC = pC:GetParentNode()
   end; return pT, table.concat(tP):sub(sD:len()+1, -1)
-end
-
-function AutoCloseLuapadTab(sName)
-  if(SERVER) then return end
-  local luapad = GENV . luapad
-  if(not luapad) then return end
-  if(not luapad.PropertySheet) then return end
-  local tTab = luapad.PropertySheet:GetItems() -- Luapad is installed and present.
-  for iD = 1, #tTab do local inf = tTab[iD] -- The context menu option is available
-    if(inf and inf.Name and inf.Name:find(sName, 1, true)) then
-      luapad.PropertySheet:CloseTab(inf.Tab); inf.Tab:Remove(); inf.Panel:Remove()
-      local iK = table.KeyFromValue(luapad.OpenFiles, sName)
-      if(iK) then table.remove(luapad.OpenFiles, iK) end
-    end
-  end; luapad.PropertySheet:InvalidateLayout()
 end
 
 function ExportAttachToMenu(pnMenu, sType, bDisp)
