@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.913")
+asmlib.SetOpVar("TOOL_VERSION","9.914")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -695,7 +695,8 @@ if(CLIENT) then
   -- Workshop matching stuff
   for iD = 1, conEditorDB:GetSize() do
     local tC = conEditorDB:Select(iD)
-    asmlib.WorkshopID(tC.Name, tC.ID)
+    local bE, sID = asmlib.GetEmpty(tC.ID)
+    if(not bE) then asmlib.WorkshopID(tC.Name, sID) end
   end -- Editors are automatically added
   asmlib.WorkshopID("SligWolf's Rerailer"         , "132843280")
   asmlib.WorkshopID("SligWolf's Mini Trains"      , "149759773")
