@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.914")
+asmlib.SetOpVar("TOOL_VERSION","9.915")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1152,7 +1152,7 @@ if(CLIENT) then
                         pnLay:SetStretchWidth(false); pnLay:SetStretchHeight(false); pnLay:SetBorder(0)
                         local nC, nW, nH = 3, pnLay:GetSize() -- Get layout size. 3 columns
                         local xI, yI = (nW - ((nC + 1) * xyDsz.x)), (nH - ((nE + 1) * xyDsz.y))
-                        local xB, xC = (xI * (gnRatio - 1)), (xI - (xI * (gnRatio - 1)))
+                        local xC, xB = yI, (xI - 2 * yI) -- Size Y is the same. Make boxes square
                         for iE = 1, nE do -- Adds a layout for every text editor
                           local tC = conEditorDB:Select(iE); if(not tC) then
                             asmlib.LogInstance("Config invalid at "..iF:format(iE), sLog..".ListView") end
