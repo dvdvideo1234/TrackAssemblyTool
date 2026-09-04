@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.912")
+asmlib.SetOpVar("TOOL_VERSION","9.913")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -167,7 +167,7 @@ local conPalette = asmlib.GetContainer("COLORS_LIST")
       conPalette:Record("pb",asmlib.GetColor(150, 150, 255, 190)) -- Progress bar background
 
 local conEditorDB = asmlib.GetContainer("FILE_EDIT")
-      conEditorDB:Push({Name = "Luapad for Gmod 13" , Code = luapad , Open =
+      conEditorDB:Push({Name = "Luapad for Gmod 13", ID = "107905654", Code = luapad , Open =
         function(sP, sN, sD, pC)
           local sH = asmlib.GetConcat(sD, " > ", sN, " : ")
           if(SERVER) then
@@ -201,7 +201,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           pC.Frame:SetVisible(true); pC.Frame:Center()
           pC.Frame:MakePopup(); conElements:Push({pC.Frame, "SetVisible", false})
         end})
-      conEditorDB:Push({Name = "Wiremod by WireTeam", Code = WireLib, Open =
+      conEditorDB:Push({Name = "Wiremod by WireTeam", ID = "160250458", Code = WireLib, Open =
         function(sP, sN, sD, pC)
           local sH = asmlib.GetConcat(sD, " > ", sN, " : ")
           if(SERVER) then
@@ -693,8 +693,10 @@ if(CLIENT) then
   asmlib.ToIcon("bnderrmod_error"  , "shape_square_error")
 
   -- Workshop matching stuff
-  asmlib.WorkshopID("Luapad for Gmod 13"          , "107905654")
-  asmlib.WorkshopID("Wiremod by WireTeam"         , "160250458")
+  for iD = 1, conEditorDB:GetSize() do
+    local tC = conEditorDB:Select(iD)
+    asmlib.WorkshopID(tC.Name, tC.ID)
+  end -- Editors are automatically added
   asmlib.WorkshopID("SligWolf's Rerailer"         , "132843280")
   asmlib.WorkshopID("SligWolf's Mini Trains"      , "149759773")
   asmlib.WorkshopID("SProps"                      , "173482196")
