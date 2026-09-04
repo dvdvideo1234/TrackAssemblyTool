@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.911")
+asmlib.SetOpVar("TOOL_VERSION","9.912")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1130,7 +1130,7 @@ if(CLIENT) then
                     local tC = conEditorDB:Select(iE) -- Read editor configuration
                     if(tC and asmlib.IsHere(tC.Code)) then -- Editor is chosen and installed
                       local bS, sE = pcall(tC.Open, sP, defTab.Nick, tC.Name, tC.code)
-                      if(not bS) then asmlib.LogInstance("Open editor error: "..sE, sLog..".ListView") end
+                      if(not bS) then asmlib.LogInstance("Editor error: "..sE, sLog..".ListView") end
                     else -- Editor is not installed or available. Open the frame to install it
                       local pnLink = vgui.Create("DFrame") -- Create a Frame to contain everything.
                       pnLink:SetTitle(language.GetPhrase(sT.."stedx").." "..oPly:Nick())
