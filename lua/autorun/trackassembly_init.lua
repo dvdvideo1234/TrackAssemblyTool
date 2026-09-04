@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.909")
+asmlib.SetOpVar("TOOL_VERSION","9.910")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1131,12 +1131,11 @@ if(CLIENT) then
                     if(tC and asmlib.IsHere(tC.Code)) then -- Editor is chosen and installed
                       local bS, sE = pcall(tC.Open, sP, defTab.Nick, tC.Name, tC.code)
                       if(not bS) then asmlib.LogInstance("Open editor error: "..sE, sLog..".ListView") end
-                    else -- Luapad is not installed. Open the link to install it
+                    else -- Editor is not installed or available. Open the frame to install it
                       local pnLink = vgui.Create("DFrame") -- Create a Frame to contain everything.
                       pnLink:SetTitle(language.GetPhrase(sT.."stedx").." "..oPly:Nick())
                       pnLink:SetSize(scrW / 4, scrH / 4)
-                      pnLink:Center()
-                      pnLink:MakePopup()
+                      pnLink:Center(); pnLink:MakePopup()
                       pnLink:SetDeleteOnClose(true)
                       function pnLink:CustomPopulate()
                         self:Clear() -- Clear all buttons to get them rebuilt
@@ -1151,11 +1150,11 @@ if(CLIENT) then
                         local nC, nW, nH = 3, pnLay:GetSize() -- Get layout size. 3 columns
                         local xI, yI = (nW - ((nC + 1) * xyDsz.x)), (nH - ((nE + 1) * xyDsz.y))
                         local xB, xC = (xI * (gnRatio - 1)), (xI - (xI * (gnRatio - 1)))
-                        for iE = 1, nE do
+                        for iE = 1, nE do -- Adds a layout for every text editor
                           local tC = conEditorDB:Select(iE); if(not tC) then
                             asmlib.LogInstance("Config invalid at "..iF:format(iE), sLog..".ListView") end
-                          local sN = tC.Name; if(not sN) then
-                            asmlib.LogInstance("Name invalid at "..iF:format(iE), sLog..".ListView") end
+                          local bE, sN = asmlib.GetEmpty(tC.Name); if(bE) then
+                            asmlib.LogInstance("Name missing at "..iF:format(iE), sLog..".ListView") end
                           local pnAct = pnLay:Add("DCheckBox"); if(not IsValid(pnAct)) then
                             asmlib.LogInstance("Active invalid at "..iF:format(iE), sLog..".ListView") end
                           local pnIns = pnLay:Add("DCheckBox"); if(not IsValid(pnIns)) then
@@ -1179,7 +1178,7 @@ if(CLIENT) then
                             asmlib.SetAsmConvar(oPly, "conteditor", self.m_ID)
                             self:CustomPopulate() -- Rebuild after changing the ID
                           end
-                        end
+                        end; pnLay:Layout()
                       end
                       pnLink:CustomPopulate()
                       conElements:Push({pnLink, "Close"})
