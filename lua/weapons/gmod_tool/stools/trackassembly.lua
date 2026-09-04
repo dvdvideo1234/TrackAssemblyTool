@@ -84,7 +84,7 @@ TOOL.ClientConVar = {
   [ "crvturnlm"  ] = 0.95,
   [ "crvleanlm"  ] = 0.95,
   [ "crvsuprev"  ] = 0,
-  [ "conteditor" ] = 1,
+  [ "texteditid" ] = 1,
   [ "flipoverid" ] = ""
 }
 

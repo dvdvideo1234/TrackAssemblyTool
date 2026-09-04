@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.910")
+asmlib.SetOpVar("TOOL_VERSION","9.911")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1126,7 +1126,7 @@ if(CLIENT) then
                   function() SetClipboardText(tostring(file.Size(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
-                    local iE = asmlib.GetAsmConvar("conteditor", "INT") -- Current editor
+                    local iE = asmlib.GetAsmConvar("texteditid", "INT") -- Current editor
                     local tC = conEditorDB:Select(iE) -- Read editor configuration
                     if(tC and asmlib.IsHere(tC.Code)) then -- Editor is chosen and installed
                       local bS, sE = pcall(tC.Open, sP, defTab.Nick, tC.Name, tC.code)
@@ -1141,7 +1141,7 @@ if(CLIENT) then
                         self:Clear() -- Clear all buttons to get them rebuilt
                         local iF = asmlib.GetOpVar("FORM_INTEGER") -- Int format
                         local nE = conEditorDB:GetSize()    -- Editors list size
-                        local cE = asmlib.GetAsmConvar("conteditor", "INT")
+                        local cE = asmlib.GetAsmConvar("texteditid", "INT")
                         local sUR = asmlib.GetOpVar("FORM_URLADDON") -- URL format
                         local pnLay = vgui.Create("DIconLayout", pnLink); if(not IsValid(pnLay)) then
                           asmlib.LogInstance("Layout invalid", sLog..".ListView"); return end
@@ -1175,7 +1175,7 @@ if(CLIENT) then
                           function pnBtn:DoMiddleClick()
                             if(pnAct:GetChecked()) then return end
                             if(not pnIns:GetChecked()) then return end
-                            asmlib.SetAsmConvar(oPly, "conteditor", self.m_ID)
+                            asmlib.SetAsmConvar(oPly, "texteditid", self.m_ID)
                             self:CustomPopulate() -- Rebuild after changing the ID
                           end
                         end; pnLay:Layout()
