@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.915")
+asmlib.SetOpVar("TOOL_VERSION","9.916")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -166,6 +166,14 @@ local conPalette = asmlib.GetContainer("COLORS_LIST")
       conPalette:Record("pf",asmlib.GetColor(150, 255, 150, 240)) -- Progress bar foreground
       conPalette:Record("pb",asmlib.GetColor(150, 150, 255, 190)) -- Progress bar background
 
+local conElements = asmlib.GetContainer("LIST_VGUI")
+local conWorkMode = asmlib.GetContainer("WORK_MODE")
+      conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
+      conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
+      conWorkMode:Push("CURVE") -- Catmull-Rom spline interpolation fitting
+      conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
+      conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
+
 local conEditorDB = asmlib.GetContainer("FILE_EDIT")
       conEditorDB:Push({Name = "Luapad for Gmod 13", ID = "107905654", Code = luapad , Open =
         function(sP, sN, sD, pC)
@@ -174,10 +182,10 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
             asmlib.LogInstance(sH.."Work on server"); return end
           if(not pC) then
             asmlib.LogInstance(sH.."Not installed"); return end
-          if(not IsValid(pC.Frame)) then
-            asmlib.LogInstance(sH.."Frame invalid"); return end
+          if(not IsValid(pC.Frame)) then pC.Toggle() end
           -- Configure the panel visuals and display the file
-          pC.Frame:SetVisible(true); pC.Frame:Center() else pC.Toggle() end
+          pC.Frame:SetVisible(true); pC.Frame:Center()
+          pC.OpenTab("data/"..gsToolNameL)
           local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
           local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
           local sForm = asmlib.GetOpVar("FORM_STRING") -- File format string
@@ -203,6 +211,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
         end})
       conEditorDB:Push({Name = "Wiremod by WireTeam", ID = "160250458", Code = WireLib, Open =
         function(sP, sN, sD, pC)
+          print(1111)
           local sH = asmlib.GetConcat(sD, " > ", sN, " : ")
           if(SERVER) then
             asmlib.LogInstance(sH.."Work on server"); return end
@@ -219,27 +228,27 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           -- Configure the panel visuals and display the file
           wire_expression2_editor:Setup("Wiremod editor", gsToolNameL, "Default")
           -- This is done so we can distinguish between E2 and other panels
-          if(defTab.Nick == "PIECES") then -- Load the category provider for this DSV
+          if(sN == "PIECES") then -- Load the category provider for this DSV
             local fC = fDSV:format(sP, "category"):lower()
             if(file.Exists(fC,"DATA")) then -- We cave category for the tracks
               wire_expression2_editor:Open(fC, file.Read(fC, "DATA"), false)
+              local aT = wire_expression2_editor:GetActiveTab()
+              if(IsValid(aT)) then aT.chosenfile = fC end
+              wire_expression2_editor.chosenfile = fC
             else asmlib.LogInstance(sH.."File missing: "..fC) end
           end -- When the table dedicated file is present  then open the source
-          local fF = fDSV:format(sP, defTab.Nick):lower()
+          local fF = fDSV:format(sP, sN):lower()
           if(file.Exists(fF, "DATA")) then -- Set the file name and read contents
             wire_expression2_editor:Open(fF, file.Read(fF, "DATA"), false)
+            local aT = wire_expression2_editor:GetActiveTab()
+            if(IsValid(aT)) then aT.chosenfile = fF end
+            wire_expression2_editor.chosenfile = fF
           else asmlib.LogInstance(sH.."File missing: "..fF) end
           wire_expression2_editor:SetVisible(true); wire_expression2_editor:Center()
           wire_expression2_editor:MakePopup(); conElements:Push({wire_expression2_editor, "Close"})
         end})
-
-local conElements = asmlib.GetContainer("LIST_VGUI")
-local conWorkMode = asmlib.GetContainer("WORK_MODE")
-      conWorkMode:Push("SNAP" ) -- General spawning and snapping mode
-      conWorkMode:Push("CROSS") -- Ray cross intersect interpolation
-      conWorkMode:Push("CURVE") -- Catmull-Rom spline interpolation fitting
-      conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
-      conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
+-- Automatically apply the convar limits. Zero iz considered as no editor
+asmlib.SetBorder(gsToolPrefL.."texteditid", 0, conEditorDB:GetSize())
 
 ------------ CALLBACKS ------------
 
@@ -658,6 +667,7 @@ if(CLIENT) then
   asmlib.ToIcon("pn_contextm_sttm" , "time_go"           )
   asmlib.ToIcon("pn_contextm_stsz" , "compress"          )
   asmlib.ToIcon("pn_contextm_sted" , "table_edit"        )
+  asmlib.ToIcon("pn_contextm_stedx", "cog_edit"          )
   asmlib.ToIcon("pn_contextm_stdl" , "table_delete"      )
   asmlib.ToIcon("pn_contextm_tg"   , "database_connect"  )
   asmlib.ToIcon("pn_contextm_ep"   , "zoom"              )
@@ -864,9 +874,9 @@ if(CLIENT) then
       pnFrame:SetDraggable(true)
       pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
-      pnFrame.OnClose = function(pnSelf)
-        local iK = conElements:Find(pnSelf) -- Find panel key index
-        if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
+      function pnFrame:OnClose()
+        local iK = conElements:Find(self) -- Find panel key index
+        if(IsValid(self)) then self:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
       local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
@@ -1131,60 +1141,83 @@ if(CLIENT) then
                   function() -- Edit the database contents using the Luapad addon
                     local iE = asmlib.GetAsmConvar("texteditid", "INT") -- Current editor
                     local tC = conEditorDB:Select(iE) -- Read editor configuration
-                    if(tC and asmlib.IsHere(tC.Code)) then -- Editor is chosen and installed
-                      local bS, sE = pcall(tC.Open, sP, defTab.Nick, tC.Name, tC.code)
+                    if(tC and asmlib.IsHere(tC.Code) and not input.IsKeyDown(KEY_LSHIFT)) then
+                      local bS, sE = pcall(tC.Open, sP, defTab.Nick, tC.Name, tC.Code)
                       if(not bS) then asmlib.LogInstance("Editor error: "..sE, sLog..".ListView") end
                     else -- Editor is not installed or available. Open the frame to install it
-                      local pnLink = vgui.Create("DFrame") -- Create a Frame to contain everything.
-                      pnLink:SetTitle(language.GetPhrase(sT.."stedx").." "..oPly:Nick())
-                      pnLink:SetSize(scrW / 4, scrH / 4)
-                      pnLink:Center(); pnLink:MakePopup()
-                      pnLink:SetDeleteOnClose(true)
-                      function pnLink:CustomPopulate()
-                        self:Clear() -- Clear all buttons to get them rebuilt
-                        local iF = asmlib.GetOpVar("FORM_INTEGER") -- Int format
-                        local nE = conEditorDB:GetSize()    -- Editors list size
-                        local cE = asmlib.GetAsmConvar("texteditid", "INT")
-                        local sUR = asmlib.GetOpVar("FORM_URLADDON") -- URL format
-                        local pnLay = vgui.Create("DIconLayout", pnLink); if(not IsValid(pnLay)) then
-                          asmlib.LogInstance("Layout invalid", sLog..".ListView"); return end
-                        pnLay:Dock(FILL); pnLay:SetSpaceX(xyDsz.x); pnLay:SetSpaceY(xyDsz.y)
-                        pnLay:SetStretchWidth(false); pnLay:SetStretchHeight(false); pnLay:SetBorder(0)
-                        local nC, nW, nH = 3, pnLay:GetSize() -- Get layout size. 3 columns
-                        local xI, yI = (nW - ((nC + 1) * xyDsz.x)), (nH - ((nE + 1) * xyDsz.y))
-                        local xC, xB = yI, (xI - 2 * yI) -- Size Y is the same. Make boxes square
-                        for iE = 1, nE do -- Adds a layout for every text editor
-                          local tC = conEditorDB:Select(iE); if(not tC) then
-                            asmlib.LogInstance("Config invalid at "..iF:format(iE), sLog..".ListView") end
-                          local bE, sN = asmlib.GetEmpty(tC.Name); if(bE) then
-                            asmlib.LogInstance("Name missing at "..iF:format(iE), sLog..".ListView") end
-                          local pnAct = pnLay:Add("DCheckBox"); if(not IsValid(pnAct)) then
-                            asmlib.LogInstance("Active invalid at "..iF:format(iE), sLog..".ListView") end
-                          local pnIns = pnLay:Add("DCheckBox"); if(not IsValid(pnIns)) then
-                            asmlib.LogInstance("Install invalid at "..iF:format(iE), sLog..".ListView") end
-                          local pnBtn = pnLay:Add("DButton"); if(not IsValid(pnBtn)) then
-                            asmlib.LogInstance("Button invalid at "..iF:format(iE), sLog..".ListView") end
-                          pnAct:SetSize(xC, yI); pnIns:SetSize(xC, yI); pnBtn:SetSize(xB, yI)
-                          pnAct:SetEnabled(false); pnIns:SetEnabled(false); pnBtn.m_ID = iE
-                          pnAct:SetChecked(iE == cE); pnIns:SetChecked(asmlib.IsHere(tC.Code))
-                          pnAct:SetTooltip(pnAct:GetChecked() and language.GetPhrase(sT.."stedx_av") or
-                            language.GetPhrase(sT.."stedx_ax")..". "..language.GetPhrase(sT.."stedx_oo"))
-                          pnIns:SetTooltip(pnIns:GetChecked() and language.GetPhrase(sT.."stedx_iv") or
-                            language.GetPhrase(sT.."stedx_ix")..". "..language.GetPhrase(sT.."stedx_oo"))
-                          pnBtn:SetTooltip(language.GetPhrase(sT.."stedx_bt"))
-                          pnBtn:SetText(sN); pnBtn:SetTooltip(sUR:format(asmlib.WorkshopID(sN)))
-                          function pnBtn:DoClick() gui.OpenURL(self:GetTooltip()) end
-                          function pnBtn:DoRightClick() SetClipboardText(self:GetTooltip()) end
-                          function pnBtn:DoMiddleClick()
-                            if(pnAct:GetChecked()) then return end
-                            if(not pnIns:GetChecked()) then return end
-                            asmlib.SetAsmConvar(oPly, "texteditid", self.m_ID)
-                            self:CustomPopulate() -- Rebuild after changing the ID
-                          end
-                        end; pnLay:Layout()
+                      local pnLink = vgui.Create("DFrame"); if(not IsValid(pnLink)) then
+                        asmlib.LogInstance("Frame invalid", sLog..".ListView"); return end
+                      -- Create a Frame to contain everything
+                      pnLink:SetPos(0, 0)
+                      pnLink:SetSize(scrW / 4, scrH / 8)
+                      pnLink:SetDraggable(true)
+                      pnLink:SetScreenLock(false)
+                      pnLink:ShowCloseButton(true)
+                      pnLink:SetDeleteOnClose(false)
+                      function pnLink:OnClose()
+                        local iK = conElements:Find(self) -- Find panel key index
+                        if(IsValid(self)) then self:Remove() end -- Delete the valid panel
+                        if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
                       end
-                      pnLink:CustomPopulate()
-                      conElements:Push({pnLink, "Close"})
+                      pnLink:SetIcon(asmlib.ToIcon(sI.."stedx"))
+                      pnLink:SetTitle(language.GetPhrase(sT.."stedx").." "..oPly:Nick())
+                      pnLink:Center(); pnLink:MakePopup()
+                      local pnLay = vgui.Create("DPanel", pnLink); if(not IsValid(pnLay)) then
+                        asmlib.LogInstance("Layout invalid", sLog..".ListView"); pnLink:Close(); return end
+                      pnLay:Dock(FILL); pnLay:InvalidateParent(true)
+                      local iF = asmlib.GetOpVar("FORM_INTEGER") -- Int format
+                      local nE, tA, nC = conEditorDB:GetSize(), {}, 3   -- Editors list size
+                      local cE = asmlib.GetAsmConvar("texteditid", "INT")
+                      local sUR = asmlib.GetOpVar("FORM_URLADDON") -- URL format
+                      local nX, nY = xyDsz.x, xyDsz.y
+                      local xC = (pnLay:GetTall() -  (nE + 1) * xyDsz.y) / 2
+                      local xB = (pnLay:GetWide() -  (2 * xC) - ((nC + 1) * xyDsz.x))
+                      for iE = 1, nE do -- Layout for every text editor
+                        local tC = conEditorDB:Select(iE); if(not tC) then
+                          asmlib.LogInstance("Config invalid at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                        local bE, sN = asmlib.GetEmpty(tC.Name); if(bE) then
+                          asmlib.LogInstance("Name missing at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                        local pnAct = vgui.Create("DCheckBox", pnLay); if(not IsValid(pnAct)) then
+                          asmlib.LogInstance("Active invalid at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                        pnAct:SetPos(nX, nY); pnAct:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
+                        local pnIns = vgui.Create("DCheckBox", pnLay); if(not IsValid(pnIns)) then
+                          asmlib.LogInstance("Install invalid at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                        pnIns:SetPos(nX, nY); pnIns:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
+                        local pnBtn =  vgui.Create("DButton", pnLay); if(not IsValid(pnBtn)) then
+                          asmlib.LogInstance("Button invalid at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                        pnBtn:SetPos(nX, nY); pnBtn:SetSize(xB, xC); nX, nY = xyDsz.x, (nY + xC + xyDsz.y)
+                        pnIns:SetEnabled(false); pnIns:SetChecked(asmlib.IsHere(tC.Code))
+                        pnAct:SetEnabled(pnIns:GetChecked()); pnAct:SetChecked(iE == cE)
+                        pnAct:SetTooltip(pnAct:GetChecked() and language.GetPhrase(sT.."stedx_av") or language.GetPhrase(sT.."stedx_ax"))
+                        pnIns:SetTooltip(pnIns:GetChecked() and language.GetPhrase(sT.."stedx_iv") or language.GetPhrase(sT.."stedx_ix"))
+                        pnBtn:SetTooltip(language.GetPhrase(sT.."stedx_bt")); table.insert(tA, pnAct); pnAct:SetName(sN)
+                        pnBtn:SetText(sN); pnBtn:SetTooltip(sUR:format(asmlib.WorkshopID(sN)))
+                        function pnAct:OnChange(bA) -- Uncheck all other checkboxes
+                          if(bA) then -- In case we are checking uncheck others and apply this
+                            for iA = 1, #tA do local cA = tA[iA] -- Uncheck everything else
+                              if(IsValid(cA)) then
+                                if(cA == self) then
+                                  cA:SetChecked(true) -- Enabled
+                                  asmlib.SetAsmConvar(oPly, "texteditid", iA)
+                                  cA:SetTooltip(language.GetPhrase(sT.."stedx_av"))
+                                else -- Refresh every other check box
+                                  cA:SetChecked(false) -- Disabled
+                                  cA:SetTooltip(language.GetPhrase(sT.."stedx_ax"))
+                                end
+                              end -- Text editor is chosen only when current is equal to self
+                            end -- Only enabling a checkbox will trigger uncheck
+                          else -- Called with false.If all are falce reset the convar
+                            self:SetChecked(false) -- Set this check box to false
+                            self:SetTooltip(language.GetPhrase(sT.."stedx_ax"))
+                            for iA = 1, #tA do local cA = tA[iA] -- Ceck status
+                              if(IsValid(cA) and cA:GetChecked()) then return end
+                            end; asmlib.SetAsmConvar(oPly, "texteditid", 0)
+                            print("Reset")
+                          end -- Reaturn early if one check box is enabled
+                        end -- Change from true to false remove the active editor
+                        function pnBtn:DoClick() gui.OpenURL(self:GetTooltip()) end
+                        function pnBtn:DoRightClick() SetClipboardText(self:GetTooltip()) end
+                      end; conElements:Push({pnLink, "Close"})
                     end -- Luapad is not installed and missing. Open the addon homepage
                   end):SetImage(asmlib.ToIcon(sI.."sted"))
                 pTb:AddOption(language.GetPhrase(sT.."stdl"),
@@ -1233,13 +1266,13 @@ if(CLIENT) then
       pnFrame:SetDraggable(true)
       pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
-      pnFrame:SetPos(xyPos.x, xyPos.y)
-      pnFrame:SetSize(xySiz.x, xySiz.y)
-      pnFrame.OnClose = function(pnSelf)
-        local iK = conElements:Find(pnSelf) -- Find panel key index
-        if(IsValid(pnSelf)) then pnSelf:Remove() end -- Delete the valid panel
+      function pnFrame:OnClose()
+        local iK = conElements:Find(self) -- Find panel key index
+        if(IsValid(self)) then self:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
+      pnFrame:SetPos(xyPos.x, xyPos.y)
+      pnFrame:SetSize(xySiz.x, xySiz.y)
       ------------ Button ------------
       xyTmp.x, xyTmp.y = pnFrame:GetSize()
       xySiz.x = (xyTmp.x / (8.5 * gnRatio)) -- Display properly the name
