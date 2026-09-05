@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.916")
+asmlib.SetOpVar("TOOL_VERSION","9.918")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -175,13 +175,10 @@ local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
 
 local conEditorDB = asmlib.GetContainer("FILE_EDIT")
-      conEditorDB:Push({Name = "Luapad for Gmod 13", ID = "107905654", Code = luapad , Open =
+      conEditorDB:Push({Name = "Luapad for Gmod 13", ID = "107905654", Code = luapad, Open =
         function(sP, sN, sD, pC)
-          local sH = asmlib.GetConcat(sD, " > ", sN, " : ")
-          if(SERVER) then
-            asmlib.LogInstance(sH.."Work on server"); return end
-          if(not pC) then
-            asmlib.LogInstance(sH.."Not installed"); return end
+          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sP, sN, sD, pC)); return end
+          if(not pC) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sP, sN, sD, pC)); return end
           if(not IsValid(pC.Frame)) then pC.Toggle() end
           -- Configure the panel visuals and display the file
           pC.Frame:SetVisible(true); pC.Frame:Center()
@@ -191,13 +188,12 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           local sForm = asmlib.GetOpVar("FORM_STRING") -- File format string
           if(sN == "PIECES") then -- Load the category provider for this DSV
             local sN = "CATEGORY" -- Rename the local reference in t,his scope
-            local oC = sForm:format(sP)..sN -- String displayed on the luapad tab
-            local fC = fDSV:format(sP, sN):lower() -- Full path to the file relative to /data
-            local uC = uDSV:format(sP, sN):lower() -- The actual file name being opened
-            -- This is done so we can distinguish between luapad and other panels
-            if(file.Exists(fC,"DATA")) then pC.CloseTabName(oC, true)
-              pC.AddTab(uC, file.Read(fC, "DATA"), "data/"..gsDrcDSV, oC, "chart_organisation")
-            else asmlib.LogInstance(sH.."File missing: "..fF) end
+            local oF = sForm:format(sP)..sN -- String displayed on the luapad tab
+            local fF = fDSV:format(sP, sN):lower() -- Full path to the file relative to /data
+            local uF = uDSV:format(sP, sN):lower() -- The actual file name being opened
+            if(file.Exists(fF,"DATA")) then pC.CloseTabName(oF, true)
+              pC.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "chart_organisation")
+            else asmlib.LogInstance("File missing: "..asmlib.GetReport(sP, sN, sD, pC, fF)) end
           end -- Luapad is designed not to be closed so we need to make it invisible
            -- This is done so we can distinguish between luapad and other panels
           local oF = sForm:format(sP)..sN -- String displayed on the luapad tab
@@ -205,18 +201,15 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           local uF = uDSV:format(sP, sN):lower() -- The actual file name being opened
           if(file.Exists(fF,"DATA")) then pC.CloseTabName(oF, true)
             pC.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "database_connect")
-          else asmlib.LogInstance(sH.."File missing: "..fF) end
+          else asmlib.LogInstance("File missing: "..asmlib.GetReport(sP, sN, sD, pC, fF)) end
           pC.Frame:SetVisible(true); pC.Frame:Center()
           pC.Frame:MakePopup(); conElements:Push({pC.Frame, "SetVisible", false})
         end})
       conEditorDB:Push({Name = "Wiremod by WireTeam", ID = "160250458", Code = WireLib, Open =
         function(sP, sN, sD, pC)
-          print(1111)
           local sH = asmlib.GetConcat(sD, " > ", sN, " : ")
-          if(SERVER) then
-            asmlib.LogInstance(sH.."Work on server"); return end
-          if(not pC) then
-            asmlib.LogInstance(sH.."Not installed"); return end
+          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sP, sN, sD, pC)); return end
+          if(not pC) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sP, sN, sD, pC)); return end
           -- Configure internal references and dedicated folder
           local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
           local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
@@ -224,26 +217,19 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
             wire_expression2_editor = vgui.Create("Expression2EditorFrame")
           end -- Expression 2 editor is available then use is to display track contents
           if(not IsValid(wire_expression2_editor)) then
-            asmlib.LogInstance(sH.."Frame invalid"); return end
+            asmlib.LogInstance("Frame invalid "..asmlib.GetReport(sP, sN, sD, pC)); return end
+          wire_expression2_editor:Setup("Wiremod editor", gsToolNameL)
           -- Configure the panel visuals and display the file
-          wire_expression2_editor:Setup("Wiremod editor", gsToolNameL, "Default")
-          -- This is done so we can distinguish between E2 and other panels
           if(sN == "PIECES") then -- Load the category provider for this DSV
-            local fC = fDSV:format(sP, "category"):lower()
-            if(file.Exists(fC,"DATA")) then -- We cave category for the tracks
-              wire_expression2_editor:Open(fC, file.Read(fC, "DATA"), false)
-              local aT = wire_expression2_editor:GetActiveTab()
-              if(IsValid(aT)) then aT.chosenfile = fC end
-              wire_expression2_editor.chosenfile = fC
-            else asmlib.LogInstance(sH.."File missing: "..fC) end
+            local fF = fDSV:format(sP, "category"):lower()
+            if(file.Exists(fF,"DATA")) then -- We cave category for the tracks
+              wire_expression2_editor:Open(fF, nil, false)
+            else asmlib.LogInstance("File missing "..asmlib.GetReport(sP, sN, sD, pC, fF)) end
           end -- When the table dedicated file is present  then open the source
           local fF = fDSV:format(sP, sN):lower()
           if(file.Exists(fF, "DATA")) then -- Set the file name and read contents
-            wire_expression2_editor:Open(fF, file.Read(fF, "DATA"), false)
-            local aT = wire_expression2_editor:GetActiveTab()
-            if(IsValid(aT)) then aT.chosenfile = fF end
-            wire_expression2_editor.chosenfile = fF
-          else asmlib.LogInstance(sH.."File missing: "..fF) end
+            wire_expression2_editor:Open(fF, nil, false)
+          else asmlib.LogInstance("File missing "..asmlib.GetReport(sP, sN, sD, pC, fF)) end
           wire_expression2_editor:SetVisible(true); wire_expression2_editor:Center()
           wire_expression2_editor:MakePopup(); conElements:Push({wire_expression2_editor, "Close"})
         end})
@@ -1212,7 +1198,6 @@ if(CLIENT) then
                             for iA = 1, #tA do local cA = tA[iA] -- Ceck status
                               if(IsValid(cA) and cA:GetChecked()) then return end
                             end; asmlib.SetAsmConvar(oPly, "texteditid", 0)
-                            print("Reset")
                           end -- Reaturn early if one check box is enabled
                         end -- Change from true to false remove the active editor
                         function pnBtn:DoClick() gui.OpenURL(self:GetTooltip()) end
