@@ -747,14 +747,12 @@ end
 function TOOL:UpdateOrigin(vPos, aAng)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-  local vOrg, aOrg = Vector(vPos), Angle(aAng)
+  vPos:Add(nextz * aAng:Up())
+  vPos:Add(nexty * aAng:Right())
+  vPos:Add(nextx * aAng:Forward())
   aAng:RotateAroundAxis(aAng:Up()     ,-nextyaw)
   aAng:RotateAroundAxis(aAng:Right()  , nextpic)
   aAng:RotateAroundAxis(aAng:Forward(), nextrol)
-  vPos:Add(nextx * aAng:Forward())
-  vPos:Add(nexty * aAng:Right())
-  vPos:Add(nextz * aAng:Up())
-  return vOrg, aOrg
 end
 
 function TOOL:GetFlipOverOrigin(stTrace, bPnt)
@@ -762,8 +760,8 @@ function TOOL:GetFlipOverOrigin(stTrace, bPnt)
   local wOver, aOver = Vector(), Angle()
   if(not (trEnt and trEnt:IsValid())) then
     wOver:Set(stTrace.HitPos)
-    local wNror, aNror = self:UpdateOrigin(wOver, aOver)
-    return wOver, aOver, wNror, aNror
+    self:UpdateOrigin(wOver, aOver)
+    return wOver, aOver
   else
     wOver:Set(trEnt:LocalToWorld(trEnt:OBBCenter()))
   end
@@ -783,7 +781,7 @@ function TOOL:GetFlipOverOrigin(stTrace, bPnt)
         wAucs:SetUnpacked(trPOA.A:Get())
         aOver:Set(trEnt:LocalToWorldAngles(wAucs))
         self:UpdateOrigin(wOver, aOver)
-        return wOver, aOver, wNror, aNror, wOrig, vO1, vO2
+        return wOver, aOver, wOrig, vO1, vO2
       end
     else
       if(trPOA) then
@@ -791,13 +789,13 @@ function TOOL:GetFlipOverOrigin(stTrace, bPnt)
         wOrig:Set(trEnt:LocalToWorld(wOrig))
         wAucs:SetUnpacked(trPOA.A:Get())
         aOver:Set(trEnt:LocalToWorldAngles(wAucs))
-        local wNror, aNror = self:UpdateOrigin(wOver, aOver)
-        return wOver, aOver, wNror, aNror, wOrig
+        self:UpdateOrigin(wOver, aOver)
+        return wOver, aOver, wOrig
       end
     end
   end
-  local wNror, aNror = self:UpdateOrigin(wOver, aOver)
-  return wOver, aOver, wNror, aNror
+  self:UpdateOrigin(wOver, aOver)
+  return wOver, aOver
 end
 
 function TOOL:SelectModel(sModel)
@@ -1765,12 +1763,14 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
   if(tE and self:IsFlipOver()) then
     local nextx  , nexty  , nextz   = self:GetPosOffsets()
     local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+    local vN = Vector(self:GetPosOffsets())
+    local vA =  Angle(self:GetAngOffsets())
     for iD = 1, nE do
       local bPK = input.IsKeyDown(KEY_LSHIFT)
       local eID, gID = tE[iD], atGho[iD]
       if(not asmlib.IsOther(eID) and gID and gID:IsValid()) then
-        local wOver, aOver, wNror, aNror = self:GetFlipOverOrigin(stTrace, bPK)
-        local spPos, spAng = asmlib.GetTransformOver(eID, wOver, aOver, wNror, aNror)
+        local wOver, aOver = self:GetFlipOverOrigin(stTrace, bPK)
+        local spPos, spAng = asmlib.GetTransformOver(eID, wOver, aOver, vN, vA)
         gID:SetPos(spPos); gID:SetAngles(spAng)
         gID:SetModel(eID:GetModel()); gID:SetNoDraw(false)
       end
@@ -2176,7 +2176,7 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   local model, trEnt = self:GetModel(), stTrace.Entity
   local actrad, vF, vU = self:GetActiveRadius(), Vector(), Vector()
   local bAct, xH = input.IsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
-  local wOv, aOv, wBv, aBv, wOr, wO1, wO2 = self:GetFlipOverOrigin(stTrace, bAct)
+  local wOv, aOv, wOr, wO1, wO2 = self:GetFlipOverOrigin(stTrace, bAct)
   vF:Set(aOv:Forward()); vF:Mul(actrad); vF:Add(wOv)
   vU:Set(aOv:Up()); vU:Mul(actrad); vU:Add(wOv)
   local oO, oF, oU = wOv:ToScreen(), vF:ToScreen(), vU:ToScreen()
@@ -2188,7 +2188,7 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   for iD = 1, nE do local eID = tE[iD]
     if(not asmlib.IsOther(eID)) then
       local vePos = eID:GetPos()
-      local spPos, spAng = asmlib.GetTransformOver(eID, wOv, aOv, wBv, aBv)
+      local spPos, spAng = asmlib.GetTransformOver(eID, wOv, aOv)
       local Os, Oe = vePos:ToScreen(), spPos:ToScreen()
       hudMonitor:DrawLine(oO, Os, "y", "SEGM", {20})
       hudMonitor:DrawLine(oO, Oe, "y")

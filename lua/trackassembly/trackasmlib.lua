@@ -2239,21 +2239,28 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
   return vCen -- Returns X-Y OBB centered model
 end
 
-function GetTransformOver(eBase, vOrg, aOrg, vNro, aNro)
-  local vOBB= eBase:OBBCenter()
-  local wOBB = eBase:LocalToWorld(vOBB)
-  local nRot = (GetOpVar("MAX_ROTATION") / 2)
-  local wPos, wAng = Vector(vOrg), Angle(aOrg)
-  local wDir = Vector(vOrg); wDir:Sub(wOBB)
-  local ePos, eAng = eBase:GetPos(), eBase:GetAngles()
-  local x, y, z = BasisVector(wDir, wAng):Unpack()
-  wPos:Add(x * wAng:Forward())
-  wPos:Add(y * wAng:Right())
-  wPos:Add(z * wAng:Up())
-  wAng:Add(aOrg + aOrg - eAng); wAng:Normalize()
-  vOBB:Rotate(wAng); wPos:Sub(vOBB)
+function asmlib.GetTransformOver(eBase, wOver, aOver)
+  -- Position relative to the over coordinate system
+  local nR = (GetOpVar("MAX_ROTATION") / 2)
+  local vU = asmlib.GetOpVar("VEC_UP")
+  local vZ = asmlib.GetOpVar("VEC_ZERO")
+  local aZ = asmlib.GetOpVar("ANG_ZERO")
+
+  local vPos, aAng = WorldToLocal(eBase:GetPos(), eBase:GetAngles(), wOver, aOver)
+
+  -- Rotate 180 around the plane normal
+  vPos.x, vPos.y = -vPos.x, -vPos.y
+
+  -- Rotate 180 around the local Z axis (plane normal)
+  aAng:RotateAroundAxis(vU, nR)
+
+  -- Back to world angle
+  local wPos, wAng = LocalToWorld(vPos, aAng, wOver, aOver)
+
+  -- Outout fast the transformed position and angle
   return wPos, wAng
 end
+
 
 function IsPhysTrace(Trace)
   if(not Trace) then return false end
