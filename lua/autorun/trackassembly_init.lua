@@ -13,28 +13,28 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.920")
+asmlib.SetOpVar("TOOL_VERSION","9.921")
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
-local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
-local gsSymDis    = asmlib.GetOpVar("OPSYM_DISABLE")
-local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
-local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
-local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
-local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
-local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
-local gsToolPrefU = asmlib.GetOpVar("TOOLNAME_PU")
-local gsGenerPrf  = asmlib.GetOpVar("DBEXP_PREFGEN")
-local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
-local gsNoMD      = asmlib.GetOpVar("MISS_NOMD")
-local gsNoID      = asmlib.GetOpVar("MISS_NOID")
-local gsNoAV      = asmlib.GetOpVar("MISS_NOAV")
-local gsNoSQL     = asmlib.GetOpVar("MISS_NOSQL")
-local gsDirBAS    = asmlib.GetOpVar("DIRPATH_BAS")
-local gsDirDSV    = asmlib.GetOpVar("DIRPATH_DSV")
-local gsDirEXP    = asmlib.GetOpVar("DIRPATH_EXP")
-local gsDirSET    = asmlib.GetOpVar("DIRPATH_SET")
+local gsSymDir    = asmlib.OPSYM_DIRECTORY
+local gsSymDis    = asmlib.OPSYM_DISABLE
+local gsLibName   = asmlib.NAME_LIBRARY
+local gnRatio     = asmlib.GOLDEN_RATIO
+local gnMaxRot    = asmlib.MAX_ROTATION
+local gsToolNameL = asmlib.TOOLNAME_NL
+local gsToolPrefL = asmlib.TOOLNAME_PL
+local gsToolPrefU = asmlib.TOOLNAME_PU
+local gsGenerPrf  = asmlib.DBEXP_PREFGEN
+local gsLimitName = asmlib.CVAR_LIMITNAME
+local gsNoMD      = asmlib.MISS_NOMD
+local gsNoID      = asmlib.MISS_NOID
+local gsNoAV      = asmlib.MISS_NOAV
+local gsNoSQL     = asmlib.MISS_NOSQL
+local gsDirBAS    = asmlib.DIRPATH_BAS
+local gsDirDSV    = asmlib.DIRPATH_DSV
+local gsDirEXP    = asmlib.DIRPATH_EXP
+local gsDirSET    = asmlib.DIRPATH_SET
 local gsDrcDSV    = asmlib.GetConcat(gsDirBAS, gsDirDSV)
 local gsDrcEXP    = asmlib.GetConcat(gsDirBAS, gsDirEXP)
 local gsDrcSET    = asmlib.GetConcat(gsDirBAS, gsDirSET)
@@ -143,7 +143,7 @@ asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ GLOBAL VARIABLES ------------
 
-local gsMoDB     = asmlib.GetOpVar("MODE_DATABASE")
+local gsMoDB     = asmlib.MODE_DATABASE
 local gaTimerSet = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
 local conPalette = asmlib.GetContainer("COLORS_LIST")
       conPalette:Record("a" ,asmlib.GetColor(  0,   0,   0,   0)) -- Invisible
@@ -248,7 +248,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           tCon.Code.OpenTab("data/"..gsToolNameL)
           local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
           local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
-          local sForm = asmlib.GetOpVar("FORM_STRING") -- File format string
+          local sForm = asmlib.FORM_STRING -- File format string
           if(sNam == "PIECES") then -- Load the category provider for this DSV
             local sNam = "CATEGORY" -- Rename the local reference in t,his scope
             local oF = sForm:format(sPre)..sNam -- String displayed on the luapad tab
@@ -283,7 +283,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           tCon.Code.OpenTab("data/"..gsToolNameL)
           local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
           local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
-          local sForm = asmlib.GetOpVar("FORM_STRING") -- File format string
+          local sForm = asmlib.FORM_STRING -- File format string
           if(sNam == "PIECES") then -- Load the category provider for this DSV
             local sNam = "CATEGORY" -- Rename the local reference in t,his scope
             local oF = sForm:format(sPre)..sNam -- String displayed on the luapad tab
@@ -325,11 +325,11 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       end})
       conCallBack:Push({"logsmax", function(sV, vO, vN)
         local nM = asmlib.BorderValue((tonumber(vN) or 0), "non-neg")
-        local tL = asmlib.GetOpVar("LOG_CONFIG"); tL.Max = nM
+        local tL = asmlib.LOG_CONFIG; tL.Max = nM
       end})
       conCallBack:Push({"logsbrs", function(sV, vO, vN)
         local nM = asmlib.BorderValue((tonumber(vN) or 0), "non-neg")
-        local tL = asmlib.GetOpVar("LOG_CONFIG"); tL.Brs = nM
+        local tL = asmlib.LOG_CONFIG; tL.Brs = nM
       end})
       conCallBack:Push({"endsvlock", function(sV, vO, vN)
         asmlib.IsFlag("en_dsv_datalock", tobool(vN))
@@ -368,15 +368,15 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
   Draw = {
     ["RDB"] = function(scr, key, typ, inf, def, spn)
       local rec = spn[key]
-      local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
-      local fky = asmlib.GetOpVar("FORM_DRWSPKY")
+      local fmt = asmlib.FORM_DRAWDBG
+      local fky = asmlib.FORM_DRWSPKY
       local out = (rec and tostring(string.GetFileFromFilename(rec.Slot)) or gsNoAV)
       scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
     end,
     ["MTX"] = function(scr, key, typ, inf, def, spn)
       local tab = spn[key]:ToTable()
-      local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
-      local fky = asmlib.GetOpVar("FORM_DRWSPKY")
+      local fmt = asmlib.FORM_DRAWDBG
+      local fky = asmlib.FORM_DRWSPKY
       for iR = 1, 4 do
         local out = asmlib.GetReport(iR,table.concat(tab[iR], ","))
         scr:DrawText(fmt:format(fky:format(key), typ, out, inf))
@@ -659,7 +659,7 @@ if(CLIENT) then
   cvars.RemoveChangeCallback(varLanguage:GetName(), gsToolPrefL.."lang")
   cvars.AddChangeCallback(varLanguage:GetName(), function(sNam, vO, vN)
     local sLog, bS, vOut, fUser, fAdmn = "*UPDATE_CONTROL_PANEL("..vO.."/"..vN..")"
-    local oTool = asmlib.GetOpVar("STORE_TOOLOBJ"); if(not asmlib.IsHere(oTool)) then
+    local oTool = asmlib.STORE_TOOLOBJ; if(not asmlib.IsHere(oTool)) then
       asmlib.LogInstance("Tool object missing", sLog); return end
     -- Retrieve the control panel from the tool main tab
     local fCont = oTool.BuildCPanel -- Function to populate the tool
@@ -853,7 +853,7 @@ if(CLIENT) then
       local scrW, scrH = surface.ScreenWidth(), surface.ScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then return end -- Monitor object not present
-      local nDr = asmlib.GetOpVar("DEG_RAD") -- Degrees to radians conversion
+      local nDr = asmlib.DEG_RAD -- Degrees to radians conversion
       local nBr = (acTo:GetRadialAngle() * nDr) -- Convert radial angle
       local nK, nN = acTo:GetRadialSegm(), conWorkMode:GetSize()
       local nR  = (math.min(scrW, scrH) / (2 * gnRatio))
@@ -904,7 +904,7 @@ if(CLIENT) then
       if(not acTo) then return end -- Make sure we have a tool
       local model = acTo:GetModel() -- Rear the ghosting model
       if(not asmlib.IsModel(model)) then asmlib.ClearGhosts() return end
-      local ghcnt, atGho = acTo:GetGhostsDepth(), asmlib.GetOpVar("ARRAY_GHOST")
+      local ghcnt, atGho = acTo:GetGhostsDepth(), asmlib.ARRAY_GHOST
       if(not (asmlib.HasGhosts() and ghcnt == atGho.Size and atGho.Slot == model)) then
         if(not asmlib.NewGhosts(ghcnt, model)) then
           asmlib.LogInstance("Ghosting fail: "..asmlib.GetReport(model),sLog); return end
@@ -918,7 +918,7 @@ if(CLIENT) then
       local sLog = "*OPEN_EXTERNDB"
       local scrW = surface.ScreenWidth()
       local scrH = surface.ScreenHeight()
-      local sVer = asmlib.GetOpVar("TOOL_VERSION")
+      local sVer = asmlib.TOOL_VERSION
       local xyPos, nAut  = asmlib.NewXY(scrW/4,scrH/4), (gnRatio - 1)
       local xyDsz, xyTmp = asmlib.NewXY(5,5), asmlib.NewXY()
       local xySiz = asmlib.NewXY(nAut * scrW, nAut * scrH)
@@ -1222,10 +1222,10 @@ if(CLIENT) then
                       local pnLay = vgui.Create("DPanel", pnLink); if(not IsValid(pnLay)) then
                         asmlib.LogInstance("Layout invalid", sLog..".ListView"); pnLink:Close(); return end
                       pnLay:Dock(FILL); pnLay:InvalidateParent(true)
-                      local iF = asmlib.GetOpVar("FORM_INTEGER") -- Int format
+                      local iF = asmlib.FORM_INTEGER -- Int format
                       local nE, tA, nC = conEditorDB:GetSize(), {}, 3   -- Editors list size
                       local cE = asmlib.GetAsmConvar("texteditid", "INT")
-                      local sUR = asmlib.GetOpVar("FORM_URLADDON") -- URL format
+                      local sUR = asmlib.FORM_URLADDON -- URL format
                       local nX, nY = xyDsz.x, xyDsz.y
                       local xC = (pnLay:GetTall() -  (nE + 1) * xyDsz.y) / nE
                       local xB = (pnLay:GetWide() -  (2 * xC) - ((nC + 1) * xyDsz.x))
@@ -1306,7 +1306,7 @@ if(CLIENT) then
       ------------ Screen resolution and configuration ------------
       local scrW     = surface.ScreenWidth()
       local scrH     = surface.ScreenHeight()
-      local sVersion = asmlib.GetOpVar("TOOL_VERSION")
+      local sVersion = asmlib.TOOL_VERSION
       local xyZero   = {x =  0, y = 20} -- The start location of left-top
       local xyDelta  = {x = 10, y = 10} -- Distance between panels
       local xySiz    = {x =  0, y =  0} -- Current panel size
@@ -1513,7 +1513,7 @@ if(CLIENT) then
             asmlib.LogInstance("Export data", sLog..".Button")
           end
         else
-          local fW = asmlib.GetOpVar("FORM_GITWIKI")
+          local fW = asmlib.FORM_GITWIKI
           gui.OpenURL(fW:format("Additional-features"))
         end
       end
@@ -1523,7 +1523,7 @@ if(CLIENT) then
             asmlib.LogInstance("Open manager:"..vOut, sLog..".Button"); return end
           asmlib.LogInstance("Open manager", sLog..".Button")
         else
-          local fW = asmlib.GetOpVar("FORM_GITWIKI")
+          local fW = asmlib.FORM_GITWIKI
           gui.OpenURL(fW:format("Additional-features"))
         end
       end
@@ -1564,7 +1564,7 @@ if(CLIENT) then
       local scrW, scrH = surface.ScreenWidth(), surface.ScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then return end -- Active screen is not created
-      local atGhosts  = asmlib.GetOpVar("ARRAY_GHOST")
+      local atGhosts  = asmlib.ARRAY_GHOST
       local ghostcnt  = asmlib.GetAsmConvar("ghostcnt", "FLT")
       local igntype   = asmlib.GetAsmConvar("igntype" , "BUL")
       local spnflat   = asmlib.GetAsmConvar("spnflat" , "BUL")
@@ -1868,8 +1868,8 @@ if(SERVER) then
   -- [1] : End time to send the client request
   -- [2] : End time to draw the user notification
   local function PopulateEntity(nLen, oPly)
-    local dTim = asmlib.GetOpVar("MSDELTA_SEND")
-    local tHov = asmlib.GetOpVar("HOVER_TRIGGER")
+    local dTim = asmlib.MSDELTA_SEND
+    local tHov = asmlib.HOVER_TRIGGER
     local pTim, cTim, nDel = tHov[oPly], CurTime(), 15
     if(not pTim) then pTim = {cTim, (nDel + cTim)}; tHov[oPly] = pTim end
     if(dTim == 0 or (dTim > 0 and cTim > (pTim[1] + dTim))) then
@@ -1906,7 +1906,7 @@ if(CLIENT) then
       if(not asmlib.GetAsmConvar("enctxmenu", "BUL")) then return end -- Menu not enabled
       local oPly = LocalPlayer(); if(not asmlib.IsPlayer(oPly)) then
         asmlib.LogInstance("Player invalid "..asmlib.GetReport(oPly), sLog); return end
-      local vEye, vAim, tTrig = EyePos(), oPly:GetAimVector(), asmlib.GetOpVar("HOVER_TRIGGER")
+      local vEye, vAim, tTrig = EyePos(), oPly:GetAimVector(), asmlib.HOVER_TRIGGER
       local oEnt = properties.GetHovered(vEye, vAim); tTrig[2] = tTrig[1]; tTrig[1] = oEnt
       if(asmlib.IsOther(oEnt) or tTrig[1] == tTrig[2]) then return end -- Entity trigger
       if(not asmlib.GetAsmConvar("enctxmall", "BUL")) then -- Enable for all props
@@ -2024,9 +2024,9 @@ asmlib.NewTable("PIECES",{
       end; return true
     end,
     Record = function(arLine)
-      local noTY  = asmlib.GetOpVar("MISS_NOTP")
-      local trCls = asmlib.GetOpVar("TRACE_CLASS")
-      local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
+      local noTY  = asmlib.MISS_NOTP
+      local trCls = asmlib.TRACE_CLASS
+      local emFva = asmlib.EMPTYSTR_BLDS
       arLine[2] = asmlib.GetEmpty(arLine[2], emFva, asmlib.GetTypeNormal(asmlib.Categorize()), noTY)
       arLine[3] = asmlib.GetEmpty(arLine[3], emFva, BEAUTY:Convert(arLine[1]):Get(), gsNoMD)
       arLine[5] = asmlib.GetEmpty(arLine[5], asmlib.IsBlank, gsNoSQL)
@@ -2080,7 +2080,7 @@ asmlib.NewTable("PIECES",{
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
         asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref)); return false end
-      local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
+      local sClass = asmlib.ENTITY_DEFCLASS
       for iR = 1, tSort.Size do
         local stRec = tSort[iR]
         local tData = tCache[stRec.Key]
@@ -2109,7 +2109,7 @@ asmlib.NewTable("PIECES",{
         asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType)); return false end
       local sType, tType, nType = asmlib.ComponentType(sType) -- Normalize type
       local defP, defA = makP:GetDefinition(), makA:GetDefinition()
-      local sClass = asmlib.GetOpVar("ENTITY_DEFCLASS")
+      local sClass = asmlib.ENTITY_DEFCLASS
       for iP = 1, tSort.Size do
         local stRec = tSort[iP] -- Sorted sequential key
         local tData = PCache[stRec.Key] -- Index data
@@ -2150,7 +2150,7 @@ asmlib.NewTable("PIECES",{
       local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
       local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
       local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
-      local sClass, qData = asmlib.GetOpVar("ENTITY_DEFCLASS"), {}
+      local sClass, qData = asmlib.ENTITY_DEFCLASS, {}
       local sType = asmlib.GetTypeNormal(sType)
       local sPref = asmlib.GetTypePrefix(sType)
       for mod, rec in pairs(PCache) do
@@ -2305,15 +2305,15 @@ asmlib.NewTable("PHYSPROPERTIES",{
       arLine[2] = "gsSymOff"; return true
     end,
     Record = function(arLine)
-      local noTY = asmlib.GetOpVar("MISS_NOTP")
-      local emFva = asmlib.GetOpVar("EMPTYSTR_BLDS")
+      local noTY = asmlib.MISS_NOTP
+      local emFva = asmlib.EMPTYSTR_BLDS
       local smTyp = asmlib.GetTypeNormal(asmlib.Categorize())
       arLine[1] = asmlib.GetEmpty(arLine[1], emFva, smTyp, noTY); return true
     end
   },
   Cache = {
     Erase = function(makTab, tCache, snPK)
-      local tProID = asmlib.GetOpVar("HASH_PROPERTY")
+      local tProID = asmlib.HASH_PROPERTY
       local pN, pT = tProID.Name, tProID.Type
       local tNames = tCache[pN]; if(not tNames) then
         asmlib.LogInstance("Names missing "..asmlib.GetReport(snPK)); return false end
@@ -2328,7 +2328,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
       end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine)
-      local tProID = asmlib.GetOpVar("HASH_PROPERTY")
+      local tProID = asmlib.HASH_PROPERTY
       local pN, pT = tProID.Name, tProID.Type
       local tTypes = tCache[pT]; if(not tTypes) then
         tCache[pT] = {}; tTypes = tCache[pT]; tTypes.Size = 0 end
@@ -2348,7 +2348,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
     end,
     ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
       local defTab = makTab:GetDefinition()
-      local tProID = asmlib.GetOpVar("HASH_PROPERTY")
+      local tProID = asmlib.HASH_PROPERTY
       local pN, pT = tProID.Name, tProID.Type
       local tTypes, tNames, tT = tCache[pT], tCache[pN], {}
       if(not (tTypes or tNames)) then
@@ -5364,4 +5364,4 @@ else
   if(gsMoDB == "SQL") then sql.Commit() end
 end
 
-asmlib.LogInstance("Version: "..asmlib.GetOpVar("TOOL_VERSION"), "*Init")
+asmlib.LogInstance("Version: "..asmlib.TOOL_VERSION, "*Init")

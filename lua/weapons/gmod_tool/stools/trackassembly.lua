@@ -7,27 +7,27 @@ if(not asmlib.IsInit()) then -- Make sure the module is initialized
 
 --- Global References
 local gtLogs      = {"TOOL"}
-local gsLibName   = asmlib.GetOpVar("NAME_LIBRARY")
-local gnMaxRot    = asmlib.GetOpVar("MAX_ROTATION")
-local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
-local gsToolNameL = asmlib.GetOpVar("TOOLNAME_NL")
-local gsModeDataB = asmlib.GetOpVar("MODE_DATABASE")
-local gsLimitName = asmlib.GetOpVar("CVAR_LIMITNAME")
-local gsUndoPrefN = asmlib.GetOpVar("UNDO_PERFIX")
-local gsNoID      = asmlib.GetOpVar("MISS_NOID") -- No such ID
-local gsNoAV      = asmlib.GetOpVar("MISS_NOAV") -- Not available
-local gsNoMD      = asmlib.GetOpVar("MISS_NOMD") -- No model
-local gsNoBS      = asmlib.GetOpVar("MISS_NOBS") -- No Body-group skin
-local gsSymRev    = asmlib.GetOpVar("OPSYM_REVISION")
-local gsSymDir    = asmlib.GetOpVar("OPSYM_DIRECTORY")
-local gnRatio     = asmlib.GetOpVar("GOLDEN_RATIO")
+local gsLibName   = asmlib.NAME_LIBRARY
+local gnMaxRot    = asmlib.MAX_ROTATION
+local gsToolPrefL = asmlib.TOOLNAME_PL
+local gsToolNameL = asmlib.TOOLNAME_NL
+local gsModeDataB = asmlib.MODE_DATABASE
+local gsLimitName = asmlib.CVAR_LIMITNAME
+local gsUndoPrefN = asmlib.UNDO_PERFIX
+local gsNoID      = asmlib.MISS_NOID -- No such ID
+local gsNoAV      = asmlib.MISS_NOAV -- Not available
+local gsNoMD      = asmlib.MISS_NOMD -- No model
+local gsNoBS      = asmlib.MISS_NOBS -- No Body-group skin
+local gsSymRev    = asmlib.OPSYM_REVISION
+local gsSymDir    = asmlib.OPSYM_DIRECTORY
+local gnRatio     = asmlib.GOLDEN_RATIO
 local conPalette  = asmlib.GetContainer("COLORS_LIST")
 local conWorkMode = asmlib.GetContainer("WORK_MODE")
 local conElements = asmlib.GetContainer("LIST_VGUI")
 local varLanguage = GetConVar("gmod_language")
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
-  local sS = asmlib.GetOpVar("DIRPATH_SET")
+  local sS = asmlib.DIRPATH_SET
   local sD = GetLibraryPath(sS, gsLibName, "_dsv")
   asmlib.LogInstance("List settings error "..asmlib.GetReport(sD))
 end
@@ -579,7 +579,7 @@ function TOOL:GetGhostsDepth()
 end
 
 function TOOL:LogStatus(stTr,vMsg,hdEnt)
-  local tLoc = asmlib.GetOpVar("LOG_CONFIG")
+  local tLoc = asmlib.LOG_CONFIG
   if(tLoc.Max <= 0) then return "Status N/A" end
   local user = self:GetOwner()
   local siAnc  , anEnt   = self:GetAnchor()
@@ -677,7 +677,7 @@ function TOOL:GetFlipOver(bEnt, bMute)
   local user = self:GetOwner()
   local sID, nF = self:GetFlipOverID(), 0
   if(sID:len() <= 0) then return nil, nF end
-  local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
+  local sYm = asmlib.OPSYM_SEPARATOR
   local tF = sYm:Explode(sID); nF = #tF
   for iD = 1, nF do
     tF[iD] = (tonumber(tF[iD]) or 0)
@@ -712,7 +712,7 @@ function TOOL:SetFlipOver(trEnt, bBrs)
     return nil -- Just disable overall flipping for the other models
   end
   if(bBrs) then return trEnt else
-    local sYm = asmlib.GetOpVar("OPSYM_SEPARATOR")
+    local sYm = asmlib.OPSYM_SEPARATOR
     local iID, bBr = trEnt:EntIndex(), false
     local tF, nF = self:GetFlipOver()
     if(nF <= 0) then tF = {} -- Create table
@@ -895,7 +895,7 @@ function TOOL:GetCurveTransform(stTrace, bPnt)
       tData.Orw:Set(tData.Org); tData.Anw:Set(tData.Ang) -- Transform of POA
       tData.ID  = oID;  tData.Min = oMin -- Point ID and minimum distance
       tData.POA = oPOA; tData.Rec = oRec -- POA and cache record
-      local trRz, trDt = asmlib.GetTraceEntityPoint(eEnt, oID, 30000, asmlib.GetOpVar("VEC_DW"))
+      local trRz, trDt = asmlib.GetTraceEntityPoint(eEnt, oID, 30000, asmlib.VEC_DW)
       if(trRz and trRz.Hit) then
         nT = (trDt.length * trRz.Fraction - elevpnt)
         asmlib.SetAsmConvar(user, "nextz", nT)
@@ -929,7 +929,7 @@ function TOOL:ApplySuperElevation(tC, tData, iD)
   local crvsuprev = self:GetSuperElevation()
   if(not (crvsuprev ~= 0 and not spnflat)) then
     asmlib.LogInstance("Auto roll disabled", gtLogs); return 0 end
-  local nS = asmlib.GetOpVar("FULL_SLOPEDG")
+  local nS = asmlib.FULL_SLOPEDG
   local iN = math.floor(math.max(tonumber(iD) or 0, 0))
   if(iN > 0) then
     local tO, tN, tR = tC.Node, tC.Norm, tC.Rays
@@ -959,7 +959,7 @@ function TOOL:CheckCurveNode(vPos, iID)
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   local iID = math.floor(math.max(tonumber(iID) or 0, 0))
-  local nM, sN = asmlib.GetOpVar("CURVE_NODEMR"), user:Nick()
+  local nM, sN = asmlib.CURVE_NODEMR, user:Nick()
   local iPr, iNx = (iID - 1), (iID + 1)
   local vPr, vNx = tC.Node[iPr], tC.Node[iNx]
   if(vPr and vPr:DistToSqr(vPos) < nM) then
@@ -1135,7 +1135,7 @@ function TOOL:CurveCheck(bMute)
   local model = self:GetModel()
   local fnmodel = string.GetFileFromFilename(model)
   local pointid, pnextid = self:GetPointID()
-  local nEps = asmlib.GetOpVar("EPSILON_ZERO")
+  local nEps = asmlib.EPSILON_ZERO
   -- Check the model in the database
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not asmlib.IsHere(hdRec)) then
@@ -1326,7 +1326,7 @@ function TOOL:LeftClick(stTrace)
       self:LogStatus(stTrace,"(Hold) Holder model not piece"); return false end
     local tC, nD = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
       self:LogStatus(stTrace,"(Curve) Validation fail"); return nil end
-    local fInt = asmlib.GetOpVar("FORM_INTEGER")
+    local fInt = asmlib.FORM_INTEGER
     local curvefact, curvsmple = self:GetCurveFactor()  , self:GetCurveSamples()
     local crvturnlm, crvleanlm = self:GetCurvatureTurn(), self:GetCurvatureLean()
     if(workmode == 3) then
@@ -1538,7 +1538,7 @@ function TOOL:LeftClick(stTrace)
   if((workmode == 1) and (stackcnt > 0) and user:KeyDown(IN_SPEED) and (tonumber(hdRec.Size) or 0) > 1) then
     if(poQueue:IsBusy(user)) then asmlib.Notify(user, "ERROR", "Server busy !"); return true end
     if(pointid == pnextid) then self:LogStatus(stTrace,"Point ID overlap"); return false end
-    local fInt, hdOffs = asmlib.GetOpVar("FORM_INTEGER"), asmlib.LocatePOA(stSpawn.HRec, pnextid)
+    local fInt, hdOffs = asmlib.FORM_INTEGER, asmlib.LocatePOA(stSpawn.HRec, pnextid)
     if(not hdOffs) then -- Make sure the next point is present so we have something to stack on
       asmlib.Notify(user, "ERROR", "Missing next point ID !")
       self:LogStatus(stTrace,"(Stack) Missing next point ID"); return false
@@ -1555,7 +1555,7 @@ function TOOL:LeftClick(stTrace)
     }, function(oPly, oArg)
       for iD = oArg.start, stackcnt do
         oPly:SetNWFloat(gsToolPrefL.."progress", 100 * (iD / stackcnt))
-        local sItr, ePiece = asmlib.GetOpVar("FORM_INTEGER"):format(iD), nil
+        local sItr, ePiece = asmlib.FORM_INTEGER:format(iD), nil
         while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
           ePiece = asmlib.NewPiece(oPly,model,oArg.sppos,oArg.spang,mass,bgskids,conPalette:Select("w"),bnderrmod) end
         if(ePiece) then -- Set position is valid and store reference to the track piece
@@ -1758,7 +1758,7 @@ function TOOL:Holster()
 end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
-  local atGho  = asmlib.GetOpVar("ARRAY_GHOST")
+  local atGho  = asmlib.ARRAY_GHOST
   local tE, nE = self:GetFlipOver(true, true)
   if(tE and self:IsFlipOver()) then
     local nextx  , nexty  , nextz   = self:GetPosOffsets()
@@ -1788,7 +1788,7 @@ function TOOL:UpdateGhostCurve()
     local model = self:GetModel()
     local stackcnt = self:GetStackCount()
     local pointid, pnextid = self:GetPointID()
-    local tGho, iGho = asmlib.GetOpVar("ARRAY_GHOST"), 0
+    local tGho, iGho = asmlib.ARRAY_GHOST, 0
     local bCrv = user:GetNWBool(gsToolPrefL.."engcurve", false)
     if(bCrv) then
       local workmode  = self:GetWorkingMode()
@@ -1822,7 +1822,7 @@ function TOOL:UpdateGhostCurve()
 end
 
 function TOOL:UpdateGhostSpawn(stTrace, oPly)
-  local atGho = asmlib.GetOpVar("ARRAY_GHOST")
+  local atGho = asmlib.ARRAY_GHOST
   local model, ePiece = self:GetModel(), atGho[1]
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
@@ -1858,7 +1858,7 @@ function TOOL:UpdateGhost(oPly)
   if(not asmlib.HasGhosts()) then return end
   local workmode = self:GetWorkingMode()
   if(workmode == 3 or workmode == 5) then self:UpdateGhostCurve() return end
-  local atGho, trRec = asmlib.GetOpVar("ARRAY_GHOST")
+  local atGho, trRec = asmlib.ARRAY_GHOST
   local trEnt, model = stTrace.Entity, self:GetModel()
   local pointid, pnextid = self:GetPointID()
   local nextx, nexty, nextz = self:GetPosOffsets()
@@ -1958,8 +1958,8 @@ end
 function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
   local user, iD = LocalPlayer(), 1
   local stS = asmlib.GetCacheSpawn(user)
-  local arK = asmlib.GetOpVar("STRUCT_SPAWN")
-  local fky = asmlib.GetOpVar("FORM_DRWSPKY")
+  local arK = asmlib.STRUCT_SPAWN
+  local fky = asmlib.FORM_DRWSPKY
   local w,h = oScreen:GetSize()
   oScreen:SetTextOrigin(0, 260)
   oScreen:DrawText(tostring(arK.Name), sCol, sMeth, tArgs)
@@ -1975,7 +1975,7 @@ function TOOL:DrawTextSpawn(oScreen, sCol, sMeth, tArgs)
           local bs, sr = pcall(foo, oScreen, key, typ, inf, arK, stS)
           if(not bs) then asmlib.LogInstance(sr, gtLogs); return end
         else
-          local fmt = asmlib.GetOpVar("FORM_DRAWDBG")
+          local fmt = asmlib.FORM_DRAWDBG
           local val = tostring(stS[key] or "")
           oScreen:DrawText(fmt:format(fky:format(key), typ, val, inf))
         end
@@ -2220,8 +2220,8 @@ function TOOL:DrawProgress(hudMonitor, oPly)
   local sKey = (gsToolPrefL.."progress")
   local nPrg = oPly:GetNWFloat(sKey, 0)
   if(nPrg > 0) then
-    local fP = asmlib.GetOpVar("FORM_PROGRESS")
-    local nR = asmlib.GetOpVar("GOLDEN_RATIO")
+    local fP = asmlib.FORM_PROGRESS
+    local nR = asmlib.GOLDEN_RATIO
     local xyP, nD  = asmlib.NewXY(),  2
     local xyO, xyW = hudMonitor:GetCorners()
     local nW , nH  = (xyW.x - xyO.x), (xyW.y - xyO.y)
@@ -2454,8 +2454,8 @@ function TOOL.BuildCPanel(CPanel)
 
   local pComboPresets = vgui.Create("ControlPresets", CPanel)
         pComboPresets:SetPreset(gsToolNameL)
-        pComboPresets:AddOption("Default", asmlib.GetOpVar("STORE_CONVARS"))
-        for key, val in pairs(table.GetKeys(asmlib.GetOpVar("STORE_CONVARS"))) do
+        pComboPresets:AddOption("Default", asmlib.STORE_CONVARS)
+        for key, val in pairs(table.GetKeys(asmlib.STORE_CONVARS)) do
           pComboPresets:AddConVar(val) end
   CPanel:AddItem(pComboPresets)
 
@@ -2699,8 +2699,8 @@ if(CLIENT) then
       asmlib.LogInstance("Category list invalid", sLog); return end
     CPanel:AddItem(pItem)
     pItem:Dock(TOP); pItem:SetTall(340)
-    local sRev = asmlib.GetOpVar("OPSYM_REVISION")
-    local tMod, tPan = asmlib.GetOpVar("ARRAY_MODETM"), {}
+    local sRev = asmlib.OPSYM_REVISION
+    local tMod, tPan = asmlib.ARRAY_MODETM, {}
     local tVar = gsSymDir:Explode(asmlib.GetAsmConvar("timermode","STR"))
     local iD, mkTab = 1, asmlib.GetBuilderID(1)
     while(mkTab) do tPan[iD] = {}
@@ -2753,7 +2753,7 @@ if(CLIENT) then
     -- Setup memory configuration export button
     pItem = asmlib.SetButton(CPanel, "timermode_ap")
     pItem.DoClick = function(pnSelf)
-      local tTim, sRev = {}, asmlib.GetOpVar("OPSYM_REVISION")
+      local tTim, sRev = {}, asmlib.OPSYM_REVISION
       for iD = 1, #tPan do local vP, tS = tPan[iD], {}
         local pM, pL = vP["MODE"], vP["LIFE"]
         local pC, bG = vP["CLER"], vP["COLL"]
@@ -2771,7 +2771,7 @@ if(CLIENT) then
       if(input.IsKeyDown(KEY_LSHIFT)) then
         asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logsbrs","INT"))
       else
-        local fW = asmlib.GetOpVar("FORM_GITWIKI")
+        local fW = asmlib.FORM_GITWIKI
         gui.OpenURL(fW:format("Memory-manager-configuration"))
       end
     end
@@ -2784,7 +2784,7 @@ if(CLIENT) then
       if(asmlib.GetAsmConvar("devmode" ,"BUL")) then
         asmlib.SetAsmConvar(user, "*sbox_max"..gsLimitName,
         asmlib.GetAsmConvar("*sbox_max"..gsLimitName, "DEF"))
-        for key, val in pairs(asmlib.GetOpVar("STORE_CONVARS")) do
+        for key, val in pairs(asmlib.STORE_CONVARS) do
           asmlib.SetAsmConvar(user, "*"..key, val) end
         asmlib.SetAsmConvar(user, "logsmax"  , asmlib.GetAsmConvar("logsmax"  , "DEF"))
         asmlib.SetAsmConvar(user, "logsbrs"  , asmlib.GetAsmConvar("logsbrs"  , "DEF"))
@@ -2817,7 +2817,7 @@ if(CLIENT) then
       end
     end
     pItem.DoRightClick = function(pnSelf)
-      local fW = asmlib.GetOpVar("FORM_GITWIKI")
+      local fW = asmlib.FORM_GITWIKI
       gui.OpenURL(fW:format("Factory-reset"))
     end
     pItem:Dock(TOP); pItem:SetTall(30)

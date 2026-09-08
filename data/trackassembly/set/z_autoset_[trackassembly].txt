@@ -71,12 +71,12 @@ local function ThrowError(vMesg)
 end
 
 -- Store a reference to disable symbol
-local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
-local gsDirDSV = asmlib.GetOpVar("DIRPATH_DSV")
-local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
-local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
-local gsModeDB = asmlib.GetOpVar("MODE_DATABASE")
-local gsPrfGen = asmlib.GetOpVar("DBEXP_PREFGEN")
+local gsMissDB = asmlib.MISS_NOSQL
+local gsDirDSV = asmlib.DIRPATH_DSV
+local gsToolPF = asmlib.TOOLNAME_PU
+local gsSymOff = asmlib.OPSYM_DISABLE
+local gsModeDB = asmlib.MODE_DATABASE
+local gsPrfGen = asmlib.DBEXP_PREFGEN
 
 local myPath = { -- This contains the path to generic DSV
   PIECES         = asmlib.GetLibraryPath(gsDirDSV, gsPrfGen, gsToolPF.."PIECES"),
