@@ -104,10 +104,6 @@ function GetConcat(...)
   table.Empty(libConcat); return cC
 end
 
-function SetOpVar(sName, vV)
-  libOpVars[sName] = vV
-end
-
 function GetInstPrefix()
   return (CLIENT and "cl_" or (SERVER and "sv_" or "na_"))
 end
@@ -689,7 +685,7 @@ function SettingsLogs(sHash)
 end
 
 function InitBase(sName, sPurp)
-  SetOpVar("TYPEMT_STRING",getmetatable("TYPEMT_STRING"))
+  TYPEMT_STRING = getmetatable("TYPEMT_STRING")
   if(not isstring(sName)) then
     LogInstance("Name not string "..GetReport(sName), true); return false end
   if(not isstring(sPurp)) then
@@ -698,51 +694,51 @@ function InitBase(sName, sPurp)
     LogInstance("Name invalid "..GetReport(sName), true); return false end
   if(IsBlank(sPurp) or tonumber(sPurp:sub(1,1))) then
     LogInstance("Purpose invalid "..GetReport(sPurp), true); return false end
-  SetOpVar("TIME_INIT",CurTime())
-  SetOpVar("DELAY_ACTION",0.01)
-  SetOpVar("DELAY_REMOVE",0.2)
-  SetOpVar("MAX_ROTATION",360)
-  SetOpVar("ANG_ZERO",Angle())
-  SetOpVar("VEC_ZERO",Vector())
-  SetOpVar("ANG_REV",Angle(0,180,0))
-  SetOpVar("VEC_FW",Vector(1, 0, 0))
-  SetOpVar("VEC_RG",Vector(0,-1, 1))
-  SetOpVar("VEC_UP",Vector(0, 0, 1))
-  SetOpVar("VEC_DW",Vector(0, 0,-1))
-  SetOpVar("OPSYM_DISABLE","#")
-  SetOpVar("OPSYM_DIVIDER","_")
-  SetOpVar("OPSYM_VERTDIV","|")
-  SetOpVar("OPSYM_NEWLINE","\n")
-  SetOpVar("OPSYM_REVISION","@")
-  SetOpVar("OPSYM_DIRECTORY","/")
-  SetOpVar("OPSYM_SEPARATOR",",")
-  SetOpVar("OPSYM_ENTPOSANG","!")
-  SetOpVar("DEG_RAD", math.pi / 180)
-  SetOpVar("EPSILON_ZERO", 1e-5)
-  SetOpVar("CURVE_MARGIN", 15)
-  SetOpVar("CURVE_NODEMR", 0.1)
-  SetOpVar("COLOR_CLAMP", {0, 255})
-  SetOpVar("GOLDEN_RATIO",1.61803398875)
-  SetOpVar("FULL_SLOPEDG", 45)
-  SetOpVar("FORMAT_DATE","%y-%m-%d")
-  SetOpVar("FORMAT_TIME","%H:%M:%S")
-  SetOpVar("FORMAT_DTTM","%y-%m-%d %H:%M:%S")
-  SetOpVar("NAME_INIT",sName:lower())
-  SetOpVar("NAME_PERP",sPurp:lower())
-  SetOpVar("NAME_LIBSUFX", "asmlib")
-  SetOpVar("UNDO_PERFIX",NAME_INIT:gsub("^%l", string.upper)..": ")
-  SetOpVar("NAME_LIBRARY", NAME_INIT..NAME_LIBSUFX)
-  SetOpVar("TOOLNAME_NL",(NAME_INIT..NAME_PERP):lower())
-  SetOpVar("TOOLNAME_NU",(NAME_INIT..NAME_PERP):upper())
-  SetOpVar("TOOLNAME_PL",TOOLNAME_NL.."_")
-  SetOpVar("TOOLNAME_PU",TOOLNAME_NU.."_")
-  SetOpVar("DIRPATH_BAS",TOOLNAME_NL..OPSYM_DIRECTORY)
-  SetOpVar("DIRPATH_EXP","exp"..OPSYM_DIRECTORY)
-  SetOpVar("DIRPATH_DSV","dsv"..OPSYM_DIRECTORY)
-  SetOpVar("DIRPATH_SET","set"..OPSYM_DIRECTORY)
-  SetOpVar("LOG_SKIP",{})
-  SetOpVar("LOG_ONLY",{})
-  SetOpVar("LOG_CONFIG",{
+  TIME_INIT = CurTime()
+  DELAY_ACTION = 0.01
+  DELAY_REMOVE = 0.2
+  MAX_ROTATION = 360
+  ANG_ZERO = Angle()
+  VEC_ZERO = Vector()
+  ANG_REV = Angle(0,180,0)
+  VEC_FW = Vector(1, 0, 0)
+  VEC_RG = Vector(0,-1, 1)
+  VEC_UP = Vector(0, 0, 1)
+  VEC_DW = Vector(0, 0,-1)
+  OPSYM_DISABLE = "#"
+  OPSYM_DIVIDER = "_"
+  OPSYM_VERTDIV = "|"
+  OPSYM_NEWLINE = "\n"
+  OPSYM_REVISION = "@"
+  OPSYM_DIRECTORY = "/"
+  OPSYM_SEPARATOR = ","
+  OPSYM_ENTPOSANG = "!"
+  DEG_RAD = math.pi / 180
+  EPSILON_ZERO = 1e-5
+  CURVE_MARGIN = 15
+  CURVE_NODEMR = 0.1
+  COLOR_CLAMP = {0, 255}
+  GOLDEN_RATIO = 1.61803398875
+  FULL_SLOPEDG = 45
+  FORMAT_DATE = "%y-%m-%d"
+  FORMAT_TIME = "%H:%M:%S"
+  FORMAT_DTTM = "%y-%m-%d %H:%M:%S"
+  NAME_INIT = sName:lower()
+  NAME_PERP = sPurp:lower()
+  NAME_LIBSUFX = "asmlib"
+  UNDO_PERFIX = NAME_INIT:gsub("^%l", string.upper)..": "
+  NAME_LIBRARY = NAME_INIT..NAME_LIBSUFX
+  TOOLNAME_NL = (NAME_INIT..NAME_PERP):lower()
+  TOOLNAME_NU = (NAME_INIT..NAME_PERP):upper()
+  TOOLNAME_PL = TOOLNAME_NL.."_"
+  TOOLNAME_PU = TOOLNAME_NU.."_"
+  DIRPATH_BAS = TOOLNAME_NL..OPSYM_DIRECTORY
+  DIRPATH_EXP = "exp"..OPSYM_DIRECTORY
+  DIRPATH_DSV = "dsv"..OPSYM_DIRECTORY
+  DIRPATH_SET = "set"..OPSYM_DIRECTORY
+  LOG_SKIP = {}
+  LOG_ONLY = {}
+  LOG_CONFIG = {
     Max = 0, -- Maximum allowed amount of logging lines
     Brs = 0, -- File I/O burst rate. Write that amount of lines
     Tbr = {}, -- Table to store burst rate log lines
@@ -752,8 +748,8 @@ function InitBase(sName, sPurp)
     Dbg = false, -- Force stack trace debugging only
     Nam = DIRPATH_BAS..NAME_LIBRARY.."_log.txt",
     Frc = {KV = "%s[%s]", EQ = "%s = %s", VV = "{%s}[%s] = <%s>", EM = "%s = {}"}
-  })
-  SetOpVar("TIME_BENCH",{
+  }
+  TIME_BENCH = {
     Bns = 0,  -- Time at the start of the benchmark
     Now = 0,  -- Time place holder for `SysTime` value
     Cur = 0,  -- Time at the previous `Now` moment
@@ -764,32 +760,32 @@ function InitBase(sName, sPurp)
     Nsn = "", -- Snapshot name as a lap marker
     Ftc = "TIC[%s]: |%f|", -- Benchmark start format
     Flp = "LAP[%s][%s]: |%f|%f|%f|%f|"
-  })
-  SetOpVar("MISS_NOMD","X")      -- No model
-  SetOpVar("MISS_NOID","N")      -- No ID selected
-  SetOpVar("MISS_NOAV","N/A")    -- Not Available
-  SetOpVar("MISS_NOTP","TYPE")   -- No track type
-  SetOpVar("MISS_NOBS","0/0")    -- No Bodygroup skin
-  SetOpVar("MISS_NOSQL","NULL")  -- No SQL value
-  SetOpVar("FORM_PROGRESS", "%5.2f%%")
-  SetOpVar("FORM_CONCMD", "%s \"%s\"\n")
-  SetOpVar("FORM_INTEGER", "[%d]")
-  SetOpVar("FORM_STRING", "[%s]")
-  SetOpVar("FORM_KEYSTMT","%s(%s)")
-  SetOpVar("FORM_PREFIXFMT", "[%s-%s]%s")
-  SetOpVar("FORM_HEADEREXP", {
+  }
+  MISS_NOMD = "X"      -- No model
+  MISS_NOID = "N"      -- No ID selected
+  MISS_NOAV = "N/A"    -- Not Available
+  MISS_NOTP = "TYPE"   -- No track type
+  MISS_NOBS = "0/0"    -- No Bodygroup skin
+  MISS_NOSQL = "NULL"  -- No SQL value
+  FORM_PROGRESS = "%5.2f%%"
+  FORM_CONCMD = "%s \"%s\"\n"
+  FORM_INTEGER = "[%d]"
+  FORM_STRING = "[%s]"
+  FORM_KEYSTMT = "%s(%s)"
+  FORM_PREFIXFMT = "[%s-%s]%s"
+  FORM_HEADEREXP = {
     Src = "# %s:(%s) %s [%s]\n" , Tco = "# %s:(%s)\n",
     Qry = "# Query(%d):[[%s]]\n", Cax = "# Categorize(%s): %s\n"
-  })
-  SetOpVar("FORM_METHCALLS","%s:%s(%s)")
-  SetOpVar("FORM_PREFIXDSV", "%s%s.txt")
-  SetOpVar("FORM_GITWIKI", "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s")
-  SetOpVar("FORM_SNAPSND", "physics/metal/metal_canister_impact_hard%d.wav")
-  SetOpVar("FORM_NTFGAME", "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)")
-  SetOpVar("FORM_NTFPLAY", "surface.PlaySound(\"ambient/water/drip%d.wav\")")
-  SetOpVar("MODELNAM_FILE","%.mdl")
-  SetOpVar("DBEXP_PREFGEN", "[generic]_")
-  SetOpVar("VCOMPARE_SPAN", function(u, v)
+  }
+  FORM_METHCALLS = "%s:%s(%s)"
+  FORM_PREFIXDSV = "%s%s.txt"
+  FORM_GITWIKI = "https://github.com/dvdvideo1234/TrackAssemblyTool/wiki/%s"
+  FORM_SNAPSND = "physics/metal/metal_canister_impact_hard%d.wav"
+  FORM_NTFGAME = "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)"
+  FORM_NTFPLAY = "surface.PlaySound(\"ambient/water/drip%d.wav\")"
+  MODELNAM_FILE = "%.mdl"
+  DBEXP_PREFGEN = "[generic]_"
+  VCOMPARE_SPAN = function(u, v
     if(u.T ~= v.T) then return u.T < v.T end
     local uC, vC = (u.C or {}), (v.C or {})
     for i = 1, math.max(#uC, #vC) do
@@ -803,7 +799,7 @@ function InitBase(sName, sPurp)
     if(u.N ~= v.N) then return u.N < v.N end
     if(u.M ~= v.M) then return u.M < v.M end
     return false end)
-  SetOpVar("VCOMPARE_SDAT", function(u, v, c)
+  VCOMPARE_SDAT = function(u, v, c
     for iD = 1, c.Size do
       local iR = c[iD]
       local uR, vR = u.Rec, v.Rec
@@ -814,53 +810,54 @@ function InitBase(sName, sPurp)
         return uV < vV
       end
     end; return false; end)
-  SetOpVar("NAVIGATE_HERE", function(t, k) return t[k] end)
-  SetOpVar("VCOMPARE_SKEY", function(u, v) return (u.Key < v.Key) end)
-  SetOpVar("VCOMPARE_SREC", function(u, v) return (u.Rec < v.Rec) end)
-  SetOpVar("MODELNAM_FUNC", function(x) return " "..x:sub(2,2):upper() end)
-  SetOpVar("EMPTYSTR_BLNU", function(x) return (IsBlank(x) or IsNull(x)) end)
-  SetOpVar("EMPTYSTR_BLDS", function(x) return (IsBlank(x) or IsDisable(x)) end)
-  SetOpVar("EMPTYSTR_BNDX", function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end)
-  SetOpVar("QUERY_STORE", {})
-  SetOpVar("TABLE_QUEUE",{})
-  SetOpVar("TABLE_FLAGS", {})
-  SetOpVar("TABLE_BORDERS",{})
-  SetOpVar("TABLE_MONITOR", {})
-  SetOpVar("TABLE_CONTAINER",{})
-  SetOpVar("TYPEMT_POA",{__type = "POA"})
-  SetOpVar("TYPEMT_QUEUE",{__type = "QUEUE"})
-  SetOpVar("TYPEMT_SCREEN",{__type = "SCREEN"})
-  SetOpVar("TYPEMT_BEAUTY",{__type = "BEAUTY"})
-  SetOpVar("TYPEMT_CONTAINER",{__type = "CONTAINER"})
-  SetOpVar("ARRAY_BNDERRMOD",{"OFF", "LOG", "HINT", "GENERIC", "ERROR"})
-  SetOpVar("ARRAY_MODEDB",{"LUA", "SQL", ["LUA"] = true, ["SQL"] = true})
-  SetOpVar("ARRAY_MODETM",{"CQT", "OBJ", ["CQT"] = true, ["OBJ"] = true})
-  SetOpVar("TABLE_FREQUENTS",{})
-  SetOpVar("ENTITY_DEFCLASS", "prop_physics")
-  SetOpVar("KEY_DEFAULT","(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)")
-  SetOpVar("KEY_FLIPOVER", "FLIPOVER")
-  SetOpVar("CVAR_LIMITNAME","asm"..NAME_INIT.."s")
-  SetOpVar("MODE_DATABASE",MISS_NOAV)
-  SetOpVar("HASH_USER_PANEL",TOOLNAME_PU.."USER_PANEL")
-  SetOpVar("HASH_PROPERTY", {Name = "NAMES", Type = "TYPES"})
-  SetOpVar("TRACE_CLASS", {[ENTITY_DEFCLASS]=true})
-  SetOpVar("TRACE_DATA",{ -- Used for general trace result storage
+  NAVIGATE_HERE = function(t, k) return t[k] end
+  VCOMPARE_SKEY = function(u, v) return (u.Key < v.Key) end
+  VCOMPARE_SREC = function(u, v) return (u.Rec < v.Rec) end
+  MODELNAM_FUNC = function(x) return " "..x:sub(2,2):upper() end
+  EMPTYSTR_BLNU = function(x) return (IsBlank(x) or IsNull(x)) end
+  EMPTYSTR_BLDS = function(x) return (IsBlank(x) or IsDisable(x)) end
+  EMPTYSTR_BNDX = function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end
+  QUERY_STORE = {}
+  TABLE_QUEUE = {}
+  TABLE_FLAGS = {}
+  TABLE_BORDERS = {}
+  TABLE_MONITOR = {}
+  TABLE_CONTAINER = {}
+  TYPEMT_POA = {__type = "POA"}
+  TYPEMT_QUEUE = {__type = "QUEUE"}
+  TYPEMT_SCREEN = {__type = "SCREEN"}
+  TYPEMT_BEAUTY = {__type = "BEAUTY"}
+  TYPEMT_CONTAINER = {__type = "CONTAINER"}
+  ARRAY_BNDERRMOD = {"OFF", "LOG", "HINT", "GENERIC", "ERROR"}
+  ARRAY_MODEDB = {"LUA", "SQL", ["LUA"] = true, ["SQL"] = true}
+  ARRAY_MODETM = {"CQT", "OBJ", ["CQT"] = true, ["OBJ"] = true}
+  TABLE_FREQUENTS = {}
+  ENTITY_DEFCLASS = "prop_physics"
+  KEY_DEFAULT = "(!@<#_$|%^|&>*)DEFKEY(*>&|^%|$_#<@!)"
+  KEY_FLIPOVER = "FLIPOVER"
+  CVAR_LIMITNAME = "asm"..NAME_INIT.."s"
+  MODE_DATABASE = MISS_NOAV
+  HASH_USER_PANEL = TOOLNAME_PU.."USER_PANEL"
+  HASH_PROPERTY = {Name = "NAMES", Type = "TYPES"}
+  TRACE_CLASS = {[ENTITY_DEFCLASS]=true}
+  TRACE_DATA = { -- Used for general trace result storage
     length = 0, -- Will store the trace length when needed
     start  = Vector(),    -- Start position of the trace
     endpos = Vector(),    -- End position of the trace
     mask   = GENV . MASK_SOLID,  -- Mask telling it what to hit
     filter = function(oEnt) -- Valid but not the main entity, world or TRACE_FILTER
       if(oEnt and oEnt:IsValid() and oEnt ~= TRACE_FILTER and
-        TRACE_CLASS[oEnt:GetClass()]) then return true end end })
-  SetOpVar("PATTEM_NOPIECE" , GetConcat("%s", OPSYM_REVISION, "%s"))
-  SetOpVar("PATTEM_EXDSVHED", {
+        TRACE_CLASS[oEnt:GetClass()]) then return true end end
+  }
+  PATTEM_NOPIECE = GetConcat("%s", OPSYM_REVISION, "%s")
+  PATTEM_EXDSVHED = {
     Sym = OPSYM_REVISION,
     Fmt = table.concat({"(%s","%s","%s)"}, OPSYM_REVISION),
     Hdr = "^#.*DSV.*%(.+%)", Par = "%(.+%)"
-  })
-  SetOpVar("HOVER_TRIGGER"  , {})
-  SetOpVar("TABLE_COMPONENTS", {})
-  SetOpVar("TABLE_MAPENUM", {
+  }
+  HOVER_TRIGGER = {}
+  TABLE_COMPONENTS = {}
+  TABLE_MAPENUM = {
     ["MOVETYPE"] = { Fme = "%s_%s", Fmt = "%-19s",
       [tostring(GENV . MOVETYPE_NONE      )] = "NONE",
       [tostring(GENV . MOVETYPE_ISOMETRIC )] = "ISOMETRIC",
@@ -905,49 +902,49 @@ function InitBase(sName, sPurp)
       ["SOLID_CUSTOM"       ] = GENV . SOLID_CUSTOM,
       ["SOLID_VPHYSICS"     ] = GENV . SOLID_VPHYSICS
     }
-  })
+  }
   if(CLIENT) then
-    SetOpVar("PATTEM_EXCATHED", {
+    PATTEM_EXCATHED = {
       Sym = OPSYM_REVISION,
       Fmt = table.concat({"(%s","%d)"}, OPSYM_REVISION),
       Hdr = "^#.*Category.*%(.+%)", Par = "%(.+%)"
-    })
-    SetOpVar("PATTEX_AUTORUN", {
+    }
+    PATTEX_AUTORUN = {
       Suf = "run", Exp = "z_autorun_[%s]",
       Var = "%s*local%s+myAddon.*%s*=%s*",
       Typ = "%s*local%s+myType.*%s*=%s*",
       Cax = "%s*local%s+myCategory.*%s*=%s*",
       Tar = "%s*local%s+my[A-Z][a-z]+%s*=%s*{",
       Wrs = GetConcat("%s*",NAME_LIBSUFX,"%.WorkshopID%s*")
-    })
-    SetOpVar("PATTEX_AUTOSET", {
+    }
+    PATTEX_AUTOSET = {
       Suf = "set", Exp = "z_autoset_[%s]",
       Var = "%s*local%s+myAddon.*%s*=%s*",
       Typ = "%s*local%s+myType.*%s*=%s*",
       Tas = "%s*if%(not file%.Exists%(myPath%.",
       Wrs = GetConcat("%s*",NAME_LIBSUFX,"%.WorkshopID%s*"),
       Fmk = GetConcat("local %s = ", NAME_LIBSUFX, ".GetBuilderNick(\"%s\")")
-    })
-    SetOpVar("TABLE_IHEADER", {name = "", stage = 0, op = 0, icon = "", icon2 = ""})
-    SetOpVar("TABLE_TOOLINF", {
+    }
+    TABLE_IHEADER = {name = "", stage = 0, op = 0, icon = "", icon2 = ""}
+    TABLE_TOOLINF = {
       {name = "workmode"} ,
       {name = "info"      , icon = "gui/info"   },
       {name = "left"      , icon = "gui/lmb.png"},
       {name = "right"     , icon = "gui/rmb.png"},
       {name = "right_use" , icon = "gui/rmb.png" , icon2 = "gui/e.png"},
       {name = "reload"    , icon = "gui/r.png"  }
-    })
-    SetOpVar("TOOL_DEFMODE","gmod_tool")
-    SetOpVar("FORM_DRAWDBG", "%s{%s}: %s > %s")
-    SetOpVar("FORM_DRWSPKY", "%+6s")
-    SetOpVar("FORM_ICONS","icon16/%s.png")
-    SetOpVar("FORM_URLADDON", "https://steamcommunity.com/sharedfiles/filedetails/?id=%s")
-    SetOpVar("TABLE_SKILLICON",{})
-    SetOpVar("TABLE_WSIDADDON", {ID = "^%d+$", Data = {}, Type = {}})
-    SetOpVar("ARRAY_GHOST",{Size=0, Slot=MISS_NOMD})
-    SetOpVar("TABLE_CATEGORIES", {})
-    SetOpVar("CLIPBOARD_TEXT","")
-    SetOpVar("FMNODE_PATH","%s>%s")
+    }
+    TOOL_DEFMODE = "gmod_tool"
+    FORM_DRAWDBG = "%s{%s}: %s > %s"
+    FORM_DRWSPKY = "%+6s"
+    FORM_ICONS = "icon16/%s.png"
+    FORM_URLADDON = "https://steamcommunity.com/sharedfiles/filedetails/?id=%s"
+    TABLE_SKILLICON = {}
+    TABLE_WSIDADDON = {ID = "^%d+$", Data = {}, Type = {}}
+    ARRAY_GHOST = {Size=0, Slot=MISS_NOMD}
+    TABLE_CATEGORIES = {}
+    CLIPBOARD_TEXT = ""
+    FMNODE_PATH = "%s>%s"
   end; LogInstance("Success"); return true
 end
 
@@ -2175,7 +2172,7 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
           vBtn.L = function(pB, pS, nS) pS:SetValue(tonumber(CLIPBOARD_TEXT) or 0) end
         end
         if(not vBtn.R) then
-          vBtn.R = function(pB, pS, nS) SetClipboardText(nS); SetOpVar("CLIPBOARD_TEXT", nS) end
+          vBtn.R = function(pB, pS, nS) SetClipboardText(nS); CLIPBOARD_TEXT = nS end
         end
       end
     elseif(sTxt == "+/-") then
@@ -2358,7 +2355,7 @@ function GetAttachmentByID(vSrc, sID)
     else -- If there is no basis need to create one for attachment extraction
       eBase = NewEntityNone(sSrc); if(not (eBase and eBase:IsValid())) then
         LogInstance("[S] Creation error "..GetReport(sID, sSrc)); return nil, sSrc end
-      SetOpVar("ENTITY_TRANSFORMPOA", eBase) -- Register the entity transform basis
+      ENTITY_TRANSFORMPOA = eBase -- Register the entity transform basis
     end -- Transfer the data from the transform attachment location
   elseif(isnumber(vSrc)) then
     local iSrc = math.floor(vSrc); if(iSrc <= 0) then
@@ -2567,7 +2564,7 @@ function GetBeautify()
     if(not bNo) then self:Apply() end -- Apply rules in the conversion
     -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
     return self:Beautify(msConv:Trim(msDiv))
-  end; SetOpVar("OBJECT_BEAUTY", self); return self
+  end; OBJECT_BEAUTY = self; return self
 end
 
 function Categorize(oTyp, fCat, ...)
@@ -2578,7 +2575,7 @@ function Categorize(oTyp, fCat, ...)
     local tTyp = (tCat and tCat[sTyp] or nil)
     return sTyp, (tTyp and tTyp.Txt), (tTyp and tTyp.Cmp)
   else -- Category is provided. Update the default
-    oBeu:SetRule(); SetOpVar("DEFAULT_TYPE", tostring(oTyp))
+    oBeu:SetRule(); DEFAULT_TYPE = tostring(oTyp)
     if(SERVER) then return end -- The server must bail out right here
     local sTyp = tostring(DEFAULT_TYPE or ""):Trim()
     LogInstance("Name "..GetReport(type(fCat), oTyp, sTyp, sPrf))
@@ -2808,7 +2805,7 @@ function Notify(oPly, sType, sForm, ...)
 end
 
 function UndoCrate(vMsg)
-  SetOpVar("LABEL_UNDO",tostring(vMsg))
+  LABEL_UNDO = tostring(vMsg)
   undo.Create(LABEL_UNDO); return true
 end
 
@@ -5147,7 +5144,7 @@ function GetTraceEntityPoint(trEnt, ivPoID, nLen, vDir)
   trDt.endpos:Set(vDir or trAng:Forward())
   trDt.endpos:Mul(trDt.length)
   trDt.endpos:Add(trDt.start)
-  SetOpVar("TRACE_FILTER", trEnt)
+  TRACE_FILTER = trEnt
   return util.TraceLine(trDt), trDt
 end
 

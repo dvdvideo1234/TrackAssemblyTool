@@ -163,8 +163,8 @@ if(CLIENT) then
     end)
 
   -- Store references and stuff related to the tool file
-  asmlib.SetOpVar("STORE_TOOLOBJ", TOOL)
-  asmlib.SetOpVar("STORE_CONVARS", TOOL:BuildConVarList())
+  asmlib.STORE_TOOLOBJ = TOOL
+  asmlib.STORE_CONVARS = TOOL:BuildConVarList()
 end
 
 if(SERVER) then

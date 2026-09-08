@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.SetOpVar("TOOL_VERSION","9.921")
+asmlib.TOOL_VERSION = "9.923"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -135,10 +135,10 @@ asmlib.IsFlag("old_close_frame", false) -- The new state for frame shortcut dete
 asmlib.IsFlag("tg_context_menu", false) -- Raises whenever the user opens the game context menu
 asmlib.IsFlag("file_read_once" , asmlib.GetAsmConvar("ioreadall", "BUL"))
 asmlib.IsFlag("en_dsv_datalock", asmlib.GetAsmConvar("endsvlock", "BUL"))
-asmlib.SetOpVar("MODE_DATABASE", asmlib.GetAsmConvar("modedb"   , "STR"))
-asmlib.SetOpVar("TRACE_MARGIN" , asmlib.GetAsmConvar("maxtrmarg", "FLT"))
-asmlib.SetOpVar("SPAWN_MARGIN" , asmlib.GetAsmConvar("maxspmarg", "FLT"))
-asmlib.SetOpVar("MSDELTA_SEND" , asmlib.GetAsmConvar("dtmessage", "FLT"))
+asmlib.MODE_DATABASE = asmlib.GetAsmConvar("modedb"   , "STR")
+asmlib.TRACE_MARGIN = asmlib.GetAsmConvar("maxtrmarg", "FLT")
+asmlib.SPAWN_MARGIN = asmlib.GetAsmConvar("maxspmarg", "FLT")
+asmlib.MSDELTA_SEND = asmlib.GetAsmConvar("dtmessage", "FLT")
 asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ GLOBAL VARIABLES ------------
@@ -317,11 +317,11 @@ end -- Editors are automatically added
 local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
       conCallBack:Push({"maxtrmarg", function(sV, vO, vN)
         local nM = (tonumber(vN) or 0); nM = ((nM > 0) and nM or 0)
-        asmlib.SetOpVar("TRACE_MARGIN", nM)
+        asmlib.TRACE_MARGIN = nM
       end})
       conCallBack:Push({"maxspmarg", function(sV, vO, vN)
         local nM = (tonumber(vN) or 0)
-        asmlib.SetOpVar("SPAWN_MARGIN", nM)
+        asmlib.SPAWN_MARGIN = nM
       end})
       conCallBack:Push({"logsmax", function(sV, vO, vN)
         local nM = asmlib.BorderValue((tonumber(vN) or 0), "non-neg")
@@ -350,7 +350,7 @@ local conCallBack = asmlib.GetContainer("CALLBAC_FUNC")
           local sK = gsToolPrefL.."dtmessage"
           local nD = (tonumber(vN) or 0)
                 nD = asmlib.BorderValue(nD, sK)
-          asmlib.SetOpVar("MSDELTA_SEND", nD)
+          asmlib.MSDELTA_SEND = nD
         end
       end})
 
@@ -363,7 +363,7 @@ end
 
 ------------ RECORDS ------------
 
-asmlib.SetOpVar("STRUCT_SPAWN",{
+asmlib.STRUCT_SPAWN = {
   Name = "Spawn data definition",
   Draw = {
     ["RDB"] = function(scr, key, typ, inf, def, spn)
@@ -413,7 +413,7 @@ asmlib.SetOpVar("STRUCT_SPAWN",{
     {"ANxt", "ANG", "Origin angle offsets"},
     {"PNxt", "VEC", "Piece position offsets"}
   }
-})
+}
 
 ------------ ACTIONS ------------
 
