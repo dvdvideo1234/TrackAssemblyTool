@@ -27,8 +27,7 @@ local conElements = asmlib.GetContainer("LIST_VGUI")
 local varLanguage = GetConVar("gmod_language")
 
 if(not asmlib.ProcessDSV()) then -- Default tab delimiter
-  local sS = asmlib.DIRPATH_SET
-  local sD = GetLibraryPath(sS, gsLibName, "_dsv")
+  local sD = GetLibraryPath(asmlib.DIRPATH_SET, gsLibName, "_dsv")
   asmlib.LogInstance("List settings error "..asmlib.GetReport(sD))
 end
 
@@ -1010,7 +1009,7 @@ function TOOL:CurveInsert(stTrace, bPnt, iD, bMute)
   tU[3]  = tData.Hit -- Current node base location in the stack ( Base )
   tU[4]  = tData.Org -- Player trace location curve data        ( RayO )
   tU[5]  = tData.Ang -- Player trace angle curve data           ( RayA )
-  tU[6]  = (tData.POA ~= nil) -- Player hits POA location       ( RayL )
+  tU[6]  = asmlib.IsHere(tData.POA) -- Player hits POA location ( RayL )
   tU[7]  = iC        -- The index to change at when requested   (  ID  )
   tU[8]  = iN        -- The super-elevation index normal vector (  IL  )
   tU[9]  = vN        -- The super-elevation vector applied      ( Lean )
@@ -1085,7 +1084,7 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
   tC.Base[mD]:Set(tData.Hit)
   tC.Rays[mD][1]:Set(tData.Org)
   tC.Rays[mD][2]:Set(tData.Ang)
-  tC.Rays[mD][3] = (tData.POA ~= nil)
+  tC.Rays[mD][3] = asmlib.IsHere(tData.POA)
   -- Adjust node according to intersection
   if(bPnt and not tData.POA and not bTr) then
     local xx = self:GetCurveNodeActive(mD, tData.Org)
@@ -1645,14 +1644,14 @@ function TOOL:RightClick(stTrace)
   if(workmode == 3 or workmode == 5) then
     local bPnt = user:KeyDown(IN_USE)
     if(user:KeyDown(IN_SPEED)) then
-      return (self:CurveUpdate(stTrace, bPnt) ~= nil)
+      return asmlib.IsHere(self:CurveUpdate(stTrace, bPnt))
     elseif(user:KeyDown(IN_DUCK)) then
       local tC = asmlib.GetCacheCurve(user); if(not tC) then
         asmlib.LogInstance("Curve missing", gtLogs); return false end
       local mD, mL = asmlib.GetNearest(stTrace.HitPos, tC.Base)
-      return (self:CurveInsert(stTrace, bPnt, mD) ~= nil)
+      return asmlib.IsHere(self:CurveInsert(stTrace, bPnt, mD))
     else
-      return (self:CurveInsert(stTrace, bPnt) ~= nil)
+      return asmlib.IsHere(self:CurveInsert(stTrace, bPnt))
     end; return false
   elseif(workmode == 4 and not user:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
@@ -2180,10 +2179,7 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   vF:Set(aOv:Forward()); vF:Mul(actrad); vF:Add(wOv)
   vU:Set(aOv:Up()); vU:Mul(actrad); vU:Add(wOv)
   local oO, oF, oU = wOv:ToScreen(), vF:ToScreen(), vU:ToScreen()
-  hudMonitor:DrawLine(oO, oU, "b", "SURF")
-  hudMonitor:DrawLine(oO, oF, "r")
-  hudMonitor:DrawLine(oO, xH, "g")
-  hudMonitor:DrawCircle(xH, asmlib.GetViewRadius(oPly, stTrace.HitPos, 0.5))
+  hudMonitor:DrawCircle(xH, asmlib.GetViewRadius(oPly, stTrace.HitPos, 0.5), "g", "SURF")
   local tE, nE = self:GetFlipOver(true, true)
   for iD = 1, nE do local eID = tE[iD]
     if(not asmlib.IsOther(eID)) then
@@ -2196,6 +2192,9 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
       hudMonitor:DrawCircle(Oe, asmlib.GetViewRadius(oPly, spPos), "m")
     end
   end
+  hudMonitor:DrawLine(oO, oU, "b", "SURF")
+  hudMonitor:DrawLine(oO, oF, "r")
+  hudMonitor:DrawLine(oO, xH, "g")
   if(bAct and not stTrace.HitWorld and wOr) then
     local Op = wOr:ToScreen()
     hudMonitor:DrawLine(xH, Op, "y")

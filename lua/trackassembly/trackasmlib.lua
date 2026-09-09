@@ -68,6 +68,8 @@ local isfunction              = isfunction
 local LocalPlayer             = LocalPlayer
 local ErrorNoHalt             = ErrorNoHalt
 local CompileFile             = CompileFile
+local WorldToLocal            = WorldToLocal
+local LocalToWorld            = LocalToWorld
 local CreateConVar            = CreateConVar
 local getmetatable            = getmetatable
 local setmetatable            = setmetatable
@@ -91,6 +93,16 @@ local libConcat = {} -- Used to store concatenation strings
 module("trackasmlib")
 
 local GMOD = getfenv()
+
+---------------------------- COMPATIBILITY ----------------------------
+
+function GetOpVar(sName)
+  return GMOD[sName]
+end
+
+function SetOpVar(sName, vV)
+  GMOD[sName] = vV
+end
 
 ---------------------------- PRIMITIVES ----------------------------
 
@@ -1762,7 +1774,7 @@ function GetReader(sS)
   -- Raise an error flag in the reading loop
   function self:IsDeny() return bE end
   -- Check if the file is still open
-  function self:IsOpen() return (pF ~= nil) end
+  function self:IsOpen() return IsHere(pF) end
   -- Reading has ended due to error or no more content
   function self:IsDone() return (bE or not rS) end
   -- Error is raised in the reading loop
@@ -2374,13 +2386,10 @@ function GetTransformOver(eBase, wOver, aOver)
   -- Rotate 180 around the plane normal
   vPos.x, vPos.y = -vPos.x, -vPos.y
   -- Rotate 180 around the local Z axis (plane normal)
-  aAng:RotateAroundAxis(aAng:Up(), MAX_ROTATION / 2)
+  aAng:RotateAroundAxis(VEC_UP, MAX_ROTATION / 2)
   -- Back to world angle
-  local wPos, wAng = LocalToWorld(vPos, aAng, wOver, aOver)
-  -- Output fast the transformed position and angle
-  return wPos, wAng
+  return LocalToWorld(vPos, aAng, wOver, aOver)
 end
-
 
 function IsPhysTrace(Trace)
   if(not Trace) then return false end
