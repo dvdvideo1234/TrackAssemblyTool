@@ -147,8 +147,8 @@ function IsDisable(vV)
   return (vV:sub(1,1) == OPSYM_DISABLE)
 end
 
-function IsEmpty(tVal)
-  return (istable(tVal) and not next(tVal))
+function IsEmpty(tV)
+  return (istable(tV) and not next(tV))
 end
 
 function IsExact(vV)
@@ -820,7 +820,8 @@ function InitBase(sName, sPurp)
   TYPEMT_POA = {__type = "POA"}
   TYPEMT_QUEUE = {__type = "QUEUE"}
   TYPEMT_SCREEN = {__type = "SCREEN"}
-  TYPEMT_BEAUTY = {__type = "BEAUTY"}
+  TYPEMT_BEAUTY = {__type = "BEAUTY", __here = nil}
+  TYPEMT_READER = {__type = "READER", __here = nil}
   TYPEMT_CONTAINER = {__type = "CONTAINER"}
   ARRAY_BNDERRMOD = {"OFF", "LOG", "HINT", "GENERIC", "ERROR"}
   ARRAY_MODEDB = {"LUA", "SQL", ["LUA"] = true, ["SQL"] = true}
@@ -1737,6 +1738,137 @@ function NewPOA(vA, vB, vC)
   return self
 end
 
+--[[
+ * Returns the reader configuration
+ * iD : Current line being obtained
+ * bO : The file is read at once
+ * bE : Reading process is denied
+ * rS : Current row string returned
+]]
+function GetReader(sM)
+  local oR = TYPEMT_READER.__here
+  if(oR) then return oR:Reset(sM) end
+  local iD, bO = 0, IsFlag("file_read_once")
+  local bE, rS, tC, sM = false, nil, nil, sM
+  local sN, sF, pF = PATTEM_NEWLINE
+  local self = {}; setmetatable(self, TYPEMT_READER)
+  TYPEMT_READER.__here = self
+  function self:IsOnce() return bO end
+  function self:IsDeny() return bE end
+  function self:IsOpen() return (pF ~= nil) end
+  function self:IsDone() return (bE or not rS) end
+  function self:Deny() bE = true; return self end
+  function self:GetFile()
+    return (self:IsOpen() and pF or nil)
+  end
+  function self:Close()
+    if(self:IsOpen()) then pF:Close(); pF = nil end
+    return self
+  end
+  function self:Open(sS)
+    sF = tostring(sS or sF)
+    pF = file.Open(sF, "rb", "DATA"); if(not pF) then
+    bE = true; LogInstance("Open error "..asmlib.GetReport(sM, bO, iD, sF, sS)); end
+    return self
+  end
+  function self:Finish()
+    if(bE) then if(not bO) then self:Close() end
+      LogInstance("Contents error "..GetReport(iD, sM, sF)) end
+    return self
+  end
+  function self:Reset(sM)
+    iD, bO = 0, IsFlag("file_read_once")
+    bE, rS, tC, sM = false, nil, nil, sM
+    sN, sF, pF = PATTEM_NEWLINE
+    return self
+  end
+  function self:GetLine()
+    if(iD > 0) then iD = (iD + 1)
+      if(bO) then rS = tC[iD] else rS = pF:ReadLine() end
+    else -- Allocate file read configuration
+      if(bO) then -- File at once fast I/O
+        tC = sN:Explode(pF:Read(), true); self:Close()
+        iD = 1; rS = tC[iD] -- Index the next row
+      else -- Read it line by line less memory
+        iD = 1; rS = pF:ReadLine() -- Read one line
+      end -- Close the file on EOF reading line by line
+    end; if(not (rS or bO)) then self:Close() end
+    return rS
+  end; return self
+end
+
+function GetBeautify()
+  local oB = TYPEMT_BEAUTY.__here
+  if(oB) then return oB end
+  local msName, msConv, self = "", "", {}
+  local msLogs = "BEAUTY"; setmetatable(self, TYPEMT_BEAUTY)
+  local msExt, mfCon = MODELNAM_FILE, MODELNAM_FUNC
+  local msDiv, msDir = OPSYM_DIVIDER, OPSYM_DIRECTORY
+  local mtSUB = {{msDiv.."+" , msDiv}, {msDiv.."$" , ""   },
+                 {msDiv.."%w", mfCon}, {msExt      , ""   }}
+  local mtCut, mtSub, mtApp
+  function self:Get()
+    return msName
+  end
+  function self:Set(sIn)
+    msName = tostring(sIn or "")
+    return self
+  end
+  function self:GetRule()
+    return mtCut, mtSub, mtApp
+  end
+  function self:SetRule(gCut, gSub, gApp)
+    mtCut = ((gCut and gCut[1]) and gCut or nil)
+    mtSub = ((gSub and gSub[1]) and gSub or nil)
+    mtApp = ((gApp and gApp[1]) and gApp or nil)
+    return self
+  end
+  function self:Apply()
+    -- Apply the general rules on the conversion
+    if(mtCut) then local iC, iN = 1, 2
+      while(mtCut[iC] and mtCut[iN]) do
+        local fNu, bNu = tonumber(mtCut[iC]), tonumber(mtCut[iN])
+        if(IsHere(fNu) and IsHere(bNu)) then
+          LogInstance("Cut "..GetReport(fNu, bNu, msConv), msLogs)
+          msConv = msConv:gsub(msConv:sub(fNu, bNu), "", 1)
+        else LogInstance("Cut mismatch "..GetReport(fNu, bNu, sModel), msLogs); end
+        iC, iN = (iC + 2), (iN + 2)
+      end
+    end -- Replace the unneeded parts by finding an in-string msConv
+    if(mtSub) then local iC, iN = 1, 2
+      while(mtSub[iC]) do
+        local fCh, bCh = tostring(mtSub[iC] or ""), tostring(mtSub[iN] or "")
+        msConv = msConv:gsub(fCh, bCh); LogInstance("Sub "..GetReport(fCh, bCh, msConv), msLogs)
+        iC, iN = (iC + 2), (iN + 2)
+      end
+    end -- Append something if needed
+    if(mtApp) then
+      local fCh, bCh = tostring(mtApp[1] or ""), tostring(mtApp[2] or "")
+      msConv = GetConcat(fCh, msConv, bCh); LogInstance("App "..GetReport(fCh, bCh, msConv), msLogs)
+    end; return self:Set(msConv)
+  end
+  function self:Beautify(sIn)
+    local tA, tB, tC, tD = unpack(mtSUB)
+    msConv = tostring(sIn or msName):lower():Trim()
+    msConv = msConv:gsub(tA[1], tA[2]):gsub(tB[1], tB[2])
+    if(msConv:sub(1,1) ~= msDiv) then msConv = msDiv..msConv end
+    return self:Set(msConv:gsub(tC[1], tC[2]):sub(2,-1))
+  end
+  function self:Convert(sIn, bNo) -- ModelToName
+    local tA, tB, tC, tD = unpack(mtSUB)
+    local sIn = tostring(sIn or ""):lower():Trim()
+    if(IsBlank(sIn)) then return self:Set() end
+    sIn = (sIn:sub(1, 1) ~= msDir) and GetConcat(msDir, sIn) or sIn
+    sIn = (string.GetFileFromFilename(sIn):gsub(tD[1], tD[2]))
+    msConv = sIn:rep(1) -- Create a copy so we can select cut-off parts later
+    if(not bNo) then self:Apply() end -- Apply rules in the conversion
+    -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
+    return self:Beautify(msConv:Trim(msDiv))
+  end; TYPEMT_BEAUTY.__here = self; return self
+end
+
+----------------- ACTION ------------------
+
 function SetAction(sKey, fAct, tDat)
   if(not (sKey and isstring(sKey))) then
     LogInstance("Key mismatch "..GetReport(sKey)); return nil end
@@ -2466,77 +2598,6 @@ function GetEmpty(sBas, fEmp, ...)
       LogInstance("Error "..GetReport(iD, sS, oS)) end
     if(not oS) then return sS end
   end; return sM
-end
-
-function GetBeautify()
-  local moRes = OBJECT_BEAUTY
-  if(moRes) then return moRes end
-  local mtBeu = TYPEMT_BEAUTY
-  local msName, msConv, self = "", "", {}
-  local msLogs = "BEAUTY"; setmetatable(self, mtBeu)
-  local msExt, mfCon = MODELNAM_FILE, MODELNAM_FUNC
-  local msDiv, msDir = OPSYM_DIVIDER, OPSYM_DIRECTORY
-  local mtSUB = {{msDiv.."+" , msDiv}, {msDiv.."$" , ""   },
-                 {msDiv.."%w", mfCon}, {msExt      , ""   }}
-  local mtCut, mtSub, mtApp
-  function self:Get()
-    return msName
-  end
-  function self:Set(sIn)
-    msName = tostring(sIn or "")
-    return self
-  end
-  function self:GetRule()
-    return mtCut, mtSub, mtApp
-  end
-  function self:SetRule(gCut, gSub, gApp)
-    mtCut = ((gCut and gCut[1]) and gCut or nil)
-    mtSub = ((gSub and gSub[1]) and gSub or nil)
-    mtApp = ((gApp and gApp[1]) and gApp or nil)
-    return self
-  end
-  function self:Apply()
-    -- Apply the general rules on the conversion
-    if(mtCut) then local iC, iN = 1, 2
-      while(mtCut[iC] and mtCut[iN]) do
-        local fNu, bNu = tonumber(mtCut[iC]), tonumber(mtCut[iN])
-        if(IsHere(fNu) and IsHere(bNu)) then
-          LogInstance("Cut "..GetReport(fNu, bNu, msConv), msLogs)
-          msConv = msConv:gsub(msConv:sub(fNu, bNu), "", 1)
-        else LogInstance("Cut mismatch "..GetReport(fNu, bNu, sModel), msLogs); end
-        iC, iN = (iC + 2), (iN + 2)
-      end
-    end -- Replace the unneeded parts by finding an in-string msConv
-    if(mtSub) then local iC, iN = 1, 2
-      while(mtSub[iC]) do
-        local fCh, bCh = tostring(mtSub[iC] or ""), tostring(mtSub[iN] or "")
-        msConv = msConv:gsub(fCh, bCh); LogInstance("Sub "..GetReport(fCh, bCh, msConv), msLogs)
-        iC, iN = (iC + 2), (iN + 2)
-      end
-    end -- Append something if needed
-    if(mtApp) then
-      local fCh, bCh = tostring(mtApp[1] or ""), tostring(mtApp[2] or "")
-      msConv = GetConcat(fCh, msConv, bCh); LogInstance("App "..GetReport(fCh, bCh, msConv), msLogs)
-    end; return self:Set(msConv)
-  end
-  function self:Beautify(sIn)
-    local tA, tB, tC, tD = unpack(mtSUB)
-    msConv = tostring(sIn or msName):lower():Trim()
-    msConv = msConv:gsub(tA[1], tA[2]):gsub(tB[1], tB[2])
-    if(msConv:sub(1,1) ~= msDiv) then msConv = msDiv..msConv end
-    return self:Set(msConv:gsub(tC[1], tC[2]):sub(2,-1))
-  end
-  function self:Convert(sIn, bNo) -- ModelToName
-    local tA, tB, tC, tD = unpack(mtSUB)
-    local sIn = tostring(sIn or ""):lower():Trim()
-    if(IsBlank(sIn)) then return self:Set() end
-    sIn = (sIn:sub(1, 1) ~= msDir) and GetConcat(msDir, sIn) or sIn
-    sIn = (string.GetFileFromFilename(sIn):gsub(tD[1], tD[2]))
-    msConv = sIn:rep(1) -- Create a copy so we can select cut-off parts later
-    if(not bNo) then self:Apply() end -- Apply rules in the conversion
-    -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
-    return self:Beautify(msConv:Trim(msDiv))
-  end; OBJECT_BEAUTY = self; return self
 end
 
 function Categorize(oTyp, fCat, ...)
