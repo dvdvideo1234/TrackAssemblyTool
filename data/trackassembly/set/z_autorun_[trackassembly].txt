@@ -46,10 +46,10 @@ local myScript = tostring(debug.getinfo(1).source or "N/A")
       mySource = (asmlib.IsBlank(mySource) and "DSV" or mySource)
 
 -- Store a reference to disable symbol
-local gsMissDB = asmlib.GetOpVar("MISS_NOSQL")
-local gsDirDSV = asmlib.GetOpVar("DIRPATH_DSV")
-local gsToolPF = asmlib.GetOpVar("TOOLNAME_PU")
-local gsSymOff = asmlib.GetOpVar("OPSYM_DISABLE")
+local gsMissDB = asmlib.MISS_NOSQL
+local gsDirDSV = asmlib.DIRPATH_DSV
+local gsToolPF = asmlib.TOOLNAME_PU
+local gsSymOff = asmlib.OPSYM_DISABLE
 
 -- This is the path to your DSV
 local myDsv = asmlib.GetLibraryPath(gsDirDSV, myPrefix, gsToolPF.."PIECES")

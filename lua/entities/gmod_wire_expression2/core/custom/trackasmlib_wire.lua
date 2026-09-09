@@ -17,8 +17,7 @@ local goBeauty = asmlib.GetBeautify()
 local gsBErr = asmlib.GetAsmConvar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmConvar("enwiremod","BUL")
 local gnMaxMass = asmlib.GetAsmConvar("maxmass","FLT")
-local gsToolPrefL = asmlib.GetOpVar("TOOLNAME_PL")
-local gsSymDir = asmlib.GetOpVar("OPSYM_DIRECTORY")
+local gsToolPrefL, gsSymDir = asmlib.TOOLNAME_PL, asmlib.OPSYM_DIRECTORY
 local gsINS = "PIECES:Record({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\", \"%s\"})"
 local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\t\"%s\"\t\"%s\""
 
