@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "9.924"
+asmlib.TOOL_VERSION = "9.925"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -2049,7 +2049,7 @@ asmlib.NewTable("PIECES",{
       if(not asmlib.IsHere(stData.Used)) then stData.Used = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       if(not asmlib.IsHere(stData.Type)) then stData.Type = asmlib.GetTypeNormal(arLine[2]) end
-      if(not asmlib.IsHere(stData.Pref)) then stData.Pref = asmlib.GetTypePrefix(arLine[2])  end
+      if(not asmlib.IsHere(stData.Pref)) then stData.Pref = asmlib.GetTypePrefix(stData.Type) end
       if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
       if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then

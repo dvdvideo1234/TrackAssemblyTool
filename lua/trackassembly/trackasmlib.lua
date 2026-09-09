@@ -52,6 +52,7 @@ local require                 = require
 local CurTime                 = CurTime
 local SysTime                 = SysTime
 local IsValid                 = IsValid
+local getfenv                 = getfenv
 local isnumber                = isnumber
 local isstring                = isstring
 local isvector                = isvector
@@ -88,6 +89,8 @@ local libModel  = {} -- Used to store the the valid models status
 local libConcat = {} -- Used to store concatenation strings
 
 module("trackasmlib")
+
+local GMOD = getfenv()
 
 ---------------------------- PRIMITIVES ----------------------------
 
@@ -408,7 +411,7 @@ function IsLogHere(sMsg, sKey)
   local sMsg = tostring(sMsg or "")
   local sKey = tostring(sKey or "")
   if(IsBlank(sKey)) then return nil end
-  local tLog = trackasmlib["LOG_"..sKey]
+  local tLog = GMOD["LOG_"..sKey]
   if(istable(tLog) and tLog[1]) then
     local iCnt = 1; while(tLog[iCnt]) do
       if(sMsg:find(tostring(tLog[iCnt]))) then
@@ -661,7 +664,7 @@ function SettingsLogs(sHash)
   local sKey = tostring(sHash or ""):upper():Trim()
   if(not (sKey == "SKIP" or sKey == "ONLY")) then
     LogInstance("Invalid "..GetReport(sKey)); return false end
-  local tLogs, lbNam = trackasmlib["LOG_"..sKey], NAME_LIBRARY
+  local tLogs, lbNam = GMOD["LOG_"..sKey], NAME_LIBRARY
   if(not tLogs) then LogInstance("Missing "..GetReport(sKey)); return false end
   local fName = GetLibraryPath(DIRPATH_SET, GetConcat(lbNam, "_sl", sKey:lower()))
   if(not file.Exists(fName, "DATA")) then
@@ -776,7 +779,7 @@ function InitBase(sName, sPurp)
   FORM_NTFPLAY = "surface.PlaySound(\"ambient/water/drip%d.wav\")"
   MODELNAM_FILE = "%.mdl"
   DBEXP_PREFGEN = "[generic]_"
-  VCOMPARE_SPAN = function(u, v
+  VCOMPARE_SPAN = function(u, v)
     if(u.T ~= v.T) then return u.T < v.T end
     local uC, vC = (u.C or {}), (v.C or {})
     for i = 1, math.max(#uC, #vC) do
@@ -789,8 +792,8 @@ function InitBase(sName, sPurp)
     end
     if(u.N ~= v.N) then return u.N < v.N end
     if(u.M ~= v.M) then return u.M < v.M end
-    return false end)
-  VCOMPARE_SDAT = function(u, v, c
+    return false end
+  VCOMPARE_SDAT = function(u, v, c)
     for iD = 1, c.Size do
       local iR = c[iD]
       local uR, vR = u.Rec, v.Rec
@@ -800,7 +803,7 @@ function InitBase(sName, sPurp)
         if(not vV or vV == "") then return false end
         return uV < vV
       end
-    end; return false; end)
+    end; return false; end
   NAVIGATE_HERE = function(t, k) return t[k] end
   VCOMPARE_SKEY = function(u, v) return (u.Key < v.Key) end
   VCOMPARE_SREC = function(u, v) return (u.Rec < v.Rec) end
@@ -2039,7 +2042,7 @@ function SetComboBoxClipboard(pnCombo)
 end
 
 function SetComboBoxList(cPanel, sVar)
-  local tSet = trackasmlib["ARRAY_"..sVar:upper()]
+  local tSet = GMOD["ARRAY_"..sVar:upper()]
   if(IsHere(tSet)) then
     local tSkin, sTool = cPanel:GetSkin(), TOOLNAME_NL
     local sKey, sNam, bExa = GetNameExp(sVar)
@@ -2212,25 +2215,16 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
   return vCen -- Returns X-Y OBB centered model
 end
 
-function asmlib.GetTransformOver(eBase, wOver, aOver)
+function GetTransformOver(eBase, wOver, aOver)
   -- Position relative to the over coordinate system
-  local nR = (MAX_ROTATION / 2)
-  local vU = asmlib.VEC_UP
-  local vZ = asmlib.VEC_ZERO
-  local aZ = asmlib.ANG_ZERO
-
   local vPos, aAng = WorldToLocal(eBase:GetPos(), eBase:GetAngles(), wOver, aOver)
-
   -- Rotate 180 around the plane normal
   vPos.x, vPos.y = -vPos.x, -vPos.y
-
   -- Rotate 180 around the local Z axis (plane normal)
-  aAng:RotateAroundAxis(vU, nR)
-
+  aAng:RotateAroundAxis(aAng:Up(), MAX_ROTATION / 2)
   -- Back to world angle
   local wPos, wAng = LocalToWorld(vPos, aAng, wOver, aOver)
-
-  -- Outout fast the transformed position and angle
+  -- Output fast the transformed position and angle
   return wPos, wAng
 end
 
