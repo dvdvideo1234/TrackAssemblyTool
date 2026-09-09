@@ -1739,50 +1739,68 @@ function NewPOA(vA, vB, vC)
 end
 
 --[[
- * Returns the reader configuration
- * iD : Current line being obtained
- * bO : The file is read at once
- * bE : Reading process is denied
- * rS : Current row string returned
+ * Returns a shared reader configuration
+ * sS/sM > Reader source identifier
+ * iD    > Current line row index
+ * bO    > The file is read at once
+ * bE    > Reading process is denied
+ * rS    > Current row string returned
+ * tC    > Table to store the read lines
+ * sN    > New line local reference
+ * sF/pF > Current file name/reference
 ]]
-function GetReader(sM)
+function GetReader(sS)
   local oR = TYPEMT_READER.__here
-  if(oR) then return oR:Reset(sM) end
+  if(oR) then return oR:Reset(sS) end
   local iD, bO = 0, IsFlag("file_read_once")
-  local bE, rS, tC, sM = false, nil, nil, sM
-  local sN, sF, pF = PATTEM_NEWLINE
+  local bE, sM, rS, tC = false, tostring(sS or ""), nil, nil
+  local sN, sF, pF = PATTEM_NEWLINE, nil, nil
   local self = {}; setmetatable(self, TYPEMT_READER)
   TYPEMT_READER.__here = self
+  -- Is this file configured to be read at once
   function self:IsOnce() return bO end
+  -- Raise an error flag in the reading loop
   function self:IsDeny() return bE end
+  -- Check if the file is still open
   function self:IsOpen() return (pF ~= nil) end
+  -- Reading has ended due to error or no more content
   function self:IsDone() return (bE or not rS) end
+  -- Error is raised in the reading loop
   function self:Deny() bE = true; return self end
+  -- Returns the file pointer
   function self:GetFile()
     return (self:IsOpen() and pF or nil)
   end
+  -- Force closing the file pointer
   function self:Close()
     if(self:IsOpen()) then pF:Close(); pF = nil end
     return self
   end
+  -- Perform an open file request with a source
   function self:Open(sS)
-    sF = tostring(sS or sF)
+    sF = tostring(sS or sF); self:Close() -- Close previous
     pF = file.Open(sF, "rb", "DATA"); if(not pF) then
-    bE = true; LogInstance("Open error "..asmlib.GetReport(sM, bO, iD, sF, sS)); end
+    bE = true; LogInstance("Open error "..asmlib.GetReport(sM, bO, iD, sF)); end
     return self
   end
+  -- Finish the reading and report if any errors are present
   function self:Finish()
     if(bE) then if(not bO) then self:Close() end
-      LogInstance("Contents error "..GetReport(iD, sM, sF)) end
+      LogInstance("Contents error "..GetReport(sM, bO, iD, sF))
+    end; return self
+  end
+  -- Prepares the object for another read
+  function self:Reset(sS)
+    self:Close() -- Close previous
+    iD, rS, tC = 0, nil, nil
+    bO = IsFlag("file_read_once")
+    bE, sM = false, tostring(sS or "")
+    sN, sF, pF = PATTEM_NEWLINE, nil, nil
     return self
   end
-  function self:Reset(sM)
-    iD, bO = 0, IsFlag("file_read_once")
-    bE, rS, tC, sM = false, nil, nil, sM
-    sN, sF, pF = PATTEM_NEWLINE
-    return self
-  end
+  -- Request a single line does nothing when no file
   function self:GetLine()
+    if(pF == nil) then return nil end
     if(iD > 0) then iD = (iD + 1)
       if(bO) then rS = tC[iD] else rS = pF:ReadLine() end
     else -- Allocate file read configuration
@@ -1797,6 +1815,9 @@ function GetReader(sM)
   end; return self
 end
 
+--[[
+ * A beautifier object. Shared for everybody
+]]
 function GetBeautify()
   local oB = TYPEMT_BEAUTY.__here
   if(oB) then return oB end
@@ -1806,7 +1827,7 @@ function GetBeautify()
   local msDiv, msDir = OPSYM_DIVIDER, OPSYM_DIRECTORY
   local mtSUB = {{msDiv.."+" , msDiv}, {msDiv.."$" , ""   },
                  {msDiv.."%w", mfCon}, {msExt      , ""   }}
-  local mtCut, mtSub, mtApp
+  local mtCut, mtSub, mtApp; TYPEMT_BEAUTY.__here = self
   function self:Get()
     return msName
   end
@@ -1864,7 +1885,7 @@ function GetBeautify()
     if(not bNo) then self:Apply() end -- Apply rules in the conversion
     -- Trigger the capital spacing using the divider ( _aaaaa_bbbb_ccccc )
     return self:Beautify(msConv:Trim(msDiv))
-  end; TYPEMT_BEAUTY.__here = self; return self
+  end; return self
 end
 
 ----------------- ACTION ------------------
