@@ -486,7 +486,7 @@ function LogCeption(tT,sS,tP)
   end; LogInstance(tFrc.EM:format(sS),tP)
   if(not IsHere(next(tT))) then return end
   local tK = table.GetKeys(tT); table.sort(tK, VCOMPARE_STYP)
-  for iK = 1, #tK do --Key 1 is different than string 1
+  for iK = 1, #tK do --Key number 1 is different than string 1
     local cK = tK[iK] -- Retrieve the ordered key from the set
     local cV = tT[cK] -- Index the table value being extracted
     local sK = (isstring(cK) and GetConcat(sQ,cK,sQ) or tostring(cK))
@@ -844,17 +844,14 @@ function InitBase(sName, sPurp)
   EMPTYSTR_BLDS = function(x) return (IsBlank(x) or IsDisable(x)) end
   EMPTYSTR_BNDX = function(x) return (IsBlank(x) or IsNull(x) or IsDisable(x)) end
   QUERY_STORE = {}
-  TABLE_QUEUE = {}
   TABLE_FLAGS = {}
   TABLE_BORDERS = {}
-  TABLE_MONITOR = {}
-  TABLE_CONTAINER = {}
   TYPEMT_POA = {__type = "POA"}
-  TYPEMT_QUEUE = {__type = "QUEUE"}
-  TYPEMT_SCREEN = {__type = "SCREEN"}
+  TYPEMT_QUEUE = {__type = "QUEUE" , __here = {}}
+  TYPEMT_SCREEN = {__type = "SCREEN", __here = {}}
   TYPEMT_BEAUTY = {__type = "BEAUTY", __here = nil}
   TYPEMT_READER = {__type = "READER", __here = nil}
-  TYPEMT_CONTAINER = {__type = "CONTAINER"}
+  TYPEMT_CONTAINER = {__type = "CONTAINER", __here = {}}
   ARRAY_BNDERRMOD = {"OFF", "LOG", "HINT", "GENERIC", "ERROR"}
   ARRAY_MODEDB = {"LUA", "SQL", ["LUA"] = true, ["SQL"] = true}
   ARRAY_MODETM = {"CQT", "OBJ", ["CQT"] = true, ["OBJ"] = true}
@@ -1142,13 +1139,16 @@ end
 
 -- https://github.com/GitSparTV/cavefight/blob/master/gamemodes/cavefight/gamemode/init.lua#L115
 function GetQueue(sKey)
-  local mHash = TABLE_QUEUE
+  local mHash = TYPEMT_QUEUE.__here
   local mKey = tostring(sKey or "QUEUE")
-  if(IsHere(sKey)) then
-    if(mHash and mHash[mKey]) then
-      return mHash[mKey] end
-  end
+  local oQue = mHash[mKey]
+  if(oQue) then return oQue end
+   -- Allocate closure variables
   local self, mBusy, mS, mE = {}, {}, nil, nil
+  -- Store the current state
+  mHash[mKey] = self
+  setmetatable(self, TYPEMT_QUEUE)
+  LogInstance("Register "..GetReport(mKey))
   -- Returns the queue member key
   function self:GetKey() return mKey end
   -- Returns the last item in the queue
@@ -1168,13 +1168,17 @@ function GetQueue(sKey)
       LogInstance("Arguments invalid "..GetReport(oD, oA), mKey); return nil end
     if(not isfunction(oM)) then -- There is no valid routine function for the task
       LogInstance("Routine invalid "..GetReport(oD, oM), mKey); return nil end
+    if(oS ~= nil and not isfunction(oS)) then
+      LogInstance("Start routine invalid "..GetReport(oD, oS), mKey); return nil end
+    if(oE ~= nil and not isfunction(oE)) then
+      LogInstance("End routine invalid "..GetReport(oD, oE), mKey); return nil end
     return {  -- Create task main routine structures
       P = oP, -- Current task player ( mandatory )
       A = oA, -- Current task arguments ( mandatory )
       M = oM, -- Current task main routine ( mandatory )
       S = oS, -- Current task start routine ( optional )
       E = oE, -- Current task end routine ( optional )
-      D = tostring(oD), -- Current task start description ( optional )
+      D = tostring(oD or MISS_NOAV), -- Description ( optional )
       N = oN  -- Current task sequential pointer ( optional )
     }
   end
@@ -1197,6 +1201,8 @@ function GetQueue(sKey)
       LogInstance("Configuration missing", mKey); return self end
     if(not (mE.P and mE.P:IsValid())) then -- There is no valid player for task
       LogInstance("Player invalid "..GetReport(mE.D, mE.P), mKey); return self end
+    if(fFoo ~= nil and not isfunction(fFoo)) then
+      LogInstance("Start routine invalid "..GetReport(oD, fFoo), mKey); return self end
     mE.S = fFoo; return self
   end
   -- Calls a function when the task finishes processing
@@ -1205,6 +1211,8 @@ function GetQueue(sKey)
       LogInstance("Configuration missing", mKey); return self end
     if(not (mE.P and mE.P:IsValid())) then -- There is no valid player for task
       LogInstance("Player invalid "..GetReport(mE.D, mE.P), mKey); return self end
+    if(fFoo ~= nil and not isfunction(fFoo)) then
+      LogInstance("Start routine invalid "..GetReport(oD, fFoo), mKey); return self end
     mE.E = fFoo; return self
   end
   -- Execute the current task at the queue beginning
@@ -1245,20 +1253,21 @@ function GetQueue(sKey)
       LogInstance("Clear "..GetReport(mS.D, mS.P:Nick()), mKey)
       local tD = mS.N; table.Empty(mS); mS = tD; return self -- Wipe entry
     end
-  end
-  if(IsHere(sKey)) then
-    if(mHash) then mHash[sKey] = self end
-    LogInstance("Register "..GetReport(mKey)) end
-  setmetatable(self, TYPEMT_QUEUE); return self
+  end; return self
 end
 
 function GetContainer(sKey, sDef)
-  local mHash = TABLE_CONTAINER
+  local mHash = TYPEMT_CONTAINER.__here
   local mKey = tostring(sKey or "CONTAINER")
-  if(IsHere(sKey) and mHash[mKey]) then return mHash[mKey] end
+  local oCon = mHash[mKey]
+  if(oCon) then return oCon end
   local mData, mID, self = {}, {}, {}
   local mDef = sDef or KEY_DEFAULT
   local miTop, miAll, mhCnt = 0, 0, 0
+  -- Register the created class
+  mHash[sKey] = self -- Store for access
+  setmetatable(self, TYPEMT_CONTAINER)
+  LogInstance("Registered "..GetReport(mKey))
   -- Returns the container name information
   function self:GetKey() return mKey end
   -- Returns the largest index in the array part
@@ -1382,10 +1391,7 @@ function GetContainer(sKey, sDef)
     else
       return self:Record(nil, vVal)
     end
-  end
-  if(IsHere(sKey)) then mHash[sKey] = self
-    LogInstance("Registered "..GetReport(mKey)) end
-  setmetatable(self, TYPEMT_CONTAINER); return self
+  end; return self
 end
 
 --[[
@@ -1410,15 +1416,18 @@ end
 ]]
 function GetScreen(sW, sH, eW, eH, conClr, aKey)
   if(SERVER) then return nil end
-  local tLogs, tMon = {"GetScreen"}, TABLE_MONITOR
-  if(IsHere(aKey) and IsHere(tMon) and tMon[aKey]) then -- Return the cached screen
-    local oMon = tMon[aKey]; oMon:GetColor(); return oMon end
+  local mHash = TYPEMT_SCREEN.__here
+  local aKey = tostring(aKey or "SCREEN")
+  local oMon, tLogs = mHash[aKey], {"GetScreen"}
+  if(oMon) then oMon:GetColor(); return oMon end
   local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
   if(sW < 0 or sH < 0) then return nil end
   if(eW < 0 or eH < 0) then return nil end
   local sKeyD, cColD = KEY_DEFAULT, GetColor(255,255,255,255)
   local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
+  setmetatable(self, TYPEMT_SCREEN); mHash[aKey] = self
+  LogInstance("Screen registered "..GetReport(aKey))
   local Colors = {List = conClr, Key = sKeyD, Default = cColD}
   if(Colors.List) then -- Container check. Check if palette is present
     if(getmetatable(Colors.List) ~= TYPEMT_CONTAINER) then return nil end
@@ -1647,11 +1656,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     end
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
     self:DrawLine(Op, Pp)
-  end
-  setmetatable(self, TYPEMT_SCREEN)
-  if(IsHere(aKey)) then tMon[aKey] = self
-    LogInstance("Screen registered "..GetReport(aKey)) end
-  return self -- Register the screen under the key
+  end; return self -- Register the screen under the key
 end
 
 --[[
@@ -1782,8 +1787,8 @@ end
  * sF/pF > Current file name/reference
 ]]
 function GetReader(sS)
-  local oR = TYPEMT_READER.__here
-  if(oR) then return oR:Reset(sS) end
+  local oRea = TYPEMT_READER.__here
+  if(oRea) then return oRea:Reset(sS) end
   local iD, bO = 0, IsFlag("file_read_once")
   local bE, sM, rS, tC = false, tostring(sS or ""), nil, nil
   local sN, sF, pF = PATTEM_NEWLINE, nil, nil
@@ -1851,8 +1856,8 @@ end
  * A beautifier object. Shared for everybody
 ]]
 function GetBeautify()
-  local oB = TYPEMT_BEAUTY.__here
-  if(oB) then return oB end
+  local oBau = TYPEMT_BEAUTY.__here
+  if(oBau) then return oBau end
   local msName, msConv, self = "", "", {}
   local msLogs = "BEAUTY"; setmetatable(self, TYPEMT_BEAUTY)
   local msExt, mfCon = MODELNAM_FILE, MODELNAM_FUNC
