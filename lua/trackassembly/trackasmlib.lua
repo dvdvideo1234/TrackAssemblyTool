@@ -108,6 +108,24 @@ function SetOpVar(sK, vV)
   GMOD[sK:upper()] = vV
 end
 
+function GetLineContent(pF, oC)
+  local oC, rC = oC, nil
+  if(oC) then oC.ID = (oC.ID + 1)
+    if(oC.RO) then rC = oC[oC.ID] else rC = pF:ReadLine() end
+  else -- Allocate file read configuration
+    local bW = IsFlag("file_read_once")
+    if(bW) then -- File at once fast I/O
+      oC = OPSYM_NEWLINE:Explode(pF:Read()); pF:Close()
+      oC.ID, oC.RO, oC.ER = 1, bW, false
+      rC = oC[oC.ID] -- Index the next row
+    else -- Read it line by line less memory
+      oC = {ID = 1, RO = bW, ER = false}
+      rC = pF:ReadLine() -- Read one line
+    end -- Close the file on EOF reading line by line
+  end; if(not (rC or oC.RO)) then pF:Close() end
+  return rC, oC
+end
+
 ---------------------------- PRIMITIVES ----------------------------
 
 function IsHere(vV)
@@ -563,33 +581,6 @@ function GetViewRadius(pPly, vPos, nMul)
 end
 
 --[[
- * Golden retriever. Retrieves file contents as string
- * But seriously returns the sting line/array and whole flag
- *    pF > The file to read the line of characters from
- *    oC > File contents current status
- * Returns line contents and reaching EOF flag
- *    rC > The current row being worked in
- *    oC > The output contents received from the file
-]]
-function GetLineContent(pF, oC)
-  local oC, rC = oC, nil
-  if(oC) then oC.ID = (oC.ID + 1)
-    if(oC.RO) then rC = oC[oC.ID] else rC = pF:ReadLine() end
-  else -- Allocate file read configuration
-    local bW = IsFlag("file_read_once")
-    if(bW) then -- File at once fast I/O
-      oC = OPSYM_NEWLINE:Explode(pF:Read()); pF:Close()
-      oC.ID, oC.RO, oC.ER = 1, bW, false
-      rC = oC[oC.ID] -- Index the next row
-    else -- Read it line by line less memory
-      oC = {ID = 1, RO = bW, ER = false}
-      rC = pF:ReadLine() -- Read one line
-    end -- Close the file on EOF reading line by line
-  end; if(not (rC or oC.RO)) then pF:Close() end
-  return rC, oC
-end
-
---[[
  * Formats a given string to icon image path
  *  vKey > Key to retrieve/store the icon for
  *  vV   > Icon base image being stored
@@ -689,16 +680,19 @@ function SettingsLogs(sHash)
   if(not (sKey == "SKIP" or sKey == "ONLY")) then
     LogInstance("Invalid "..GetReport(sKey)); return false end
   local tLogs, lbNam = GMOD["LOG_"..sKey], NAME_LIBRARY
+  local sFunc = debug.getinfo(1).name
   if(not tLogs) then LogInstance("Missing "..GetReport(sKey)); return false end
   local fName = GetLibraryPath(DIRPATH_SET, GetConcat(lbNam, "_sl", sKey:lower()))
   if(not file.Exists(fName, "DATA")) then
     LogInstance("Discard "..GetReport(sKey, fName)); return false end
-  local S = file.Open(fName, "rb", "DATA"); table.Empty(tLogs)
-  if(not S) then LogInstance("Failure "..GetReport(sKey, fName)); return false end
-  local sRow, tCon = GetLineContent(S)
-  while(sRow and not tCon.ER) do
-    if(not IsBlank(sRow)) then table.insert(tLogs, sRow) end
-    sRow, tCon = GetLineContent(S, tCon)
+  local S = GetReader(GetConcat(sKey,".",sFunc)); table.Empty(tLogs)
+  if(S:Open(fName):IsDeny()) then return false end
+  local sRow = S:GetLine()
+  while(not S:IsDone()) do
+    if(not (IsBlank(sRow) or IsDisable(sRow))) then
+      local tS = OPSYM_ITSPACE:Explode(sRow)
+      for iD = 1, #tS do table.insert(tLogs, sRow) end
+    end; sRow = S:GetLine()
   end; LogInstance("Success "..GetReport(sKey, fName)); return true
 end
 
@@ -722,6 +716,7 @@ function InitBase(sName, sPurp)
   VEC_RG = Vector(0,-1, 1)
   VEC_UP = Vector(0, 0, 1)
   VEC_DW = Vector(0, 0,-1)
+  OPSYM_ITSPACE = " "
   OPSYM_DISABLE = "#"
   OPSYM_DIVIDER = "_"
   OPSYM_VERTDIV = "|"
@@ -791,8 +786,11 @@ function InitBase(sName, sPurp)
   FORM_KEYSTMT = "%s(%s)"
   FORM_PREFIXFMT = "[%s-%s]%s"
   FORM_HEADEREXP = {
-    Src = "# %s:(%s) %s [%s]\n" , Tco = "# %s:(%s)\n",
-    Qry = "# Query(%d):[[%s]]\n", Cax = "# Categorize(%s): %s\n"
+    Src = "# %s:(%s) %s [%s]\n",
+    Tco = "# %s:(%s)\n",
+    Das = "# Source:[%s]\n",
+    Qry = "# Query(%d):[[%s]]\n",
+    Cax = "# Categorize(%s): %s\n"
   }
   FORM_METHCALLS = "%s:%s(%s)"
   FORM_PREFIXDSV = "%s%s.txt"
@@ -939,6 +937,8 @@ function InitBase(sName, sPurp)
       Typ = "%s*local%s+myType.*%s*=%s*",
       Cax = "%s*local%s+myCategory.*%s*=%s*",
       Tar = "%s*local%s+my[A-Z][a-z]+%s*=%s*{",
+      Con = " * Configuration: [%s]\n",
+      Inf = " * Generator: [%s] by %s on [%s]\n",
       Wrs = GetConcat("%s*",NAME_LIBSUFX,"%.WorkshopID%s*")
     }
     PATTEX_AUTOSET = {
@@ -946,6 +946,8 @@ function InitBase(sName, sPurp)
       Var = "%s*local%s+myAddon.*%s*=%s*",
       Typ = "%s*local%s+myType.*%s*=%s*",
       Tas = "%s*if%(not file%.Exists%(myPath%.",
+      Con = " * Configuration: [%s]\n",
+      Inf = " * Generator: [%s] by %s on [%s]\n",
       Wrs = GetConcat("%s*",NAME_LIBSUFX,"%.WorkshopID%s*"),
       Fmk = GetConcat("local %s = ", NAME_LIBSUFX, ".GetBuilderNick(\"%s\")")
     }
@@ -1791,12 +1793,18 @@ function GetReader(sS)
   if(oRea) then return oRea:Reset(sS) end
   local iD, bO = 0, IsFlag("file_read_once")
   local bE, sM, rS, tC = false, tostring(sS or ""), nil, nil
-  local sN, sF, pF = PATTEM_NEWLINE, nil, nil
+  local sN, sF, pF = OPSYM_NEWLINE, nil, nil
   local self = {}; setmetatable(self, TYPEMT_READER)
   TYPEMT_READER.__here = self
+  -- Returns the current line row index
+  function self:GetID() return iD end
   -- Is this file configured to be read at once
   function self:IsOnce() return bO end
+  -- Returns the current read file path
+  function self:GetPath() return sF end
   -- Raise an error flag in the reading loop
+  function self:GetRow() return rS end
+  -- Return the current line pointer
   function self:IsDeny() return bE end
   -- Check if the file is still open
   function self:IsOpen() return IsHere(pF) end
@@ -1814,16 +1822,16 @@ function GetReader(sS)
     return self
   end
   -- Perform an open file request with a source
-  function self:Open(sS)
-    sF = tostring(sS or sF); self:Close() -- Close previous
+  function self:Open(sS) -- Close previous
+    sF = tostring(sS or sF); self:Close()
     pF = file.Open(sF, "rb", "DATA"); if(not pF) then
-    bE = true; LogInstance("Open error "..asmlib.GetReport(sM, bO, iD, sF)); end
+    bE = true; LogInstance("Open error "..GetReport(bO, iD, sF), sM); end
     return self
   end
   -- Finish the reading and report if any errors are present
   function self:Finish()
     if(bE) then if(not bO) then self:Close() end
-      LogInstance("Contents error "..GetReport(sM, bO, iD, sF))
+      LogInstance("Contents error "..GetReport(bO, iD, sF), sM)
     end; return self
   end
   -- Prepares the object for another read
@@ -1832,12 +1840,19 @@ function GetReader(sS)
     iD, rS, tC = 0, nil, nil
     bO = IsFlag("file_read_once")
     bE, sM = false, tostring(sS or "")
-    sN, sF, pF = PATTEM_NEWLINE, nil, nil
+    sN, sF, pF = OPSYM_NEWLINE, nil, nil
     return self
+  end
+  -- Scan ahead for one row and rewinds
+  function self:GetScan()
+    if(not IsHere(pF)) then return end
+    local iF = pF:Tell() -- Save current pointer
+    local sR = pF:ReadLine(); pF:Seek(iF)
+    return sR -- The scanned line
   end
   -- Request a single line does nothing when no file
   function self:GetLine()
-    if(pF == nil) then return nil end
+    if(not (IsHere(pF) or bO)) then self:Close() end
     if(iD > 0) then iD = (iD + 1)
       if(bO) then rS = tC[iD] else rS = pF:ReadLine() end
     else -- Allocate file read configuration
@@ -1847,7 +1862,7 @@ function GetReader(sS)
       else -- Read it line by line less memory
         iD = 1; rS = pF:ReadLine() -- Read one line
       end -- Close the file on EOF reading line by line
-    end; if(not (rS or bO)) then self:Close() end
+    end; if(not (IsHere(rS) or bO)) then self:Close() end
     return rS
   end; return self
 end
@@ -4064,16 +4079,17 @@ function ImportCategory(vEq, sPref, bExp)
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref)); return false end
   local nEq, tHew = math.max(math.floor(tonumber(vEq) or 0), 0), PATTEM_EXCATHED
-  local sHew = tHew.Fmt:format(fPref, nEq)
+  local sHew, sFunc = tHew.Fmt:format(fPref, nEq), debug.getinfo(1).name
   local sSnam = (TOOLNAME_PL.."category"):lower()
   local sSors = (bExp and DIRPATH_EXP or DIRPATH_DSV)
   local fName = GetLibraryPath(sSors, fPref, sSnam)
-  local F = file.Open(fName, "rb", "DATA"); if(not F) then
-    LogInstance("Open fail: "..GetReport(sHew,fName)); return false end
-  if(nEq == 0) then local iF = F:Tell() -- Store the initial file pointer
-    local sRow = F:ReadLine(); F:Seek(iF) -- Read the file header to decode it
-    local sPar = sRow:match(tHew.Hdr); if(not sPar) then
+  local F = GetReader(GetConcat(sPref,".",sFunc))
+  if(F:Open(fName):IsDeny()) then return false end
+  if(nEq == 0) then -- In case category offset is not provided
+    local sRow = F:GetScan(); if(not sRow) then
       LogInstance("Intern header missing "..GetReport(sHew,fName)); return false end
+    local sPar = sRow:match(tHew.Hdr); if(not sPar) then
+      LogInstance("Intern header mismatch "..GetReport(sHew,fName)); return false end
     local tPar = tHew.Sym:Explode(sPar:match(tHew.Par):Trim():sub(2,-2):Trim())
     nEq = math.max(math.floor(tonumber(tPar[2]) or 0), 0); if(nEq <= 0) then
       LogInstance("Marker length error "..GetReport(sHew,nEq,vEq,fName)); return false end
@@ -4082,8 +4098,8 @@ function ImportCategory(vEq, sPref, bExp)
   end
   local tCat, sEq, nLen = TABLE_CATEGORIES, ("="):rep(nEq), (nEq + 2)
   local cFr, cBk = GetConcat("[", sEq, "["), GetConcat("]", sEq, "]")
-  local sPar, isPar, sRow, tCon = "", false, GetLineContent(F)
-  while(sRow and not tCon.ER) do
+  local sPar, isPar, sRow = "", false, F:GetLine()
+  while(not F:IsDone()) do
     if(not IsBlank(sRow)) then
       local sFr, sBk = sRow:sub(1,nLen), sRow:sub(-nLen,-1)
       if(sFr == cFr and sBk == cBk) then -- Check for line markers
@@ -4109,7 +4125,7 @@ function ImportCategory(vEq, sPref, bExp)
           else LogInstance("Function missing "..GetReport(sHew, key ,fName)) end
         else LogInstance("Name missing "..GetReport(sHew, txt, fName)) end
       else sPar = GetConcat(sPar, sRow, "\n") end
-    end; sRow, tCon = GetLineContent(F, tCon)
+    end; sRow = F:GetLine()
   end; LogInstance("Success "..GetReport(sHew, fName)); return true
 end
 
@@ -4214,29 +4230,27 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
     fName = GetLibraryPath(sSors, fPref, defTab.Name)
     LogInstance("Extern "..GetReport(sHew,fName), sTable)
   end
-  local F = file.Open(fName, "rb", "DATA"); if(not F) then
-    LogInstance("Open fail "..GetReport(sHew,fName), sTable); return false end
+  local F = GetReader(GetConcat(sTable,".",sPref,".",sFunc))
+  if(F:Open(fName):IsDeny()) then return false end
   if(bComm and sMoDB == "SQL") then
     sql.Query(makTab:Begin():Get()); LogInstance("Begin "..GetReport(sHew,fName), sTable)
   end
-  local sRow, tCon = GetLineContent(F)
-  local iD = makTab:GetColumnID("LINEID")
-  while(sRow and not tCon.ER) do
+  local sRow, iD = F:GetLine(), makTab:GetColumnID("LINEID")
+  while(not F:IsDone()) do
     if(not (IsBlank(sRow) or IsDisable(sRow))) then
       local aRow = sDelim:Explode(sRow)
-      if(table.remove(aRow, 1) ~= defTab.Name) then tCon.ER = true
+      if(table.remove(aRow, 1) ~= defTab.Name) then F:Deny()
         LogInstance("Internal table mismatch "..GetReport(sHew, sRow), sTable); break end
-      if(#aRow ~= defTab.Size) then tCon.ER = true
+      if(#aRow ~= defTab.Size) then F:Deny()
         LogInstance("Internal data mismatch "..GetReport(sHew, sRow), sTable); break end
-      if(not makTab:Trigger(sFunc, aRow)) then tCon.ER = true; break end
+      if(not makTab:Trigger(sFunc, aRow)) then F:Deny(); break end
       if(bRef and (tonumber(aRow[iD]) or 0) == 1) then
         if(bComm) then makTab:Erase(aRow[1]) end
       end
       if(bComm) then makTab:Record(aRow) end
-    end; sRow, tCon = GetLineContent(F, tCon)
+    end; sRow = F:GetLine()
   end
-  if(tCon.ER) then if(not tCon.RO) then F:Close() end
-    LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
+  if(F:Finish():IsDeny()) then return false end
   if(bComm and sMoDB == "SQL") then
     sql.Query(makTab:Commit():Get()); LogInstance("Commit "..GetReport(sHew, fName), sTable) end
   LogInstance("Success "..GetReport(sHew,fName), sTable); return true
@@ -4270,29 +4284,28 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fName = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name)
   TimeLap("INIT-OK")
   if(file.Exists(fName, "DATA")) then
-    local I = file.Open(fName, "rb", "DATA"); if(not I) then
-      LogInstance("Open fail "..GetReport(sHew, fName),sTable); return false end
-    local sRow, tCon = GetLineContent(I)
-    while(sRow and not tCon.ER) do
+    local I = GetReader(GetConcat(sTable,".",sPref,".",sFunc))
+    if(I:Open(fName):IsDeny()) then return false end
+    local sRow = I:GetLine()
+    while(not I:IsDone()) do
       if((not IsBlank(sRow)) and (not IsDisable(sRow))) then
         local aRow = sDelim:Explode(sRow)
-        if(table.remove(aRow, 1) ~= defTab.Name) then tCon.ER = true
+        if(table.remove(aRow, 1) ~= defTab.Name) then I:Deny()
           LogInstance("Internal table mismatch "..GetReport(sHew, sRow, fName), sTable); break end
-        if(#aRow ~= defTab.Size) then tCon.ER = true
+        if(#aRow ~= defTab.Size) then I:Deny()
           LogInstance("Internal data mismatch "..GetReport(sHew, sRow, fName), sTable); break end
-        if(not makTab:Trigger("ImportDSV", aRow)) then tCon.ER = true; break end
-        if(not makTab:ArrayMatch(aRow,false,"",true,true)) then tCon.ER = true; break end
+        if(not makTab:Trigger("ImportDSV", aRow)) then I:Deny(); break end
+        if(not makTab:ArrayMatch(aRow,false,"",true,true)) then I:Deny(); break end
          -- Where the line ID must be read from. Validate the value
         local vK = aRow[1]; if(not fData[vK]) then fData[vK] = {Size = 0} end
         local fRec, vID, nID = fData[vK], aRow[iD]; nID = (tonumber(vID) or 0)
         if((fRec.Size < 0) or (nID <= fRec.Size) or ((nID - fRec.Size) ~= 1)) then
-          LogInstance("Scatter line ID "..GetReport(sHew, vID, vK, fName),sTable); tCon.ER = true; break end
+          LogInstance("Scatter line ID "..GetReport(sHew, vID, vK, fName),sTable); I:Deny(); break end
         fRec.Size = nID; fRec[nID] = {}; local fRow = fRec[nID] -- Register the new line
         for iC = 1, defTab.Size do fRow[iC] = aRow[iC] end -- Transfer the extracted data
-      end; sRow, tCon = GetLineContent(I, tCon) -- Read the next row
+      end; sRow = I:GetLine() -- Read the next row
     end -- The file contents are read locally then converted
-    if(tCon.ER) then if(not tCon.RO) then I:Close() end
-      LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName),sTable); return false end
+    if(I:Finish():IsDeny()) then return false end
   else LogInstance("Creating file "..GetReport(sHew, fName),sTable) end
   TimeLap("SRC-FILE")
   for key, rec in pairs(tData) do -- Check the given table and match the key
@@ -4399,32 +4412,32 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
     sMos, sSrc = (bExp and "ex-" or "sv-"), GetLibraryPath(sSors, fPref, defTab.Name)
     LogInstance("Extern "..GetReport(sHew,sSrc), sTable)
   end
-  local S = file.Open(sSrc, "rb", "DATA"); if(not S) then
-    LogInstance("Open fail "..GetReport(sHew, sSrc),sTable); return false end
+  local S = GetReader(GetConcat(sTable,".",sPref,".",sFunc))
+  if(S:Open(sSrc):IsDeny()) then return false end
   local sFpr = FORM_PREFIXFMT:format(sMoDB:lower(), sMos.."tr", fPref)
   local sDes = GetLibraryPath(DIRPATH_EXP, sFpr, defTab.Name)
   local I = file.Open(sDes, "wb", "DATA"); if(not I) then
     LogInstance("Open fail "..GetReport(sHew, sDes),sTable); return false end
   I:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
+  I:Write(tHea.Das:format(S:GetPath()))
   I:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
   local sFr, sBk = sTable:upper()..":Record({", "})\n"
-  local sRow, tCon = GetLineContent(S)
-  while(sRow and not tCon.ER) do
+  local sRow = S:GetLine()
+  while(not S:IsDone()) do
     if(not (IsBlank(sRow) or IsDisable(sRow))) then
       local aRow = sDelim:Explode(sRow)
-      if(table.remove(aRow, 1) ~= defTab.Name) then tCon.ER = true
+      if(table.remove(aRow, 1) ~= defTab.Name) then S:Deny()
         LogInstance("Internal table mismatch "..GetReport(sHew, sRow), sTable); break end
-      if(#aRow ~= defTab.Size) then tCon.ER = true
+      if(#aRow ~= defTab.Size) then S:Deny()
         LogInstance("Internal data mismatch "..GetReport(sHew, sRow), sTable); break end
-      if(not makTab:Trigger("Record", aRow)) then tCon.ER = true; break end
-      if(not makTab:Trigger("ImportDSV", aRow)) then tCon.ER = true; break end
-      if(not makTab:ArrayMatch(aRow, true, "\"", true)) then tCon.ER = true; break end
-      if(not makTab:Trigger("ExportDSV", aRow)) then tCon.ER = true; break end
+      if(not makTab:Trigger("Record", aRow)) then S:Deny(); break end
+      if(not makTab:Trigger("ImportDSV", aRow)) then S:Deny(); break end
+      if(not makTab:ArrayMatch(aRow, true, "\"", true)) then S:Deny(); break end
+      if(not makTab:Trigger("ExportDSV", aRow)) then S:Deny(); break end
       I:Write(sFr); I:Write(table.concat(aRow, ", ")); I:Write(sBk)
-    end; sRow, tCon = GetLineContent(S, tCon)
+    end; sRow = S:GetLine()
   end; I:Flush(); I:Close()
-  if(tCon.ER) then if(not tCon.RO) then S:Close() end
-    LogInstance("Contents error "..GetReport(sHew, tCon.ID, sSrc),sTable); return false end
+  if(S:Finish():IsDeny()) then return false end
   LogInstance("Success "..GetReport(sHew, sSrc),sTable); return true
 end
 
@@ -4449,11 +4462,12 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
   local sDelim, sMiss = tostring(sDelim or "\t"):sub(1,1), MISS_NOAV
   local fName = GetLibraryPath(DIRPATH_SET, NAME_LIBRARY, "_dsv")
   if(bSkip or IsExact(fPref)) then
+    local sFunc = debug.getinfo(1).name
     if(file.Exists(fName, "DATA")) then local fPool = {}
-      local F = file.Open(fName, "rb" ,"DATA"); if(not F) then
-        LogInstance("Skip fail: "..GetReport(sProg, fPref, fName)); return false end
-      local sRow, tCon = GetLineContent(F)
-      while(sRow and not tCon.ER) do
+      local F = GetReader(GetConcat(sProg,".",fPref,".",sFunc))
+      if(F:Open(fName):IsDeny()) then return false end
+      local sRow = F:GetLine()
+      while(not F:IsDone()) do
         if(not IsBlank(sRow)) then local isAct = true
           if(IsDisable(sRow)) then isAct, sRow = false, sRow:sub(2,-1) end
           local tab = sDelim:Explode(sRow)
@@ -4462,8 +4476,9 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
           local inf = fPool[prf]; if(not inf) then
             fPool[prf] = {Size = 0}; inf = fPool[prf] end
           table.insert(inf, {isAct and "V" or "X", src}); inf.Size = inf.Size + 1
-        end; sRow, tCon = GetLineContent(F, tCon)
+        end; sRow = F:GetLine()
       end
+      if(F:Finish():IsDeny()) then return false end
       if(fPool[fPref]) then local inf = fPool[fPref]
         for iP = 1, inf.Size do local tab = inf[iP]
           LogInstance("Status "..GetReport(sProg, fPref, tab[1], tab[2]))
@@ -4488,13 +4503,13 @@ end
 function ProcessDSV(sDelim)
   local lbNam, sPL= NAME_LIBRARY, TOOLNAME_PL
   local fName = GetLibraryPath(DIRPATH_SET, lbNam, "_dsv")
-  local sDelim, sFms = tostring(sDelim or "\t"):sub(1,1), FORM_PREFIXDSV
+  local sDelim = tostring(sDelim or "\t"):sub(1,1)
   local sDsv, tProc = GetLibraryPath(DIRPATH_DSV), {}
-  local F = file.Open(fName, "rb" ,"DATA"); if(not F) then
-    LogInstance("Open fail: "..GetReport(fName)); return false end
-  local sGen = DBEXP_PREFGEN
-  local sRow, tCon = GetLineContent(F)
-  while(sRow and not tCon.ER) do
+  local sFunc, sFms = debug.getinfo(1).name, FORM_PREFIXDSV
+  local F = GetReader(GetConcat(lbNam,".",sFunc))
+  if(F:Open(fName):IsDeny()) then return false end
+  local sGen, sRow = DBEXP_PREFGEN, F:GetLine()
+  while(not F:IsDone()) do
     if(not IsBlank(sRow)) then
       if(not IsDisable(sRow)) then
         local tInf = sDelim:Explode(sRow)
@@ -4512,8 +4527,9 @@ function ProcessDSV(sDelim)
           end -- What user puts there is a problem of his own
         end -- If the line is disabled/comment
       else LogInstance("Skipped "..GetReport(sRow)) end
-    end; sRow, tCon = GetLineContent(F, tCon)
+    end; sRow = F:GetLine()
   end
+  if(F:Finish():IsDeny()) then return false end
   for prf, tab in pairs(tProc) do
     if(tab.Size > 1) then
       LogInstance("Prefix clones "..GetReport(prf, tab.Size, fName))
@@ -4650,11 +4666,19 @@ function ExportTypeRUN(sType, bSet)
     LogInstance("Export content missing", defP.Nick) end
   local fE = file.Open(sN, "wb", "DATA"); if(not fE) then
     LogInstance("Generate fail "..GetReport(sN),defP.Nick); return end
-  local fS = file.Open(sS, "rb", "DATA"); if(not fS) then
-    fE:Close(); LogInstance("Source fail "..GetReport(sS),defP.Nick) return end
-  local bSkip, sIn, sRow, tCon = false, "  ", GetLineContent(fS)
-  while(sRow and not tCon.ER) do sRow = sRow:gsub("%s*$", "")
-    if(tPat.Var and sRow:find(tPat.Var)) then bSkip = true
+  local fS = GetReader(GetConcat(sPref,".",sFunc))
+  if(fS:Open(sS):IsDeny()) then fE:Close(); return false end
+  local bSkip, sIn, sRow = false, "  ", fS:GetLine()
+  while(not fS:IsDone()) do sRow = sRow:gsub("%s*$", "")
+    if(sRow:find("--[[", 1, true) and fS:GetID() == 1) then
+      fE:Write("--[[\n"); bSkip = true
+      fE:Write(tPat.Inf:format(sType, LocalPlayer(), GetDateTime()))
+      fE:Write(tPat.Con:format(fS:GetPath()))
+      sRow = fS:GetLine()
+      while(not (fS:IsDone() or (sRow:Trim():find("]]", 1, true)))) do
+        fE:Write(sRow); fE:Write("\n"); sRow = fS:GetLine()
+      end; fE:Write("]]--\n") -- The header generation request has been added
+    elseif(tPat.Var and sRow:find(tPat.Var)) then bSkip = true
       fE:Write("local myAddon, myGroup = "); fE:Write(sSufx); fE:Write(".ComponentType(\"")
       if(not RunComponentType(sType, function(iTy, sTy)
         if(iTy == 0) then
@@ -4663,7 +4687,7 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(", "); fE:Write("\"")
           fE:Write(sTy); fE:Write("\"")
         end; return true
-      end)) then tCon.ER = true
+      end)) then fS:Deny()
         LogInstance("Component routine error", defP.Nick); end
       fE:Write(")\n")
     elseif(tPat.Typ and sRow:find(tPat.Typ)) then bSkip = true
@@ -4675,7 +4699,7 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(sSufx); fE:Write(".GetTypeNormal(myGroup and myGroup[");
           fE:Write(tostring(iTy)); fE:Write("] or myAddon)"); fE:Write("\n")
         end; return true
-      end)) then tCon.ER = true
+      end)) then fS:Deny()
         LogInstance("Component routine error", defP.Nick); end
     elseif(tPat.Cax and sRow:find(tPat.Cax)) then bSkip = true
       local iCa = 0; fE:Write("local myCategory = {")
@@ -4687,7 +4711,7 @@ function ExportTypeRUN(sType, bSet)
         fE:Write(tostring(iTy)); fE:Write("] = {Txt = [[\n")
         fE:Write(sIn:rep(2)); fE:Write(tCat.Txt:gsub("\n","\n"..sIn:rep(2)).."\n")
         fE:Write(sIn:rep(1)); fE:Write("]]}"); iCa = iCa + 1; return true
-      end)) then tCon.ER = true
+      end)) then fS:Deny()
         LogInstance("Component routine error", defP.Nick); end
       fE:Write((iCa > 0) and "\n}\n" or "}\n")
     elseif(tPat.Wrs and sRow:find(tPat.Wrs)) then bSkip = true
@@ -4701,7 +4725,7 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(sSufx); fE:Write(".WorkshopID(myType")
           fE:Write(tostring(iTy)); fE:Write(")\n")
         end; return true
-      end)) then tCon.ER = true
+      end)) then fS:Deny()
         LogInstance("Component routine error", defP.Nick); end
     elseif(tPat.Tas and sRow:find(tPat.Tas)) then bSkip = true
       local sMak = sRow:gsub(tPat.Tas, ""):gsub(",.*$", "")
@@ -4729,7 +4753,7 @@ function ExportTypeRUN(sType, bSet)
             if(aRow[cTy] == sTy) then
               local sMo = aRow[cMo]; makP:ArrayMatch(aRow, true, "\"", true)
               if(not makP:Trigger(sFunc, aRow, bSet)) then
-                tCon.ER = false; return false end
+                fS:Deny(); return false end
               fE:Write(sIn:rep(1)); fE:Write(sMak); fE:Write(":Record({")
               fE:Write(table.concat(aRow, ", ")); fE:Write("})\n")
               if(aRow[cLn] == 1) then
@@ -4739,7 +4763,7 @@ function ExportTypeRUN(sType, bSet)
             end
           end; fE:Write(sIn:rep(1))
           fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n"); return true
-        end)) then tCon.ER = true
+        end)) then fS:Deny()
           LogInstance("Component routine error", defP.Nick); end
       elseif(sMak == "ADDITIONS") then
         local cMo = makA:GetColumnID("MODELBASE")
@@ -4748,9 +4772,9 @@ function ExportTypeRUN(sType, bSet)
           local aRow = makA:GetRowToArray(qAdditions[iR])
           local sMo = aRow[cMo]; makA:ArrayMatch(aRow, true, "\"", true)
           if(not makA:Trigger("ExportDSV", aRow, bSet)) then
-            tCon.ER = false; break end
+            fS:Deny(); break end
           if(not makA:Trigger(sFunc, aRow, bSet)) then
-            tCon.ER = false; break end
+            fS:Deny(); break end
           fE:Write(sIn:rep(1)); fE:Write(sMak); fE:Write(":Record({")
           fE:Write(table.concat(aRow, ", ")); fE:Write("})\n")
         end
@@ -4784,12 +4808,12 @@ function ExportTypeRUN(sType, bSet)
                   LogInstance("Addition error "..GetReport(iR,sMo)); return false end
               end; aRow[cTy] = "myType"..iTy
               if(not makP:Trigger(sFunc, aRow, bSet)) then
-                tCon.ER = false; return false end
+                fS:Deny(); return false end
               table.remove(aRow, cMo); fE:Write(sIn:rep(2))
               fE:Write("{"); fE:Write(table.concat(aRow, ", ")); fE:Write("},\n")
             end
           end; return true
-        end)) then tCon.ER = true
+        end)) then fS:Deny()
           LogInstance("Component routine error", defP.Nick); end
         if(not bF) then
           fE:Seek(fE:Tell() - 2); fE:Write("\n")
@@ -4810,9 +4834,9 @@ function ExportTypeRUN(sType, bSet)
             fE:Write(aRow[cMo]); fE:Write("] = {\n")
           end
           if(not makA:Trigger("ExportDSV", aRow, bSet)) then
-            tCon.ER = false; break end
+            fS:Deny(); break end
           if(not makA:Trigger(sFunc, aRow, bSet)) then
-            tCon.ER = false; break end
+            fS:Deny(); break end
           table.remove(aRow, cMo); fE:Write(sIn:rep(2))
           fE:Write("{"); fE:Write(table.concat(aRow, ", ")); fE:Write("},\n")
         end
@@ -4825,10 +4849,9 @@ function ExportTypeRUN(sType, bSet)
       if(bSkip and IsBlank(sRow:Trim())) then bSkip = false end
     end
     if(not bSkip) then fE:Write(sRow); fE:Write("\n") end
-    sRow, tCon = GetLineContent(fS, tCon)
+    sRow = fS:GetLine()
   end; fE:Write("\n"); fE:Flush(); fE:Close()
-  if(tCon.ER) then if(not tCon.RO) then fS:Close() end
-    LogInstance("Contents error "..GetReport(sHew, tCon.ID, fName)) end
+  if(fS:Finish():IsDeny()) then return end
 end
 
 --[[
