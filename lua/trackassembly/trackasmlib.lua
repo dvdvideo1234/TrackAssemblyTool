@@ -1814,13 +1814,13 @@ function GetReader(sS)
   function self:Open(sS) -- Close previous
     sF = tostring(sS or sF); self:Close()
     pF = file.Open(sF, "rb", "DATA"); if(not pF) then
-    bE = true; LogInstance("Open error "..GetReport(bO, iD, sF), sM); end
+    bE = true; LogInstance("Error "..GetReport(bO, iD, sF), sM); end
     return self
   end
   -- Finish the reading and report if any errors are present
   function self:Finish()
     if(bE) then if(not bO) then self:Close() end
-      LogInstance("Contents error "..GetReport(bO, iD, sF), sM)
+      LogInstance("Error "..GetReport(bO, iD, sF), sM)
     end; return self
   end
   -- Prepares the object for another read
@@ -4512,14 +4512,12 @@ end
  * sDelim > The delimiter to be used while processing the DSV list
 ]]
 function ProcessDSV(sDelim)
-  local lbNam, sPL= NAME_LIBRARY, TOOLNAME_PL
-  local fName = GetLibraryPath(DIRPATH_SET, lbNam, "_dsv")
   local sDelim = tostring(sDelim or "\t"):sub(1,1)
-  local sDsv, tProc = GetLibraryPath(DIRPATH_DSV), {}
-  local sFunc, sFms = debug.getinfo(1).name, FORM_PREFIXDSV
+  local sFunc, lbNam = debug.getinfo(1).name, NAME_LIBRARY
+  local fName = GetLibraryPath(DIRPATH_SET, lbNam, "_dsv")
   local F = GetReader(GetConcat(lbNam,".",sFunc))
   if(F:Open(fName):IsDeny()) then return false end
-  local sGen, sRow = DBEXP_PREFGEN, F:GetLine()
+  local sRow, tProc = F:GetLine(), {}
   while(not F:IsDone()) do
     if(not IsBlank(sRow)) then
       if(not IsDisable(sRow)) then
@@ -4537,40 +4535,47 @@ function ProcessDSV(sDelim)
             table.insert(tStor, fSrc) -- Register the prefix
           end -- What user puts there is a problem of his own
         end -- If the line is disabled/comment
-      else LogInstance("Skipped "..GetReport(sRow)) end
+      else LogInstance("Skip "..GetReport(sRow)) end
     end; sRow = F:GetLine()
   end
   if(F:Finish():IsDeny()) then return false end
+  local sGen = DBEXP_PREFGEN
+  local sFms, sPL = FORM_PREFIXDSV, TOOLNAME_PL
+  local sDsv = GetLibraryPath(DIRPATH_DSV)
+  LogTable(tProc, "tProc")
   for prf, tab in pairs(tProc) do
     if(tab.Size > 1) then
-      LogInstance("Prefix clones "..GetReport(prf, tab.Size, fName))
-      for iD = 1, tab.Size do LogInstance("Prefix "..GetReport(iD, prf, tab[iD])) end
+      LogInstance("Clones "..GetReport(prf, tab.Size, fName))
+      for iD = 1, tab.Size do
+        LogInstance("Entry "..GetReport(iD, prf, tab[iD])) end
+    elseif(IsExact(prf)) then
+      LogInstance("Direct "..GetReport(prf, tab.Size, tab[1]))
     else
-      if(CLIENT) then
-        local sNick = "category"
-        local srNam = (sPL..sNick):lower()
-        local srGen = sFms:format(sGen, srNam):lower()
-        local srDsv = sFms:format(prf, srNam):lower()
-        if(not file.Exists(GetConcat(sDsv, srGen), "DATA")) then
-          if(file.Exists(GetConcat(sDsv, srDsv), "DATA")) then
-            if(not ImportCategory(3, prf)) then
-              LogInstance("Failed "..GetReport(prf, srDsv), sNick) end
-          else LogInstance("Missing "..GetReport(prf, srDsv), sNick) end
-        else LogInstance("Generic "..GetReport(prf, srGen), sNick) end
-      end
-      for iD = 1, #libQTable do
-        local makTab = GetBuilderID(iD)
+      RunBuilderCount(function(makTab, iD)
         local defTab = makTab:GetDefinition()
         local srNam = (sPL..defTab.Nick):lower()
         local srGen = sFms:format(sGen, srNam):lower()
         local srDsv = sFms:format(prf, srNam):lower()
+        if(defTab.Nick == "PIECES" and CLIENT) then
+          local sNick = "CATEGORY" -- Localize file nick
+          local srNam = (sPL..sNick):lower() -- Read table
+          local srGen = sFms:format(sGen, srNam):lower()
+          local srDsv = sFms:format(prf, srNam):lower()
+          if(not file.Exists(GetConcat(sDsv, srGen), "DATA")) then
+            if(file.Exists(GetConcat(sDsv, srDsv), "DATA")) then
+              if(not ImportCategory(3, prf)) then
+                LogInstance("Failed "..GetReport(prf, srDsv), sNick); return false end
+            else LogInstance("Missing "..GetReport(prf, srDsv), sNick) end
+          else LogInstance("Generic "..GetReport(prf, srGen), sNick) end
+        end -- Category is loaded in prior to be able to fill missing gaps
         if(not file.Exists(GetConcat(sDsv, srGen), "DATA")) then
           if(file.Exists(GetConcat(sDsv, srDsv), "DATA")) then
             if(not ImportDSV(defTab.Nick, true, prf)) then
-              LogInstance("Failed "..GetReport(prf, srDsv), defTab.Nick) end
+              LogInstance("Failed "..GetReport(prf, srDsv), defTab.Nick); return false end
           else LogInstance("Missing "..GetReport(prf, srDsv), defTab.Nick) end
         else LogInstance("Generic "..GetReport(prf, srGen), defTab.Nick) end
-      end
+        return true
+      end)
     end
   end; LogInstance("Success "..GetReport(fName)); return true
 end
