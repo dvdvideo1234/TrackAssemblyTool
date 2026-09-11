@@ -1775,6 +1775,8 @@ end
  * tC    > Table to store the read lines
  * sN    > New line local reference
  * sF/pF > Current file name/reference
+ * https://en.wikipedia.org/wiki/Reader_Rabbit_(video_game)
+ * Oh, for shame! Just look at your fingernails!
 ]]
 function GetReader(sS)
   local oRea = TYPEMT_READER.__here
@@ -4519,34 +4521,29 @@ function ProcessDSV(sDelim)
   local fName = GetLibraryPath(DIRPATH_SET, lbNam, "_dsv")
   local F = GetReader(GetConcat(lbNam,".",sFunc))
   if(F:Open(fName):IsDeny()) then return false end
-  local sRow, tProc = F:GetLine(), {}
+  local sRow, tPro = F:GetLine(), {}
   while(not F:IsDone()) do
     if(not IsBlank(sRow)) then
-      if(not IsDisable(sRow)) then
+      if(IsDisable(sRow)) then
+        LogInstance("Disable "..GetReport(sRow))
+      else -- In case the line is not empty load the prefix
         local tInf = sDelim:Explode(sRow)
         local fPrf = GetStrip(tostring(tInf[1] or ""):Trim())
         local fSrc = GetStrip(tostring(tInf[2] or ""):Trim())
         if(not IsBlank(fPrf)) then -- Is there something
-          local tStor = tProc[fPrf]
-          if(not tStor) then -- Allocate
-            tProc[fPrf] = {Size = 1}
-            tStor = tProc[fPrf]
-            table.insert(tStor, fSrc)
-          else -- Prefix is processed already
-            tStor.Size = tStor.Size + 1 -- Store prefixes count
-            table.insert(tStor, fSrc) -- Register the prefix
-          end -- What user puts there is a problem of his own
+          local tSor = (tPro[fPrf] or {Size = 0}); tPro[fPrf] = tSor
+          tSor.Size = (tSor.Size + 1); table.insert(tSor, fSrc)
         end -- If the line is disabled/comment
-      else LogInstance("Skip "..GetReport(sRow)) end
+      end
     end; sRow = F:GetLine()
   end
   if(F:Finish():IsDeny()) then return false end
   local sGen = DBEXP_PREFGEN
   local sFms, sPL = FORM_PREFIXDSV, TOOLNAME_PL
   local sDsv = GetLibraryPath(DIRPATH_DSV)
-  for prf, tab in pairs(tProc) do
+  for prf, tab in pairs(tPro) do
     if(tab.Size > 1) then
-      LogInstance("Clones "..GetReport(prf, tab.Size, fName))
+      LogInstance("Refuse "..GetReport(prf, tab.Size, fName))
       for iD = 1, tab.Size do
         LogInstance("Entry "..GetReport(iD, prf, tab[iD])) end
     elseif(IsExact(prf)) then
