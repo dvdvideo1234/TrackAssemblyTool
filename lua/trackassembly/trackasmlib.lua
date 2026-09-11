@@ -2659,6 +2659,23 @@ function GetEmpty(sBas, fEmp, ...)
   end; return sM
 end
 
+--[[
+ * Manages the type column fro the tables that support it
+ * oTyp > Content type to be configured when missed returns default
+ * fCat > Category manager. The function must take only one parameter
+ *        that is the model. It should spit:
+ * [1] > Category string or category table of strings (mandatory)
+ * [2] > Override the track piece name when building the tree (optional)
+ *   table  > A table with category strings. Ones that have @ are checked with
+ *            a higher priority than the others [Modular City Street]
+ *   string > Provided by the user and compiled. Called to populate categories
+ *    function(m) Do some stuff; return r, n end [SProps]
+ *   number : Takes the the given count of folder names when available
+ *    [1] > The folder count that will be taken relative to base
+ *    [2] > The actual base folder must be trimmed from the path
+ *    "models/tracks/high/25a.mdl" : 2, "models" > {tracks, high}
+ * Other manager types are not supported as the function text is needed
+]]
 function Categorize(oTyp, fCat, ...)
   local oBeu, tCat = GetBeautify(), TABLE_CATEGORIES
   if(not IsHere(oTyp)) then -- No category then read the contents
@@ -2706,22 +2723,23 @@ function Categorize(oTyp, fCat, ...)
     elseif(isnumber(fCat)) then local tArg, tTxt = {...}, {}
       tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
       table.insert(tTxt, "function(m)")
-      table.insert(tTxt, "\nlocal n = math.floor(tonumber(")
+      table.insert(tTxt, "\n  local n = math.floor(tonumber(")
       table.insert(tTxt, fCat); table.insert(tTxt, ") or 0)")
-      table.insert(tTxt, "\nlocal m = m:gsub(\"")
+      table.insert(tTxt, "\n  local m = m:gsub(\"")
       table.insert(tTxt, tostring(tArg[1] or ""))
       table.insert(tTxt, "\", \"\")\n")
+      table.insert(tTxt, "  local m = m:match(\"^/*(.-)/*$\") or m\n")
       for i = 2, #tArg do local aP, aN = tArg[i], tArg[i+1]
         if(aP and aN) then
-           table.insert(tTxt, "\nlocal m = m:gsub(\"")
+           table.insert(tTxt, "\n  local m = m:gsub(\"")
            table.insert(tTxt, aP); table.insert(tTxt, "\", \"")
            table.insert(tTxt, aN); table.insert(tTxt, "\")\n")
         end
       end
-      table.insert(tTxt, "local t, x = {n = 0}, m:find(\"/\", 1, true)\n")
-      table.insert(tTxt, "while(x and x > 0) do\n")
-      table.insert(tTxt, "  t.n = t.n + 1; t[t.n] = m:sub(1, x-1)\n")
-      table.insert(tTxt, "  m = m:sub(x+1, -1); x = m:find(\"/\", 1, true)\n")
+      table.insert(tTxt, "  local t, x = {n = 0}, m:find(\"/\", 1, true)\n")
+      table.insert(tTxt, "  while(x and x > 0) do\n")
+      table.insert(tTxt, "    t.n = t.n + 1; t[t.n] = m:sub(1, x-1)\n")
+      table.insert(tTxt, "    m = m:sub(x+1, -1); x = m:find(\"/\", 1, true)\n")
       table.insert(tTxt, "  end; m = m:gsub(\"%.mdl$\",\"\")\n")
       table.insert(tTxt, "  if(n == 0) then return t, m end; local a = math.abs(n)\n")
       table.insert(tTxt, "  if(a > t.n) then return t, m end; local s = #t-a\n")
