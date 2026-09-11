@@ -1435,7 +1435,7 @@ function TOOL:LeftClick(stTrace)
         local eID, ePiece = oArg.tents[iD], nil
         if(not asmlib.IsOther(eID)) then
           oArg.mundo, oArg.munid = eID:GetModel(), eID:EntIndex()
-          local spPos, spAng = asmlib.GetTransformOver(eID, oArg.wover, oArg.aover, nextx, nexty, nextz, nextpic, nextyaw, nextrol)
+          local spPos, spAng = asmlib.GetTransformOver(eID, oArg.wover, oArg.aover)
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
             ePiece = asmlib.NewPiece(oPly,oArg.mundo,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
           if(ePiece) then
@@ -1760,16 +1760,12 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
   local atGho  = asmlib.ARRAY_GHOST
   local tE, nE = self:GetFlipOver(true, true)
   if(tE and self:IsFlipOver()) then
-    local nextx  , nexty  , nextz   = self:GetPosOffsets()
-    local nextpic, nextyaw, nextrol = self:GetAngOffsets()
-    local vN = Vector(self:GetPosOffsets())
-    local vA =  Angle(self:GetAngOffsets())
+    local bPK = input.IsKeyDown(KEY_LSHIFT)
+    local wOver, aOver = self:GetFlipOverOrigin(stTrace, bPK)
     for iD = 1, nE do
-      local bPK = input.IsKeyDown(KEY_LSHIFT)
       local eID, gID = tE[iD], atGho[iD]
       if(not asmlib.IsOther(eID) and gID and gID:IsValid()) then
-        local wOver, aOver = self:GetFlipOverOrigin(stTrace, bPK)
-        local spPos, spAng = asmlib.GetTransformOver(eID, wOver, aOver, vN, vA)
+        local spPos, spAng = asmlib.GetTransformOver(eID, wOver, aOver)
         gID:SetPos(spPos); gID:SetAngles(spAng)
         gID:SetModel(eID:GetModel()); gID:SetNoDraw(false)
       end

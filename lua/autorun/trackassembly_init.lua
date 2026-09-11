@@ -49,6 +49,13 @@ local gnIndependentUsed = bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEON
 -- Server tells the client what value to use
 local gnServerControled = bit.bor(FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_PRINTABLEONLY, FCVAR_REPLICATED)
 
+------------ CONFIGURE LOGGING ------------
+
+asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
+asmlib.NewAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written before the counter is reset")
+asmlib.NewAsmConvar("logsbrs", 0, nil, gnIndependentUsed, "Maximum logging lines being written in every I/O write flush")
+asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logsbrs","INT"))
+
 ------------ BORDERS ------------
 
 asmlib.SetBorder("non-neg", 0)
@@ -90,12 +97,6 @@ asmlib.SetBorder(gsToolPrefL.."dtmessage", 0, 10)
 asmlib.SetBorder(gsToolPrefL.."ghostblnd", 0, 1)
 asmlib.SetBorder(gsToolPrefL.."crvsuprev", -2, 2)
 asmlib.SetBorder(gsToolPrefL.."rtradmenu", -gnMaxRot, gnMaxRot)
-
------------- CONFIGURE LOGGING ------------
-
-asmlib.NewAsmConvar("logsmax", 0, nil, gnIndependentUsed, "Maximum logging lines being written before the counter is reset")
-asmlib.NewAsmConvar("logsbrs", 0, nil, gnIndependentUsed, "Maximum logging lines being written in every I/O write flush")
-asmlib.SetLogControl(asmlib.GetAsmConvar("logsmax","INT"), asmlib.GetAsmConvar("logsbrs","INT"))
 
 ------------ CONFIGURE NON-REPLICATED CVARS ------------ Client's got a mind of its own
 
@@ -139,7 +140,6 @@ asmlib.MODE_DATABASE = asmlib.GetAsmConvar("modedb"   , "STR")
 asmlib.TRACE_MARGIN = asmlib.GetAsmConvar("maxtrmarg", "FLT")
 asmlib.SPAWN_MARGIN = asmlib.GetAsmConvar("maxspmarg", "FLT")
 asmlib.MSDELTA_SEND = asmlib.GetAsmConvar("dtmessage", "FLT")
-asmlib.SettingsLogs("SKIP"); asmlib.SettingsLogs("ONLY")
 
 ------------ GLOBAL VARIABLES ------------
 

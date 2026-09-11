@@ -108,24 +108,6 @@ function SetOpVar(sK, vV)
   GMOD[sK:upper()] = vV
 end
 
-function GetLineContent(pF, oC)
-  local oC, rC = oC, nil
-  if(oC) then oC.ID = (oC.ID + 1)
-    if(oC.RO) then rC = oC[oC.ID] else rC = pF:ReadLine() end
-  else -- Allocate file read configuration
-    local bW = IsFlag("file_read_once")
-    if(bW) then -- File at once fast I/O
-      oC = OPSYM_NEWLINE:Explode(pF:Read()); pF:Close()
-      oC.ID, oC.RO, oC.ER = 1, bW, false
-      rC = oC[oC.ID] -- Index the next row
-    else -- Read it line by line less memory
-      oC = {ID = 1, RO = bW, ER = false}
-      rC = pF:ReadLine() -- Read one line
-    end -- Close the file on EOF reading line by line
-  end; if(not (rC or oC.RO)) then pF:Close() end
-  return rC, oC
-end
-
 ---------------------------- PRIMITIVES ----------------------------
 
 function IsHere(vV)
@@ -447,15 +429,15 @@ end
   Return: setting exist, message found
 ]]
 function IsLogHere(sMsg, sKey)
-  local sMsg = tostring(sMsg or "")
   local sKey = tostring(sKey or "")
   if(IsBlank(sKey)) then return nil end
+  local sMsg = tostring(sMsg or "")
   local tLog = GMOD["LOG_"..sKey]
   if(istable(tLog) and tLog[1]) then
-    local iCnt = 1; while(tLog[iCnt]) do
-      if(sMsg:find(tostring(tLog[iCnt]))) then
-        return true, true
-      end; iCnt = iCnt + 1
+    for iL = 1, tLog.Size do
+      local sM = tostring(tLog[iL])
+      local nS = sMsg:find(sM)
+      if(nS) then return true, true end
     end; return true, false
   else return false, false end
 end
@@ -474,13 +456,14 @@ end
   bCon > Force output in console flag
   iDbg > Debug table override depth
   tDbg > Debug table override
+  bNso > Force disable skip and only
 ]]
-function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
+function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg, bNso)
   local tLoc = LOG_CONFIG
   if(not (tLoc and tLoc.Max > 0)) then return end
-  local vSrc, bCon, iDbg, tDbg = vSrc, bCon, iDbg, tDbg
+  local vSrc, bCon, iDbg, tDbg, bNso = vSrc, bCon, iDbg, tDbg, bNso
   if(vSrc and istable(vSrc)) then -- Receive the stack as table
-    vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
+    vSrc, bCon, iDbg, tDbg, bNso = unpack(vSrc) end -- Source is table
   iDbg = math.floor(tonumber(iDbg) or 0); iDbg = ((iDbg > 0) and iDbg or nil)
   local tInfo = (iDbg and debug.getinfo(iDbg) or nil) -- Pass stack index
         tInfo = (tInfo or (tDbg and tDbg or nil))     -- Override debug information
@@ -490,9 +473,10 @@ function LogInstance(vMsg, vSrc, bCon, iDbg, tDbg)
   if(IsExact(sSrc)) then sSrc = sSrc:sub(2,-1); sFunc = "" else
     if(not IsBlank(sSrc)) then sSrc = sSrc.."." end end
   local sData = GetConcat(sSrc, sFunc, ": ", vMsg)
-  bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
-  bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
-  Log(sData, bCon)
+  if(not tobool(bNso)) then -- Do not calculate skip/only when disabled
+    bF, bL = IsLogHere(sData, "SKIP"); if(bF and bL) then return end
+    bF, bL = IsLogHere(sData, "ONLY"); if(bF and not bL) then return end
+  end; Log(sData, bCon)
 end
 
 function LogCeption(tT,sS,tP)
@@ -504,7 +488,7 @@ function LogCeption(tT,sS,tP)
   end; LogInstance(tFrc.EM:format(sS),tP)
   if(not IsHere(next(tT))) then return end
   local tK = table.GetKeys(tT); table.sort(tK, VCOMPARE_STYP)
-  for iK = 1, #tK do --Key number 1 is different than string 1
+  for iK = 1, #tK do --Number key is different than string key
     local cK = tK[iK] -- Retrieve the ordered key from the set
     local cV = tT[cK] -- Index the table value being extracted
     local sK = (isstring(cK) and GetConcat(sQ,cK,sQ) or tostring(cK))
@@ -522,8 +506,9 @@ end
 function LogTable(tT, sS, vSrc, bCon, iDbg, tDbg)
   local vSrc, bCon, iDbg, tDbg = vSrc, bCon, iDbg, tDbg
   if(vSrc and istable(vSrc)) then -- Receive the stack as table
-    vSrc, bCon, iDbg, tDbg = vSrc[1], vSrc[2], vSrc[3], vSrc[4] end
-  local tP = {vSrc, bCon, iDbg, tDbg} -- Normalize parameters
+    vSrc, bCon, iDbg, tDbg = unpack(vSrc) end
+  local bNso = (tT == LOG_SKIP or tT == LOG_ONLY)
+  local tP = {vSrc, bCon, iDbg, tDbg, bNso} -- Normalize parameters
   tP[1], tP[2] = tostring(vSrc or ""), tobool(bCon)
   tP[3], tP[4] = (nil), debug.getinfo(2); LogCeption(tT,sS,tP)
 end
@@ -680,18 +665,22 @@ function SettingsLogs(sHash)
   if(not (sKey == "SKIP" or sKey == "ONLY")) then
     LogInstance("Invalid "..GetReport(sKey)); return false end
   local tLogs, lbNam = GMOD["LOG_"..sKey], NAME_LIBRARY
-  local sFunc = debug.getinfo(1).name
   if(not tLogs) then LogInstance("Missing "..GetReport(sKey)); return false end
+  table.Empty(tLogs); tLogs.Size = 0 -- Initialize the valid log type
   local fName = GetLibraryPath(DIRPATH_SET, GetConcat(lbNam, "_sl", sKey:lower()))
   if(not file.Exists(fName, "DATA")) then
     LogInstance("Discard "..GetReport(sKey, fName)); return false end
-  local S = GetReader(GetConcat(sKey,".",sFunc)); table.Empty(tLogs)
+  local sFunc = debug.getinfo(1).name
+  local S = GetReader(GetConcat(sKey,".",sFunc))
   if(S:Open(fName):IsDeny()) then return false end
   local sRow = S:GetLine()
   while(not S:IsDone()) do
     if(not (IsBlank(sRow) or IsDisable(sRow))) then
-      local tS = OPSYM_ITSPACE:Explode(sRow)
-      for iD = 1, #tS do table.insert(tLogs, sRow) end
+      local tS = ("%s+"):Explode(sRow, true)
+      for iD = 1, #tS do
+        tLogs.Size = tLogs.Size + 1
+        table.insert(tLogs, tS[iD])
+      end
     end; sRow = S:GetLine()
   end; LogInstance("Success "..GetReport(sKey, fName)); return true
 end
@@ -716,7 +705,7 @@ function InitBase(sName, sPurp)
   VEC_RG = Vector(0,-1, 1)
   VEC_UP = Vector(0, 0, 1)
   VEC_DW = Vector(0, 0,-1)
-  OPSYM_ITSPACE = " "
+  TOKEN_COMMENT = {"--", "--[[", "]]"}
   OPSYM_DISABLE = "#"
   OPSYM_DIVIDER = "_"
   OPSYM_VERTDIV = "|"
@@ -748,8 +737,8 @@ function InitBase(sName, sPurp)
   DIRPATH_EXP = "exp"..OPSYM_DIRECTORY
   DIRPATH_DSV = "dsv"..OPSYM_DIRECTORY
   DIRPATH_SET = "set"..OPSYM_DIRECTORY
-  LOG_SKIP = {}
-  LOG_ONLY = {}
+  LOG_SKIP = {Size = 0}
+  LOG_ONLY = {Size = 0}
   LOG_CONFIG = {
     Max = 0, -- Maximum allowed amount of logging lines
     Brs = 0, -- File I/O burst rate. Write that amount of lines
@@ -825,15 +814,15 @@ function InitBase(sName, sPurp)
         return uV < vV
       end
     end; return false; end
-  VCOMPARE_STYT = {["number"] = 1, ["string"] = 2, ["boolean"] = 3, ["function"] = 4}
+  VCOMPARE_STYT = {["number"] = 1, ["string"] = 2}
   VCOMPARE_STYP = function(u, v)
     local cu, cv = type(u), type(v)
-    if(cu == cv) then return cu < cv end
-    local cu = VCOMPARE_STYT[cu]
-    local cv = VCOMPARE_STYT[cv]
-    if(not cu) then return false end
-    if(not cv) then return true end
-    return cu < cv; end
+    local ou = VCOMPARE_STYT[cu]
+    local ov = VCOMPARE_STYT[cv]
+    if(ou and not ov) then return true end
+    if(ov and not ou) then return false end
+    if(not ou and not ov) then return true end
+    if(cu == cv) then return u < v else return ou < ov end; end
   NAVIGATE_HERE = function(t, k) return t[k] end
   VCOMPARE_SKEY = function(u, v) return (u.Key < v.Key) end
   VCOMPARE_SREC = function(u, v) return (u.Rec < v.Rec) end
@@ -2679,8 +2668,8 @@ function Categorize(oTyp, fCat, ...)
   else -- Category is provided. Update the default
     oBeu:SetRule(); DEFAULT_TYPE = tostring(oTyp)
     if(SERVER) then return end -- The server must bail out right here
-    local sTyp = tostring(DEFAULT_TYPE or ""):Trim()
-    LogInstance("Name "..GetReport(type(fCat), oTyp, sTyp, sPrf))
+    local sTyp, tTyp = tostring(DEFAULT_TYPE or ""):Trim()
+    LogInstance("Name "..GetReport(oTyp, type(fCat), ...))
     if(isstring(fCat)) then
       tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
     elseif(istable(fCat)) then local tArg, tTxt = {...}, {}
@@ -2741,10 +2730,11 @@ function Categorize(oTyp, fCat, ...)
       table.insert(tTxt, "  while(s > 0) do table.remove(t); s = s - 1 end\n")
       table.insert(tTxt, "  return t, m\n")
       table.insert(tTxt, "end"); tTyp.Txt = table.concat(tTxt)
-    else LogInstance("Skip "..GetReport(fCat)); return nil end
+    else LogInstance("Skip "..GetReport(oTyp, type(fCat), ...)); return nil end
+
     tTyp.Cmp = CompileString(GetConcat("return (", tTyp.Txt, ")"), sTyp)
     local bS, vO = pcall(tTyp.Cmp); if(not bS) then
-      LogInstance("Failed "..GetReport(fCat, vO)); return nil end
+      LogInstance("Failed "..GetReport(oTyp, type(fCat), ...)); return nil end
     tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
   end
 end
@@ -4628,11 +4618,9 @@ function ExportTypeRUN(sType, bSet)
   local sMoDB, sFunc = MODE_DATABASE, debug.getinfo(1).name
   local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode "..GetReport(sType)); return end
-  local noSQL, sTool = MISS_NOSQL, TOOLNAME_NL
   local tPat = (bSet and PATTEX_AUTOSET or PATTEX_AUTORUN)
   local fMon =  GetConcat("[", sMoDB:lower(), "-",tPat.Suf,"]")
-  local sSufx, sySep = NAME_LIBSUFX, OPSYM_SEPARATOR
-  local sS = GetLibraryPath(DIRPATH_SET, tPat.Exp:format(sTool))
+  local sS = GetLibraryPath(DIRPATH_SET, tPat.Exp:format(TOOLNAME_NL))
   local sN = GetLibraryPath(DIRPATH_EXP, fMon, tPat.Exp:format(sPref))
   local makP = GetBuilderNick("PIECES"); if(not makP) then
     LogInstance("Missing table builder "..GetReport(sType)); return end
@@ -4666,18 +4654,18 @@ function ExportTypeRUN(sType, bSet)
     LogInstance("Export content missing", defP.Nick) end
   local fE = file.Open(sN, "wb", "DATA"); if(not fE) then
     LogInstance("Generate fail "..GetReport(sN),defP.Nick); return end
+  local sSufx, tCom = NAME_LIBSUFX, TOKEN_COMMENT
   local fS = GetReader(GetConcat(sPref,".",sFunc))
   if(fS:Open(sS):IsDeny()) then fE:Close(); return false end
   local bSkip, sIn, sRow = false, "  ", fS:GetLine()
   while(not fS:IsDone()) do sRow = sRow:gsub("%s*$", "")
-    if(sRow:find("--[[", 1, true) and fS:GetID() == 1) then
-      fE:Write("--[[\n"); bSkip = true
+    if(sRow:find(tCom[2], 1, true) and fS:GetID() == 1) then
+      fE:Write(tCom[2]); fE:Write("\n"); bSkip = true
       fE:Write(tPat.Inf:format(sType, LocalPlayer(), GetDateTime()))
-      fE:Write(tPat.Con:format(fS:GetPath()))
-      sRow = fS:GetLine()
-      while(not (fS:IsDone() or (sRow:Trim():find("]]", 1, true)))) do
+      fE:Write(tPat.Con:format(fS:GetPath())); sRow = fS:GetLine()
+      while(not (fS:IsDone() or (sRow:Trim():find(tCom[3], 1, true)))) do
         fE:Write(sRow); fE:Write("\n"); sRow = fS:GetLine()
-      end; fE:Write("]]--\n") -- The header generation request has been added
+      end; fE:Write(tCom[3]); fE:Write(tCom[1]); fE:Write("\n")
     elseif(tPat.Var and sRow:find(tPat.Var)) then bSkip = true
       fE:Write("local myAddon, myGroup = "); fE:Write(sSufx); fE:Write(".ComponentType(\"")
       if(not RunComponentType(sType, function(iTy, sTy)
