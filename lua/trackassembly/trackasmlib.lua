@@ -1824,11 +1824,10 @@ function GetReader(sS)
   end
   -- Prepares the object for another read
   function self:Reset(sS)
-    self:Close() -- Close previous
+    self:Close(); sF, pF = nil, nil
     iD, rS, tC = 0, nil, nil
     bO = IsFlag("file_read_once")
     bE, sM = false, tostring(sS or "")
-    sF, pF = nil, nil
     return self
   end
   -- Scan ahead for one row and rewind
@@ -1838,20 +1837,24 @@ function GetReader(sS)
     local sR = pF:ReadLine(); pF:Seek(iF)
     return sR -- The scanned line
   end
-  -- Request a single line does nothing when no file
+  -- Request a single line. Returns nil when no file is open
   function self:GetLine()
-    if(not (IsHere(pF) or bO)) then self:Close() end
     if(iD > 0) then iD = (iD + 1)
-      if(bO) then rS = tC[iD] else rS = pF:ReadLine() end
+      if(bO) then rS = tC[iD] else
+        if(not IsHere(pF)) then return nil end
+        rS = pF:ReadLine() -- Safely read a line
+        if(not IsHere(rS)) then self:Close() end
+      end
     else -- Allocate file read configuration
+      if(not IsHere(pF)) then return nil end
       if(bO) then -- File at once fast I/O
         tC = sN:Explode(pF:Read(), true); self:Close()
         iD = 1; rS = tC[iD] -- Index the next row
       else -- Read it line by line less memory
         iD = 1; rS = pF:ReadLine() -- Read one line
-      end -- Close the file on EOF reading line by line
-    end; if(not (IsHere(rS) or bO)) then self:Close() end
-    return rS
+        if(not IsHere(rS)) then self:Close() end
+      end -- Read line by line and close on EOF
+    end; return rS
   end; return self
 end
 
@@ -4541,7 +4544,6 @@ function ProcessDSV(sDelim)
   local sGen = DBEXP_PREFGEN
   local sFms, sPL = FORM_PREFIXDSV, TOOLNAME_PL
   local sDsv = GetLibraryPath(DIRPATH_DSV)
-  LogTable(tProc, "tProc")
   for prf, tab in pairs(tProc) do
     if(tab.Size > 1) then
       LogInstance("Clones "..GetReport(prf, tab.Size, fName))
