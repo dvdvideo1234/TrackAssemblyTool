@@ -2669,7 +2669,6 @@ function Categorize(oTyp, fCat, ...)
     oBeu:SetRule(); DEFAULT_TYPE = tostring(oTyp)
     if(SERVER) then return end -- The server must bail out right here
     local sTyp, tTyp = tostring(DEFAULT_TYPE or ""):Trim()
-    LogInstance("Name "..GetReport(oTyp, type(fCat), ...))
     if(isstring(fCat)) then
       tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp; tTyp.Txt = fCat
     elseif(istable(fCat)) then local tArg, tTxt = {...}, {}
@@ -2730,12 +2729,16 @@ function Categorize(oTyp, fCat, ...)
       table.insert(tTxt, "  while(s > 0) do table.remove(t); s = s - 1 end\n")
       table.insert(tTxt, "  return t, m\n")
       table.insert(tTxt, "end"); tTyp.Txt = table.concat(tTxt)
-    else LogInstance("Skip "..GetReport(oTyp, type(fCat), ...)); return nil end
-
-    tTyp.Cmp = CompileString(GetConcat("return (", tTyp.Txt, ")"), sTyp)
-    local bS, vO = pcall(tTyp.Cmp); if(not bS) then
-      LogInstance("Failed "..GetReport(oTyp, type(fCat), ...)); return nil end
-    tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
+    end
+    if(tTyp) then
+      LogInstance("Name "..GetReport(oTyp, type(fCat), ...))
+      tTyp.Cmp = CompileString(GetConcat("return (", tTyp.Txt, ")"), sTyp)
+      local bS, vO = pcall(tTyp.Cmp); if(not bS) then
+        LogInstance("Error "..GetReport(oTyp, type(fCat), vO)); return nil end
+      tTyp.Cmp = vO; return sTyp, tTyp.Txt, tTyp.Cmp
+    else
+      LogInstance("Skip "..GetReport(oTyp, type(fCat), ...)); return nil
+    end
   end
 end
 
