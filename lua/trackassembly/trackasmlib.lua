@@ -709,7 +709,6 @@ function InitBase(sName, sPurp)
   OPSYM_DISABLE = "#"
   OPSYM_DIVIDER = "_"
   OPSYM_VERTDIV = "|"
-  OPSYM_NEWLINE = "\n"
   OPSYM_REVISION = "@"
   OPSYM_DIRECTORY = "/"
   OPSYM_SEPARATOR = ","
@@ -1782,7 +1781,7 @@ function GetReader(sS)
   if(oRea) then return oRea:Reset(sS) end
   local iD, bO = 0, IsFlag("file_read_once")
   local bE, sM, rS, tC = false, tostring(sS or ""), nil, nil
-  local sN, sF, pF = OPSYM_NEWLINE, nil, nil
+  local sN, sF, pF = "\n", nil, nil
   local self = {}; setmetatable(self, TYPEMT_READER)
   TYPEMT_READER.__here = self
   -- Returns the current line row index
@@ -1829,10 +1828,10 @@ function GetReader(sS)
     iD, rS, tC = 0, nil, nil
     bO = IsFlag("file_read_once")
     bE, sM = false, tostring(sS or "")
-    sN, sF, pF = OPSYM_NEWLINE, nil, nil
+    sF, pF = nil, nil
     return self
   end
-  -- Scan ahead for one row and rewinds
+  -- Scan ahead for one row and rewind
   function self:GetScan()
     if(not IsHere(pF)) then return end
     local iF = pF:Tell() -- Save current pointer
