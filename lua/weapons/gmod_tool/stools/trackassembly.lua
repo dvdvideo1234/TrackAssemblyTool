@@ -1435,7 +1435,7 @@ function TOOL:LeftClick(stTrace)
         local eID, ePiece = oArg.tents[iD], nil
         if(not asmlib.IsOther(eID)) then
           oArg.mundo, oArg.munid = eID:GetModel(), eID:EntIndex()
-          local spPos, spAng = asmlib.GetTransformOver(eID, oArg.wover, oArg.aover)
+          local spPos, spAng = asmlib.GetTransformOver(eID, oArg.wover, oArg.aover, spnflat)
           while(oArg.itrys < maxstatts and not ePiece) do oArg.itrys = (oArg.itrys + 1)
             ePiece = asmlib.NewPiece(oPly,oArg.mundo,spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod) end
           if(ePiece) then
@@ -1515,7 +1515,7 @@ function TOOL:LeftClick(stTrace)
       if(not asmlib.ApplyPhysicalSettings(trEnt,ignphysgn,freeze,gravity,physmater)) then
         self:LogStatus(stTrace,"(Over) Failed to apply physical settings",trEnt); return false end
       local vOvr, aOvr = self:GetFlipOverOrigin(stTrace, user:KeyDown(IN_SPEED))
-      local spPos, spAng = asmlib.GetTransformOver(anEnt, vOvr, aOvr)
+      local spPos, spAng = asmlib.GetTransformOver(anEnt, vOvr, aOvr, spnflat)
       local ePiece = asmlib.NewPiece(user,anEnt:GetModel(),spPos,spAng,mass,bgskids,conPalette:Select("w"),bnderrmod)
       if(ePiece) then
         if(not asmlib.ApplyPhysicalSettings(ePiece,ignphysgn,freeze,gravity,physmater)) then
@@ -1758,6 +1758,7 @@ end
 
 function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
   local atGho  = asmlib.ARRAY_GHOST
+  local spnflat = self:GetSpawnFlat()
   local tE, nE = self:GetFlipOver(true, true)
   if(tE and self:IsFlipOver()) then
     local bPK = input.IsKeyDown(KEY_LSHIFT)
@@ -1765,7 +1766,7 @@ function TOOL:UpdateGhostFlipOver(stTrace, sPos, sAng)
     for iD = 1, nE do
       local eID, gID = tE[iD], atGho[iD]
       if(not asmlib.IsOther(eID) and gID and gID:IsValid()) then
-        local spPos, spAng = asmlib.GetTransformOver(eID, wOver, aOver)
+        local spPos, spAng = asmlib.GetTransformOver(eID, wOver, aOver, spnflat)
         gID:SetPos(spPos); gID:SetAngles(spAng)
         gID:SetModel(eID:GetModel()); gID:SetNoDraw(false)
       end
@@ -2168,8 +2169,9 @@ end
 
 function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   if(not self:GetPointAssist()) then return end
-  local model, trEnt = self:GetModel(), stTrace.Entity
-  local actrad, vF, vU = self:GetActiveRadius(), Vector(), Vector()
+  local actrad = self:GetActiveRadius()
+  local vF, vU, trEnt = Vector(), Vector(), stTrace.Entity
+  local spnflat, model = self:GetSpawnFlat(), self:GetModel()
   local bAct, xH = input.IsKeyDown(KEY_LSHIFT), stTrace.HitPos:ToScreen()
   local wOv, aOv, wOr, wO1, wO2 = self:GetFlipOverOrigin(stTrace, bAct)
   vF:Set(aOv:Forward()); vF:Mul(actrad); vF:Add(wOv)
@@ -2180,7 +2182,7 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   for iD = 1, nE do local eID = tE[iD]
     if(not asmlib.IsOther(eID)) then
       local vePos = eID:GetPos()
-      local spPos, spAng = asmlib.GetTransformOver(eID, wOv, aOv)
+      local spPos, spAng = asmlib.GetTransformOver(eID, wOv, aOv, spnflat)
       local Os, Oe = vePos:ToScreen(), spPos:ToScreen()
       hudMonitor:DrawLine(oO, Os, "y", "SEGM", {20})
       hudMonitor:DrawLine(oO, Oe, "y")
@@ -2382,11 +2384,11 @@ function TOOL:DrawToolScreen(w, h)
   local model = self:GetModel()
   local hdRec = asmlib.CacheQueryPiece(model)
   if(not asmlib.IsHere(hdRec)) then
-    scrTool:DrawText("Holds Model: Invalid","r")
+    scrTool:DrawText("Player piece: Invalid","r")
     scrTool:DrawTextMore(asmlib.GetConcat("  [", gsModeDataB, "]"), "db")
     return
   end
-  scrTool:DrawText("Holds Model: Valid","g")
+  scrTool:DrawText("Player piece: Valid","g")
   scrTool:DrawTextMore(asmlib.GetConcat("  [", gsModeDataB, "]"), "db")
   local trEnt    = stTrace.Entity
   local actrad   = self:GetActiveRadius()

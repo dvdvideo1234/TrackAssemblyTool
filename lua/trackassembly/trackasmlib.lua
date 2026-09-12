@@ -65,6 +65,7 @@ local GetConVar               = GetConVar
 local DermaMenu               = DermaMenu
 local RunString               = RunString
 local isfunction              = isfunction
+local PrintTable              = PrintTable
 local LocalPlayer             = LocalPlayer
 local ErrorNoHalt             = ErrorNoHalt
 local CompileFile             = CompileFile
@@ -682,7 +683,8 @@ function SettingsLogs(sHash)
         table.insert(tLogs, tS[iD])
       end
     end; sRow = S:GetLine()
-  end; LogInstance("Success "..GetReport(sKey, fName)); return true
+  end; if(S:Finish():IsDeny()) then return false end
+  LogInstance("Success "..GetReport(sKey, fName)); return true
 end
 
 function InitBase(sName, sPurp)
@@ -708,6 +710,7 @@ function InitBase(sName, sPurp)
   TOKEN_COMMENT = {"--", "--[[", "]]"}
   OPSYM_DISABLE = "#"
   OPSYM_DIVIDER = "_"
+  OPSYM_DELIMIT = "\t"
   OPSYM_VERTDIV = "|"
   OPSYM_REVISION = "@"
   OPSYM_DIRECTORY = "/"
@@ -1136,8 +1139,6 @@ function GetQueue(sKey)
    -- Allocate closure variables
   local self, mBusy, mS, mE = {}, {}, nil, nil
   -- Store the current state
-  mHash[mKey] = self
-  setmetatable(self, TYPEMT_QUEUE)
   LogInstance("Register "..GetReport(mKey))
   -- Returns the queue member key
   function self:GetKey() return mKey end
@@ -1243,7 +1244,10 @@ function GetQueue(sKey)
       LogInstance("Clear "..GetReport(mS.D, mS.P:Nick()), mKey)
       local tD = mS.N; table.Empty(mS); mS = tD; return self -- Wipe entry
     end
-  end; return self
+  end -- Register the class under the key
+  LogInstance("Queue registered "..GetReport(mKey))
+  setmetatable(self, TYPEMT_QUEUE)
+  mHash[mKey] = self; return self
 end
 
 function GetContainer(sKey, sDef)
@@ -1252,11 +1256,9 @@ function GetContainer(sKey, sDef)
   local oCon = mHash[mKey]
   if(oCon) then return oCon end
   local mData, mID, self = {}, {}, {}
-  local mDef = sDef or KEY_DEFAULT
+  local mDef = (sDef or KEY_DEFAULT)
   local miTop, miAll, mhCnt = 0, 0, 0
   -- Register the created class
-  mHash[sKey] = self -- Store for access
-  setmetatable(self, TYPEMT_CONTAINER)
   LogInstance("Registered "..GetReport(mKey))
   -- Returns the container name information
   function self:GetKey() return mKey end
@@ -1381,7 +1383,10 @@ function GetContainer(sKey, sDef)
     else
       return self:Record(nil, vVal)
     end
-  end; return self
+  end -- Register the class under the key
+  LogInstance("Container registered "..GetReport(mKey))
+  setmetatable(self, TYPEMT_CONTAINER)
+  mHash[mKey] = self; return self
 end
 
 --[[
@@ -1391,7 +1396,7 @@ end
  * eW     -> End screen width
  * eH     -> End screen height
  * conClr -> Screen color container
- * aKey   -> Screen cache storage key
+ * sKey   -> Screen cache storage key
  * The drawing methods are the following:
  * SURF - Uses the surface library to draw directly
  * SEGM - Uses the surface library to draw line segment interpolations
@@ -1404,11 +1409,11 @@ end
  * UCS - Drawing a coordinate system
  * PLY - Drawing a polygon
 ]]
-function GetScreen(sW, sH, eW, eH, conClr, aKey)
+function GetScreen(sW, sH, eW, eH, conClr, sKey)
   if(SERVER) then return nil end
   local mHash = TYPEMT_SCREEN.__here
-  local aKey = tostring(aKey or "SCREEN")
-  local oMon, tLogs = mHash[aKey], {"GetScreen"}
+  local mKey = tostring(sKey or "SCREEN")
+  local oMon, tLogs = mHash[mKey], {"GetScreen"}
   if(oMon) then oMon:GetColor(); return oMon end
   local sW, sH = (tonumber(sW) or 0), (tonumber(sH) or 0)
   local eW, eH = (tonumber(eW) or 0), (tonumber(eH) or 0)
@@ -1416,8 +1421,6 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
   if(eW < 0 or eH < 0) then return nil end
   local sKeyD, cColD = KEY_DEFAULT, GetColor(255,255,255,255)
   local xyS, xyE, self = NewXY(sW, sH), NewXY(eW, eH), {}
-  setmetatable(self, TYPEMT_SCREEN); mHash[aKey] = self
-  LogInstance("Screen registered "..GetReport(aKey))
   local Colors = {List = conClr, Key = sKeyD, Default = cColD}
   if(Colors.List) then -- Container check. Check if palette is present
     if(getmetatable(Colors.List) ~= TYPEMT_CONTAINER) then return nil end
@@ -1428,6 +1431,7 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
   local DrawMeth, DrawArgs = {}, {}
   Text.DrwX, Text.DrwY, Text.DrxC, Text.DryC = 0, 0, 0, 0
   Text.ScrW, Text.ScrH, Text.LstW, Text.LstH = 0, 0, 0, 0
+  function self:GetKey() return mKey end
   function self:GetCorners() return xyS, xyE end
   function self:GetSize() return (eW - sW), (eH - sH) end
   function self:GetCenter(nX, nY)
@@ -1646,7 +1650,10 @@ function GetScreen(sW, sH, eW, eH, conClr, aKey)
     end
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
     self:DrawLine(Op, Pp)
-  end; return self -- Register the screen under the key
+  end -- Register the class under the key
+  LogInstance("Screen registered "..GetReport(mKey))
+  setmetatable(self, TYPEMT_SCREEN);
+  mHash[mKey] = self; return self
 end
 
 --[[
@@ -2413,14 +2420,13 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
   return vCen -- Returns X-Y OBB centered model
 end
 
-function GetTransformOver(eBase, wOver, aOver)
-  -- Position relative to the over coordinate system
-  local vPos, aAng = WorldToLocal(eBase:GetPos(), eBase:GetAngles(), wOver, aOver)
-  -- Rotate 180 around the plane normal
-  vPos.x, vPos.y = -vPos.x, -vPos.y
-  -- Rotate 180 around the local Z axis (plane normal)
+function GetTransformOver(oEnt, wOver, aOver, bInv)
+  if(not (oEnt and oEnt:IsValid())) then
+    LogInstance("Entity Invalid"); return Vector(), Angle() end
+  local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
+  local vPos, aAng = WorldToLocal(ePos, eAng, wOver, aOver)
+  vPos:Negate(); if(bInv) then vPos.z = -vPos.z end
   aAng:RotateAroundAxis(VEC_UP, MAX_ROTATION / 2)
-  -- Back to world angle
   return LocalToWorld(vPos, aAng, wOver, aOver)
 end
 
@@ -3296,7 +3302,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
   -- Creates table column list as string
   function self:GetColumnList(sD, ...)
     local qtDef = self:GetDefinition()
-    local sD = tostring(sD or "\t"):sub(1,1); if(IsBlank(sD)) then
+    local sD = tostring(sD or OPSYM_DELIMIT):sub(1,1); if(IsBlank(sD)) then
       LogInstance("Missing delimiter",qtDef.Nick); return "" end
     local nA, tA = select("#", ...), nil
     if(nA > 0) then tA = {...} else tA, nA = {}, qtDef.Size
@@ -4000,7 +4006,7 @@ end
 ]]
 function ExportSyncDB(sDelim)
   if(SERVER) then LogInstance("Working on server"); return true end
-  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local sDelim = tostring(sDelim or OPSYM_DELIMIT):sub(1,1)
   local sMiss, sTable = MISS_NOAV, "PIECES"
   local tHew, tHea = PATTEM_EXDSVHED, FORM_HEADEREXP
   local sMoDB = MODE_DATABASE -- Read database mode
@@ -4141,7 +4147,8 @@ function ImportCategory(vEq, sPref, bExp)
         else LogInstance("Name missing "..GetReport(sHew, txt, fName)) end
       else sPar = GetConcat(sPar, sRow, "\n") end
     end; sRow = F:GetLine()
-  end; LogInstance("Success "..GetReport(sHew, fName)); return true
+  end; if(F:Finish():IsDeny()) then return false end
+  LogInstance("Success "..GetReport(sHew, fName)); return true
 end
 
 --[[
@@ -4157,7 +4164,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
   if(SERVER) then LogInstance("Working on server"); return true end
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
-  local sDelim, tHea = tostring(sDelim or "\t"):sub(1,1), FORM_HEADEREXP
+  local sDelim, tHea = tostring(sDelim or OPSYM_DELIMIT):sub(1,1), FORM_HEADEREXP
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   local tHew, sMoDB = PATTEM_EXDSVHED, MODE_DATABASE
@@ -4217,7 +4224,7 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   local bFile, tHew, sHew = file.Exists(sTable, "DATA"), PATTEM_EXDSVHED
-  local sDelim, sFunc, fName = tostring(sDelim or "\t"):sub(1,1), debug.getinfo(1).name
+  local sDelim, sFunc, fName = tostring(sDelim or OPSYM_DELIMIT):sub(1,1), debug.getinfo(1).name
   local sMoDB, bRef = MODE_DATABASE, tobool(bRef)
   if(bFile) then fName = sTable -- Use the settings form the file or override
     LogInstance("Reading configuration "..GetReport(fName))
@@ -4281,10 +4288,9 @@ end
  * sDelim > What delimiter is the server using
 ]]
 function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
-  TimeTic("SYNC: "..GetReport(sTable, bRepl, sPref, sDelim), false)
   if(not isstring(sTable)) then
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
-  local sDelim, fData = tostring(sDelim or "\t"):sub(1,1), {}
+  local sDelim, fData = tostring(sDelim or OPSYM_DELIMIT):sub(1,1), {}
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   local tHew, sMoDB = PATTEM_EXDSVHED, MODE_DATABASE
@@ -4297,7 +4303,6 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     LogInstance("Missing table builder "..GetReport(sHew),sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
   local fName = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name)
-  TimeLap("INIT-OK")
   if(file.Exists(fName, "DATA")) then
     local I = GetReader(GetConcat(sTable,".",sPref,".",sFunc))
     if(I:Open(fName):IsDeny()) then return false end
@@ -4322,7 +4327,6 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end -- The file contents are read locally then converted
     if(I:Finish():IsDeny()) then return false end
   else LogInstance("Creating file "..GetReport(sHew, fName),sTable) end
-  TimeLap("SRC-FILE")
   for key, rec in pairs(tData) do -- Check the given table and match the key
     local vK = makTab:Match(key,1,false,"",true,true); if(not IsHere(vK)) then
       LogInstance("Sync matching PK failed "..GetReport(sHew,key),sTable); return false end
@@ -4362,14 +4366,12 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       else LogInstance("Internal key mismatch "..GetReport(sHew, bRepl, vK),sTable); return false end
     end
   end
-  TimeLap("SRC-DATA")
   local tSort = Arrange(fData); if(not tSort) then
     LogInstance("Sorting failed "..GetReport(sHew),sTable); return false end
   local O = file.Open(fName, "wb" ,"DATA"); if(not O) then
     LogInstance("Open fail "..GetReport(sHew,fName),sTable); return false end
   O:Write(tHea.Src:format(sFunc, sHew:sub(2,-2), GetDateTime(), sMoDB))
   O:Write(tHea.Tco:format(sTable, makTab:GetColumnList(sDelim)))
-  TimeLap("OUTC-INIT")
   for iS = 1, tSort.Size do
     local sKey = tSort[iS].Key -- Extract sorted key
     local fRec = fData[sKey] -- Index the data pool
@@ -4385,7 +4387,6 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       O:Write(table.concat(fRow, sDelim)); O:Write("\n")
     end
   end; O:Flush(); O:Close()
-  TimeLap("OUTC-FINISH")
   LogInstance("Success "..GetReport(sHew,fName),sTable); return true
 end
 
@@ -4394,7 +4395,7 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
     LogInstance("Table mismatch "..GetReport(sTable)); return false end
   local tHew, sHew, sSrc = PATTEM_EXDSVHED
   local bFile, sMos, sSrc = file.Exists(sTable, "DATA"), "rc-"
-  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local sDelim = tostring(sDelim or OPSYM_DELIMIT):sub(1,1)
   local sMoDB, sFunc = MODE_DATABASE, debug.getinfo(1).name
   local fPref, tHea = tostring(sPref or GetInstPrefix()):lower(), FORM_HEADEREXP
   if(bFile) then sSrc = sTable -- Use the settings form the file or override
@@ -4474,7 +4475,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
     LogInstance("Same machine "..GetReport(sProg, sPref)); return true end
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sProg, sPref)); return true end
-  local sDelim, sMiss = tostring(sDelim or "\t"):sub(1,1), MISS_NOAV
+  local sDelim, sMiss = tostring(sDelim or OPSYM_DELIMIT):sub(1,1), MISS_NOAV
   local fName = GetLibraryPath(DIRPATH_SET, NAME_LIBRARY, "_dsv")
   if(bSkip or IsExact(fPref)) then
     local sFunc = debug.getinfo(1).name
@@ -4516,10 +4517,11 @@ end
  * sDelim > The delimiter to be used while processing the DSV list
 ]]
 function ProcessDSV(sDelim)
-  local sDelim = tostring(sDelim or "\t"):sub(1,1)
+  local sDelim = tostring(sDelim or OPSYM_DELIMIT):sub(1,1)
   local sFunc, lbNam = debug.getinfo(1).name, NAME_LIBRARY
   local fName = GetLibraryPath(DIRPATH_SET, lbNam, "_dsv")
   local F = GetReader(GetConcat(lbNam,".",sFunc))
+  LogInstance("Begin "..GetReport(sDelim,fName))
   if(F:Open(fName):IsDeny()) then return false end
   local sRow, tPro = F:GetLine(), {}
   while(not F:IsDone()) do
@@ -4575,7 +4577,7 @@ function ProcessDSV(sDelim)
         return true
       end)
     end
-  end; LogInstance("Success "..GetReport(fName)); return true
+  end; LogInstance("Success "..GetReport(sDelim,fName)); return true
 end
 
 --[[
@@ -4891,7 +4893,7 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("Missing additions builder "..GetReport(sType, sPref)); return end
   local defA = makA:GetDefinition(); if(not IsHere(defA)) then
     LogInstance("Missing additions definition "..GetReport(sType, sPref)); return end
-  local sDelim, fMon = tostring(sDelim or "\t"):sub(1,1), GetConcat("[", sMoDB:lower(), "-dsv]")
+  local sDelim, fMon = tostring(sDelim or OPSYM_DELIMIT):sub(1,1), GetConcat("[", sMoDB:lower(), "-dsv]")
   local pNam = GetLibraryPath(DIRPATH_EXP, fMon..sPref, defP.Name)
   local aNam = GetLibraryPath(DIRPATH_EXP, fMon..sPref, defA.Name)
   local P = file.Open(pNam, "wb", "DATA"); if(not P) then

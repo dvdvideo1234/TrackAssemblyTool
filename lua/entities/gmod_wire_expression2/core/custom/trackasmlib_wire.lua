@@ -13,13 +13,14 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 --[[ **************************** CONFIGURATION **************************** ]]
 
 local anyTrue, anyFalse = 1, 0
+local gsDem = asmlib.OPSYM_DELIMIT
 local goBeauty = asmlib.GetBeautify()
 local gsBErr = asmlib.GetAsmConvar("bnderrmod","STR")
 local enFlag = asmlib.GetAsmConvar("enwiremod","BUL")
 local gnMaxMass = asmlib.GetAsmConvar("maxmass","FLT")
 local gsToolPrefL, gsSymDir = asmlib.TOOLNAME_PL, asmlib.OPSYM_DIRECTORY
-local gsINS = "PIECES:Record({\"%s\", \"%s\", \"%s\", %d, \"%s\", \"%s\", \"%s\", \"%s\"})"
-local gsDSV = "TRACKASSEMBLY_PIECES\t\"%s\"\t\"%s\"\t\"%s\"\t%d\t\"%s\"\t\"%s\"\t\"%s\"\t\"%s\""
+local gsINS = table.concat({"PIECES:Record({\"%s\"", "\"%s\"", "\"%s\"", "%d", "\"%s\"", "\"%s\"", "\"%s\"", "\"%s\"})"}, ", ")
+local gsDSV = table.concat({"TRACKASSEMBLY_PIECES","\"%s\"","\"%s\"","\"%s\"","%d","\"%s\"","\"%s\"","\"%s\"","\"%s\""}, gsDem)
 
 --[[ **************************** CALLBACKS **************************** ]]
 

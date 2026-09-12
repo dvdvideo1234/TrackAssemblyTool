@@ -941,7 +941,7 @@ if(CLIENT) then
       local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
       local sNam = asmlib.GetConcat(gsDrcSET, uNam):lower()
       local nW, nH = pnFrame:GetSize()
-      local sDel, nB, nT = "\t", 22, 23
+      local sDel, nB, nT = asmlib.OPSYM_DELIMIT, 22, 23
       xyPos.x, xyPos.y = xyDsz.x, (xyDsz.y + nT)
       xySiz.x = (nW - 2 * xyDsz.x)
       xySiz.y = (nH - nT - 2*xyDsz.y) - 2*xyDsz.y - 2*nB
@@ -1041,15 +1041,15 @@ if(CLIENT) then
       pnImport.DoRightClick = function() end
       pnImport.DoClick = function(pnSelf) pnListView:Clear()
         if(not file.Exists(sNam, "DATA")) then file.Write(sNam, "") end
-        local fD = file.Open(sNam, "rb", "DATA"); if(not fD) then pnFrame:Close()
-          asmlib.LogInstance("File error", sLog..".Import"); return end
+        local fD = asmlib.GetReader(asmlib.GetConcat(sLog,".Import"))
+        if(fD:Open(sNam):IsDeny()) then return end
         local sGen = (gsGenerDSV.."*.txt") -- Create the pattern for generic DB
         local tGen = file.Find(sGen, "DATA") -- Search for generic database
         if(tGen and #tGen > 0) then -- some files are present. Register as DSV
           pnListView:AddLine("V", gsGenerPrf, sGen):SetTooltip(sGen)
         else local iG = (tGen and #tGen or 0) -- Report that generic is missing so skip
           asmlib.LogInstance("Generic skip: "..asmlib.GetReport(iG, sGen), sLog..".Import")
-        end; sRow, tCon = asmlib.GetLineContent(fD)
+        end; sRow = fD:GetLine()
         while(sRow) do
           if(not asmlib.IsBlank(sRow)) then local sKey, sPrg
             if(not asmlib.IsDisable(sRow)) then bAct = true else
@@ -1063,8 +1063,8 @@ if(CLIENT) then
             sKey = asmlib.GetTypePrefix(sKey):Trim()
             sTip = asmlib.GetConcat(sKey, " : ", sPrg)
             pnListView:AddLine(sAct, sKey, sPrg):SetTooltip(sTip)
-          end; sRow, tCon = asmlib.GetLineContent(fD, tCon)
-        end -- If a data error is not present. File is closed automatically
+          end; sRow = fD:GetLine() -- File is closed automatically
+        end; if(fD:Finish():IsDeny()) then return end
       end; pnImport:DoClick()
       -- Export button. When clicked loads contents into the file
       local pnExport = vgui.Create("DButton")
