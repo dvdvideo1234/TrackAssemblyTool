@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "9.932"
+asmlib.TOOL_VERSION = "10.784"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -173,16 +173,17 @@ local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("CURVE") -- Catmull-Rom spline interpolation fitting
       conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
       conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
-
 local conEditorDB = asmlib.GetContainer("FILE_EDIT")
       conEditorDB:Push({
         Name = "Wiremod by WireTeam", -- Addon name and the button label
         ID = "160250458", -- Dedicated WSID when present in steamworks
-        Code = WireLib, -- The global library being uses for configuration
-        Here = asmlib.IsHere(WireLib), -- Checks if the forrect version is installed
+        Code = function() return WireLib end, -- The global library being uses for configuration
+        Here = function() return asmlib.IsHere(WireLib) end, -- Checks if the forrect version is installed
         Open = function(tCon, sPre, sNam)
-          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code)); return end
-          if(not tCon.Code) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code)); return end
+          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
+          local bS, oC = pcall(tCon.Code); if(not bS) then
+            asmlib.LogInstance("Library error "..asmlib.GetReport(sPre, sNam, tCon.Name, oC)); return end
+          if(not oC) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           -- Configure internal references and dedicated folder
           local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
           local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
@@ -190,30 +191,34 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
             wire_expression2_editor = vgui.Create("Expression2EditorFrame")
           end -- Expression 2 editor is available then use is to display track contents
           if(not IsValid(wire_expression2_editor)) then
-            asmlib.LogInstance("Frame invalid "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code)); return end
+            asmlib.LogInstance("Frame invalid "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           wire_expression2_editor:Setup("Wiremod editor", gsToolNameL)
           -- Configure the panel visuals and display the file
           if(sNam == "PIECES") then -- Load the category provider for this DSV
             local fF = fDSV:format(sPre, "category"):lower()
             if(file.Exists(fF,"DATA")) then -- We cave category for the tracks
               wire_expression2_editor:Open(fF, nil, false)
-            else asmlib.LogInstance("File missing "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code, fF)) end
+            else asmlib.LogInstance("File missing "..asmlib.GetReport(sPre, sNam, tCon.Name, fF)) end
           end -- When the table dedicated file is present  then open the source
           local fF = fDSV:format(sPre, sNam):lower()
           if(file.Exists(fF, "DATA")) then -- Set the file name and read contents
             wire_expression2_editor:Open(fF, nil, false)
-          else asmlib.LogInstance("File missing "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code, fF)) end
+          else asmlib.LogInstance("File missing "..asmlib.GetReport(sPre, sNam, tCon.Name, fF)) end
           wire_expression2_editor:SetVisible(true); wire_expression2_editor:Center()
           wire_expression2_editor:MakePopup(); conElements:Push({wire_expression2_editor, "Close"})
         end})
       conEditorDB:Push({
         Name = "Luapad by Wrefgtzweve", -- Addon name and the button label
         ID = nil, -- Dedicated WSID when present in steamworks
-        Code = luapad, -- The global library being uses for configuration
-        Here = asmlib.IsHere(luapad and luapad.ToggleSettingsMenu or nil),
+        Code = function() return luapad end, -- The global library being uses for configuration
+        Here = function() return asmlib.IsHere(luapad and luapad.ToggleSettingsMenu or nil) end,
         URL = "https://github.com/wrefgtzweve/luapad",
         Remove = function(tCon, sPre, sNam)
-          local pS = tCon.Code.PropertySheet
+          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
+          local bS, oC = pcall(tCon.Code); if(not bS) then
+            asmlib.LogInstance("Library error "..asmlib.GetReport(sPre, sNam, tCon.Name, oC)); return end
+          if(not oC) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
+          local pS = oC.PropertySheet
           if(not IsValid(pS)) then return end
           -- Check the property sheet tab
           local tI = pS:GetItems()
@@ -240,12 +245,14 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           end
         end,
         Open = function(tCon, sPre, sNam)
-          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code)); return end
-          if(not tCon.Code) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code)); return end
-          if(not IsValid(tCon.Code.Frame)) then tCon.Code.Toggle() end
+          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
+          local bS, oC = pcall(tCon.Code); if(not bS) then
+            asmlib.LogInstance("Library error "..asmlib.GetReport(sPre, sNam, tCon.Name, oC)); return end
+          if(not oC) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
+          if(not IsValid(oC.Frame)) then oC.Toggle() end
           -- Configure the panel visuals and display the file
-          tCon.Code.Frame:SetVisible(true); tCon.Code.Frame:Center()
-          tCon.Code.OpenTab("data/"..gsToolNameL)
+          oC.Frame:SetVisible(true); oC.Frame:Center()
+          oC.OpenTab("data/"..gsToolNameL)
           local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
           local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
           local sForm = asmlib.FORM_STRING -- File format string
@@ -254,33 +261,35 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
             local oF = sForm:format(sPre)..sNam -- String displayed on the luapad tab
             local fF = fDSV:format(sPre, sNam):lower() -- Full path to the file relative to /data
             local uF = uDSV:format(sPre, sNam):lower() -- The actual file name being opened
-            if(file.Exists(fF,"DATA")) then tCon.Code.CloseTabName(oF, true)
-              tCon.Code.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "chart_organisation")
-            else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code, fF)) end
+            if(file.Exists(fF,"DATA")) then oC.CloseTabName(oF, true)
+              oC.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "chart_organisation")
+            else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, fF)) end
           end -- Luapad is designed not to be closed so we need to make it invisible
            -- This is done so we can distinguish between luapad and other panels
           local oF = sForm:format(sPre)..sNam -- String displayed on the luapad tab
           local fF = fDSV:format(sPre, sNam):lower() -- Full path to the file relative to /data
           local uF = uDSV:format(sPre, sNam):lower() -- The actual file name being opened
-          if(file.Exists(fF,"DATA")) then tCon.Code.CloseTabName(oF, true)
-            tCon.Code.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "database_connect")
-          else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code, fF)) end
-          tCon.Code.Frame:SetVisible(true); tCon.Code.Frame:Center()
-          tCon.Code.Frame:MakePopup(); conElements:Push({tCon.Code.Frame, "SetVisible", false})
+          if(file.Exists(fF,"DATA")) then oC.CloseTabName(oF, true)
+            oC.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "database_connect")
+          else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, fF)) end
+          oC.Frame:SetVisible(true); oC.Frame:Center()
+          oC.Frame:MakePopup(); conElements:Push({oC.Frame, "SetVisible", false})
         end})
       conEditorDB:Push({
         Name = "Luapad by Sparkz", -- Addon name and the button label
         ID = "107905654", -- Dedicated WSID when present in steamworks
-        Code = luapad, -- The global library being uses for configuration
-        Here = asmlib.IsHere(luapad and luapad.ShowConfirmDialog or nil),
+        Code = function() return luapad end, -- The global library being uses for configuration
+        Here = function() return asmlib.IsHere(luapad and luapad.ShowConfirmDialog or nil) end,
         URL = "https://github.com/dvdvideo1234/garrysmod-luapad/tree/optimize",
         Open = function(tCon, sPre, sNam)
-          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code)); return end
-          if(not tCon.Code) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code)); return end
-          if(not IsValid(tCon.Code.Frame)) then tCon.Code.Toggle() end
+          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
+          local bS, oC = pcall(tCon.Code); if(not bS) then
+            asmlib.LogInstance("Library error "..asmlib.GetReport(sPre, sNam, tCon.Name, oC)); return end
+          if(not oC) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
+          if(not IsValid(oC.Frame)) then oC.Toggle() end
           -- Configure the panel visuals and display the file
-          tCon.Code.Frame:SetVisible(true); tCon.Code.Frame:Center()
-          tCon.Code.OpenTab("data/"..gsToolNameL)
+          oC.Frame:SetVisible(true); oC.Frame:Center()
+          oC.OpenTab("data/"..gsToolNameL)
           local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
           local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
           local sForm = asmlib.FORM_STRING -- File format string
@@ -289,19 +298,19 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
             local oF = sForm:format(sPre)..sNam -- String displayed on the luapad tab
             local fF = fDSV:format(sPre, sNam):lower() -- Full path to the file relative to /data
             local uF = uDSV:format(sPre, sNam):lower() -- The actual file name being opened
-            if(file.Exists(fF,"DATA")) then tCon.Code.CloseTabName(oF, true)
-              tCon.Code.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "chart_organisation")
-            else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code, fF)) end
+            if(file.Exists(fF,"DATA")) then oC.CloseTabName(oF, true)
+              oC.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "chart_organisation")
+            else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, fF)) end
           end -- Luapad is designed not to be closed so we need to make it invisible
            -- This is done so we can distinguish between luapad and other panels
           local oF = sForm:format(sPre)..sNam -- String displayed on the luapad tab
           local fF = fDSV:format(sPre, sNam):lower() -- Full path to the file relative to /data
           local uF = uDSV:format(sPre, sNam):lower() -- The actual file name being opened
-          if(file.Exists(fF,"DATA")) then tCon.Code.CloseTabName(oF, true)
-            tCon.Code.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "database_connect")
-          else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, tCon.Code, fF)) end
-          tCon.Code.Frame:SetVisible(true); tCon.Code.Frame:Center()
-          tCon.Code.Frame:MakePopup(); conElements:Push({tCon.Code.Frame, "SetVisible", false})
+          if(file.Exists(fF,"DATA")) then oC.CloseTabName(oF, true)
+            oC.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "database_connect")
+          else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, fF)) end
+          oC.Frame:SetVisible(true); oC.Frame:Center()
+          oC.Frame:MakePopup(); conElements:Push({oC.Frame, "SetVisible", false})
         end})
 -- Automatically apply the convar limits. Zero iz considered as no editor
 asmlib.SetBorder(gsToolPrefL.."texteditid", 0, conEditorDB:GetSize())
@@ -1198,7 +1207,7 @@ if(CLIENT) then
                   function() -- Edit the database contents using the Luapad addon
                     local iE = asmlib.GetAsmConvar("texteditid", "INT") -- Current editor
                     local tCon = conEditorDB:Select(iE) -- Read editor configuration
-                    if(tCon and tCon.Here and asmlib.IsHere(tCon.Code) and not input.IsKeyDown(KEY_LSHIFT)) then
+                    if(tCon and tCon.Here and tCon.Code and not input.IsKeyDown(KEY_LSHIFT)) then
                       local bS, sE = pcall(tCon.Open, tCon, sP, defTab.Nick)
                       if(not bS) then asmlib.LogInstance("Editor error: "..sE, sLog..".ListView") end
                     else -- Editor is not installed or available. Open the frame to install it
@@ -1231,19 +1240,21 @@ if(CLIENT) then
                       local xB = (pnLay:GetWide() -  (2 * xC) - ((nC + 1) * xyDsz.x))
                       for iE = 1, nE do -- Layout for every text editor
                         local tCon = conEditorDB:Select(iE); if(not tCon) then
-                          asmlib.LogInstance("Config invalid at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                          asmlib.LogInstance("Config invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
                         local bE, sN = asmlib.GetEmpty(tCon.Name); if(bE) then
-                          asmlib.LogInstance("Name missing at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                          asmlib.LogInstance("Name missing at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
                         local pnAct = vgui.Create("DCheckBox", pnLay); if(not IsValid(pnAct)) then
-                          asmlib.LogInstance("Active invalid at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                          asmlib.LogInstance("Active invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
                         pnAct:SetPos(nX, nY); pnAct:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
                         local pnIns = vgui.Create("DCheckBox", pnLay); if(not IsValid(pnIns)) then
-                          asmlib.LogInstance("Install invalid at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                          asmlib.LogInstance("Install invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
                         pnIns:SetPos(nX, nY); pnIns:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
                         local pnBtn =  vgui.Create("DButton", pnLay); if(not IsValid(pnBtn)) then
-                          asmlib.LogInstance("Button invalid at "..iF:format(iE), sLog..".ListView"); pnLink:Close(); return end
+                          asmlib.LogInstance("Button invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
                         pnBtn:SetPos(nX, nY); pnBtn:SetSize(xB, xC); nX, nY = xyDsz.x, (nY + xC + xyDsz.y)
-                        pnIns:SetEnabled(false); pnIns:SetChecked(tCon.Here) -- Configure marker if the addon is present/installed
+                        local bS, vF = pcall(tCon.Here); if(not bS) then
+                          asmlib.LogInstance("Status error "..asmlib.GetReport(iE,cE,vF), sLog..".ListView"); pnLink:Close(); return end
+                        pnIns:SetEnabled(false); pnIns:SetChecked(tobool(vF)) -- Configure marker if the addon is present/installed
                         pnAct:SetEnabled(pnIns:GetChecked()); pnAct:SetChecked(iE == cE) -- Updated the current editor selection
                         pnAct:SetTooltip(pnAct:GetChecked() and language.GetPhrase(sT.."stedx_av") or language.GetPhrase(sT.."stedx_ax"))
                         pnIns:SetTooltip(pnIns:GetChecked() and language.GetPhrase(sT.."stedx_iv") or language.GetPhrase(sT.."stedx_ix"))

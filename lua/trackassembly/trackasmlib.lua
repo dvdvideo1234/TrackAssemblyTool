@@ -2420,14 +2420,21 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
   return vCen -- Returns X-Y OBB centered model
 end
 
-function GetTransformOver(oEnt, wOver, aOver, bInv)
+--[[
+ * Flips an entity actoss a world coordinate system
+ * oEnt  > Base entity being flipped
+ * wOvr > Coordinate system world origin
+ * aOvr > Coordinate system world orientation
+ * bPan > True to flip on a plane otherwise inverse
+]]
+function GetTransformOver(oEnt, wOvr, aOvr, bPan)
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity Invalid"); return Vector(), Angle() end
   local ePos, eAng = oEnt:GetPos(), oEnt:GetAngles()
-  local vPos, aAng = WorldToLocal(ePos, eAng, wOver, aOver)
-  vPos:Negate(); if(bInv) then vPos.z = -vPos.z end
+  local vPos, aAng = WorldToLocal(ePos, eAng, wOvr, aOvr)
+  vPos:Negate(); if(bPan) then vPos.z = -vPos.z end
   aAng:RotateAroundAxis(VEC_UP, MAX_ROTATION / 2)
-  return LocalToWorld(vPos, aAng, wOver, aOver)
+  return LocalToWorld(vPos, aAng, wOvr, aOvr)
 end
 
 function IsPhysTrace(Trace)
