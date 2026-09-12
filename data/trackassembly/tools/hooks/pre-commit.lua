@@ -5,7 +5,7 @@
 -- Home:
 
 local fSta = "------------------ %s ------------------\n"
-local fVer = "asmlib.SetOpVar%s*%(%s*\"TOOL_VERSION\"%s*,%s*\"%d+%.%d+\"%s*%)"
+local fVer = "asmlib%s*.%s*%TOOL_VERSION%s*=%s*\"%d+%.%d+\""
 local fNum = "%s*%d+%s*%.%s*%d+%s*"
 local tEnd = {["DOS"]="\r\n", ["UNX"]="\n"}
 
