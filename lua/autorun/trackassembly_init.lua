@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.784"
+asmlib.TOOL_VERSION = "10.785"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1206,8 +1206,14 @@ if(CLIENT) then
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
                     local iE = asmlib.GetAsmConvar("texteditid", "INT") -- Current editor
-                    local tCon = conEditorDB:Select(iE) -- Read editor configuration
-                    if(tCon and tCon.Here and tCon.Code and not input.IsKeyDown(KEY_LSHIFT)) then
+                    local tCon, vH, oC = conEditorDB:Select(iE) -- Read editor configuration
+                    if(tCon) then local bS -- Update the success flag scope no return
+                      bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Fefault flag
+                        asmlib.LogInstance("Locator error: "..vH, sLog..".ListView") end
+                      bS, oC = pcall(tCon.Code); if(not bS) then oC = nil -- Default library
+                        asmlib.LogInstance("Library error: "..oC, sLog..".ListView") end
+                    end -- Installed addon and library located are present then open the editor
+                    if(tCon and vH and asmlib.IsHere(oC) and not input.IsKeyDown(KEY_LSHIFT)) then
                       local bS, sE = pcall(tCon.Open, tCon, sP, defTab.Nick)
                       if(not bS) then asmlib.LogInstance("Editor error: "..sE, sLog..".ListView") end
                     else -- Editor is not installed or available. Open the frame to install it
