@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.785"
+asmlib.TOOL_VERSION = "10.786"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -173,12 +173,14 @@ local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("CURVE") -- Catmull-Rom spline interpolation fitting
       conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
       conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
+      conWorkMode:Push("HELIX") -- Produces spiral arks with given offset
+
 local conEditorDB = asmlib.GetContainer("FILE_EDIT")
       conEditorDB:Push({
         Name = "Wiremod by WireTeam", -- Addon name and the button label
-        ID = "160250458", -- Dedicated WSID when present in steamworks
-        Code = function() return WireLib end, -- The global library being uses for configuration
-        Here = function() return asmlib.IsHere(WireLib) end, -- Checks if the forrect version is installed
+        ID = "160250458", -- Dedicated WSID when present in steam works
+        Code = function() return WireLib end, -- The global library being used for configuration
+        Here = function() return asmlib.IsHere(WireLib) end, -- Checks if the correct version is installed
         Open = function(tCon, sPre, sNam)
           if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           local bS, oC = pcall(tCon.Code); if(not bS) then
@@ -209,7 +211,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
         end})
       conEditorDB:Push({
         Name = "Luapad by Wrefgtzweve", -- Addon name and the button label
-        ID = nil, -- Dedicated WSID when present in steamworks
+        ID = nil, -- Dedicated WSID when present in steam-works
         Code = function() return luapad end, -- The global library being uses for configuration
         Here = function() return asmlib.IsHere(luapad and luapad.ToggleSettingsMenu or nil) end,
         URL = "https://github.com/wrefgtzweve/luapad",
@@ -277,7 +279,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
         end})
       conEditorDB:Push({
         Name = "Luapad by Sparkz", -- Addon name and the button label
-        ID = "107905654", -- Dedicated WSID when present in steamworks
+        ID = "107905654", -- Dedicated WSID when present in steam-works
         Code = function() return luapad end, -- The global library being uses for configuration
         Here = function() return asmlib.IsHere(luapad and luapad.ShowConfirmDialog or nil) end,
         URL = "https://github.com/dvdvideo1234/garrysmod-luapad/tree/optimize",
@@ -761,6 +763,7 @@ if(CLIENT) then
   asmlib.ToIcon("workmode_curve"   , "vector"            ) -- Catmull-Rom curve line segment fitting
   asmlib.ToIcon("workmode_over"    , "shape_move_back"   ) -- Trace normal ray location piece flip-spawn
   asmlib.ToIcon("workmode_turn"    , "arrow_turn_right"  ) -- Produces smoother turns with Bezier curve
+  asmlib.ToIcon("workmode_helix"   , "circlecross"       ) -- Produces spiral arks with given offset
   asmlib.ToIcon("property_type"    , "package_green"     )
   asmlib.ToIcon("property_name"    , "note"              )
   asmlib.ToIcon("modedb_lua"       , "database_lightning")
@@ -1206,9 +1209,9 @@ if(CLIENT) then
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
                     local iE = asmlib.GetAsmConvar("texteditid", "INT") -- Current editor
-                    local tCon, vH, oC = conEditorDB:Select(iE) -- Read editor configuration
+                    local tCon, vH, oC = conEditorDB:Select(iE), nil, nil -- Read configuration
                     if(tCon) then local bS -- Update the success flag scope no return
-                      bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Fefault flag
+                      bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Default flag
                         asmlib.LogInstance("Locator error: "..vH, sLog..".ListView") end
                       bS, oC = pcall(tCon.Code); if(not bS) then oC = nil -- Default library
                         asmlib.LogInstance("Library error: "..oC, sLog..".ListView") end

@@ -1290,10 +1290,17 @@ function GetContainer(sKey, sDef)
       miTop = (miTop - 1) end; return self
   end
   -- Finds a value in the container
-  function self:Find(vVal)
-    for iK, vV in pairs(mData) do
-      if(vV == vVal) then
-        return iK, (isstring(iK) and mID[iK] or nil)
+  function self:Find(vV, vK)
+    for iK, iV in pairs(mData) do
+      local bT = (vK and istable(iV))
+      if(bT) then
+        if(iV[vK] == vV) then
+          return iK, (isstring(iK) and mID[iK] or nil)
+        end
+      else
+        if(iV == vV) then
+          return iK, (isstring(iK) and mID[iK] or nil)
+        end
       end
     end; return nil, nil
   end
@@ -1318,20 +1325,20 @@ function GetContainer(sKey, sDef)
     return self
   end
   -- Records an element from the container
-  function self:Record(nsKey, vVal)
+  function self:Record(nsKey, vV)
     local iK, bK = (nsKey or mDef), IsHere(nsKey)
     if(isnumber(iK) or not bK) then
       if(not bK) then iK = (miTop + 1) end
       if(iK > miTop) then miTop = iK end
-      if(not IsHere(mData[iK]) and IsHere(vVal)) then
-        miAll = (miAll + 1); end; mData[iK] = vVal
+      if(not IsHere(mData[iK]) and IsHere(vV)) then
+        miAll = (miAll + 1); end; mData[iK] = vV
     else
       if(not IsHere(mData[iK])) then
         mhCnt = (mhCnt + 1)
         mID[mhCnt] = iK
         mID[iK] = mhCnt
-        mData[iK] = vVal
-      else mData[iK] = vVal end
+        mData[iK] = vV
+      else mData[iK] = vV end
     end; return self:Refresh()
   end
   -- Deletes an element from the container
@@ -1356,32 +1363,32 @@ function GetContainer(sKey, sDef)
   function self:Pull(nKey)
     if(nKey) then local nKey = tonumber(nKey)
       if(nKey and nKey > 0 and nKey <= miTop) then
-        local vVal = mData[nKey]
-        local bV = IsHere(vVal)
+        local vV = mData[nKey]
+        local bV = IsHere(vV)
         if(bV) then miAll = miAll - 1 end
-        self:Arrange(nKey, false); return vVal
+        self:Arrange(nKey, false); return vV
       end; return nil
     else
-      local vVal = mData[miTop]
-      self:Delete(); return vVal
+      local vV = mData[miTop]
+      self:Delete(); return vV
     end
   end
   -- Pushes an element to the container-stack
-  function self:Push(vVal, nKey)
+  function self:Push(vV, nKey)
     if(nKey) then
-      local bV = IsHere(vVal)
+      local bV = IsHere(vV)
       local nKey = tonumber(nKey)
       if(not nKey) then return self end
       if(nKey > 0 and nKey <= miTop) then
         if(bV) then miAll = miAll + 1 end
         self:Arrange(nKey, true)
-        mData[nKey] = vVal
+        mData[nKey] = vV
       elseif(nKey > miTop) then
         if(bV) then miAll = miAll + 1 end
-        mData[nKey], miTop = vVal, nKey
+        mData[nKey], miTop = vV, nKey
       end; return self
     else
-      return self:Record(nil, vVal)
+      return self:Record(nil, vV)
     end
   end -- Register the class under the key
   LogInstance("Container registered "..GetReport(mKey))
