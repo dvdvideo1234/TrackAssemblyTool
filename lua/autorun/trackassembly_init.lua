@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.786"
+asmlib.TOOL_VERSION = "10.787"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -944,7 +944,7 @@ if(CLIENT) then
       pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
       function pnFrame:OnClose()
-        local iK = conElements:Find(self) -- Find panel key index
+        local iK = conElements:Find(self, 1) -- Find panel key index
         if(IsValid(self)) then self:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
@@ -1230,7 +1230,7 @@ if(CLIENT) then
                       pnLink:ShowCloseButton(true)
                       pnLink:SetDeleteOnClose(false)
                       function pnLink:OnClose()
-                        local iK = conElements:Find(self) -- Find panel key index
+                        local iK = conElements:Find(self, 1) -- Find panel key index
                         if(IsValid(self)) then self:Remove() end -- Delete the valid panel
                         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
                       end
@@ -1269,7 +1269,7 @@ if(CLIENT) then
                         pnIns:SetTooltip(pnIns:GetChecked() and language.GetPhrase(sT.."stedx_iv") or language.GetPhrase(sT.."stedx_ix"))
                         pnBtn:SetTooltip(language.GetPhrase(sT.."stedx_bt")); table.insert(tA, pnAct); pnAct:SetName(sN); pnBtn:SetText(sN)
                         pnBtn:SetTooltip(asmlib.IsHere(tCon.URL) and tostring(tCon.URL) or sUR:format(asmlib.WorkshopID(sN)))
-                        function pnAct:OnChange(bA) -- Uncheck all other checkboxes
+                        function pnAct:OnChange(bA) -- Uncheck all other check boxes
                           if(bA) then -- In case we are checking uncheck others and apply this
                             for iA = 1, #tA do local cA = tA[iA] -- Uncheck everything else
                               if(IsValid(cA)) then
@@ -1283,13 +1283,13 @@ if(CLIENT) then
                                 end
                               end -- Text editor is chosen only when current is equal to self
                             end -- Only enabling a checkbox will trigger uncheck
-                          else -- Called with false.If all are falce reset the convar
+                          else -- Called with false.If all are false reset the convar
                             self:SetChecked(false) -- Set this check box to false
                             self:SetTooltip(language.GetPhrase(sT.."stedx_ax"))
-                            for iA = 1, #tA do local cA = tA[iA] -- Ceck status
+                            for iA = 1, #tA do local cA = tA[iA] -- Check status
                               if(IsValid(cA) and cA:GetChecked()) then return end
                             end; asmlib.SetAsmConvar(oPly, "texteditid", 0)
-                          end -- Reaturn early if one check box is enabled
+                          end -- Return early if one check box is enabled
                         end -- Change from true to false remove the active editor
                         function pnBtn:DoClick() gui.OpenURL(self:GetTooltip()) end
                         function pnBtn:DoRightClick() SetClipboardText(self:GetTooltip()) end
@@ -1343,7 +1343,7 @@ if(CLIENT) then
       pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
       function pnFrame:OnClose()
-        local iK = conElements:Find(self) -- Find panel key index
+        local iK = conElements:Find(self, 1) -- Find panel key index
         if(IsValid(self)) then self:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end

@@ -6471,6 +6471,51 @@ function CalculateBezierCurve(oPly, nSmp)
   return tC -- Return the updated curve information reference
 end
 
+--[[
+ * Fills up the the general curve space for the given player
+ * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+ * oPly > Player to fill the calculation for
+ * vO > Origin position as a world space vector
+ * aO > Origin angle as a world space orientation
+ * nA > Angle to preform the rotation for
+ * nR > Radius margin used for resize the circle
+ * vD > Current node displacement given by X/Y/Z offsets
+ * aD > Current angle displacement given by P/Y/R offsets
+ * vT > Amount of samples to calculate the curve for
+ * tO   > When provided it is used to store the curve
+]]
+function GetHelixCurve(oPly, vO, aO, nA, nR, vD, aD, nT, tO)
+  local tH, nAng = (tO or {}), (tonumber(nAng) or 0)
+  local vT = tonumber(nT); if(not vT) then vT = 100
+    LogInstance("Samples default to [100] "..GetReport(nT)) end
+  local rT = math.floor(vT); if(rT < 0) then
+    LogInstance("Samples mismatch "..GetReport(vT)); return nil end
+  local nR = (tonumber(nR) or 0); if(nR == 0) then
+    LogInstance("Radius is zero "..GetReport(nT)); return nil end
+  local nA = (tonumber(nA) or 0); if(nA == 0) then
+    LogInstance("Ark length is zero "..GetReport(nT)); return nil end
+  local vF, vR = aO:Forward(), aO:Right()
+  local vU, dA = aO:Up(), -(nA / (nT - 1))
+  if(nR < 0) then dA = -dA; vR:Negate() end
+  print("Base", vF, vR, dA)
+  -- Apply offsets
+  vR:Mul(math.abs(nR))
+  local oO = Vector(vR); oO:Add(vO); vR:Negate()
+  local oA = vR:AngleEx(vU)
+  local oB = BasisVector(vR, oA)
+  print("Cent", oO, oA, oB)
+  table.insert(tH, Vector(oO)); tH[1]:Add(vR)
+  for iC = 2, nT do oA:RotateAroundAxis(vU, dA)
+    local vF = oA:Forward() * oB.x
+    local vR = oA:Right()   * oB.y
+    local vU = oA:Up()      * oB.z
+    local vV = Vector(oO); vV:Add(vF)
+               vV:Add(vR); vV:Add(vU)
+    table.insert(tH, vV)
+  end
+  return tH
+end
+
 function GetToolInformation()
   local cWM = GetContainer("WORK_MODE")
   local nWM = (cWM and cWM:GetSize() or 0); if(nWM <= 0) then
