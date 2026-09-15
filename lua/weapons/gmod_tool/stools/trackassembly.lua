@@ -1319,7 +1319,18 @@ function TOOL:LeftClick(stTrace)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
-  if(workmode == 3 or workmode == 5) then
+  if(workmode == 6) then
+    local vO = Vector(stTrace.HitPos)
+    local aO = asmlib.GetNormalAngle(user, stTrace, surfsnap, angsnap)
+    local nA = 90
+    local nR = 60
+    local vD = Vector(nextx  , nexty  , nextz)
+    local aD = Angle(nextpic, nextyaw, nextrol)
+    local nT = 90
+    local tO = {}
+    asmlib.GetHelixCurve(user, vO, aO, nA, nR, vD, aD, nT, tO)
+    asmlib.LogTable(tO, "HELIX")
+  elseif(workmode == 3 or workmode == 5) then
     if(poQueue:IsBusy(user)) then asmlib.Notify(user, "ERROR", "Server busy !"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
       self:LogStatus(stTrace,"(Hold) Holder model not piece"); return false end

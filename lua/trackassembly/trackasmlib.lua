@@ -716,7 +716,6 @@ function InitBase(sName, sPurp)
   OPSYM_DIRECTORY = "/"
   OPSYM_SEPARATOR = ","
   OPSYM_ENTPOSANG = "!"
-  DEG_RAD = math.pi / 180
   EPSILON_ZERO = 1e-5
   CURVE_MARGIN = 15
   CURVE_NODEMR = 0.1
@@ -1574,9 +1573,9 @@ function GetScreen(sW, sH, eW, eH, conClr, sKey)
     if(sMeth == "SURF") then
       if(self:Enclose(pO) == -1) then return self end
       if(self:Enclose(pS) == -1) then return self end
-      local nR, nC = tonumber(tArgs[2]), (tonumber(tArgs[3]) or 0)
+      local nD, nC = tonumber(tArgs[2]), (tonumber(tArgs[3]) or 0)
       surface.SetTexture(self:GetMaterial(surface.GetTextureID, tArgs[1]))
-      if(nR and nR ~= 0) then local nD = (nR / DEG_RAD)
+      if(nD and nD ~= 0) then
         surface.DrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD)
       else -- Use the regular rectangle function without sin/cos rotation
         if(nC and nC > 0) then
@@ -1600,8 +1599,8 @@ function GetScreen(sW, sH, eW, eH, conClr, sKey)
     local rgbCl, keyCl = self:GetColor(keyCl,sMeth)
     if(sMeth == "SURF") then surface.DrawCircle(pC.x, pC.y, nRad, rgbCl)
     elseif(sMeth == "SEGM") then
+      local nMax = math.rad(MAX_ROTATION)
       local nItr = math.Clamp((tonumber(tArgs[1]) or 1),1,200)
-      local nMax = (MAX_ROTATION * DEG_RAD)
       local xyOld, xyNew, xyRad = NewXY(), NewXY(), NewXY(nRad, 0)
       local nStp, nAng = (nMax / nItr), 0; AddXY(xyOld, xyRad, pC)
       while(nItr > 0) do nAng = nAng + nStp
@@ -6485,27 +6484,27 @@ end
  * tO   > When provided it is used to store the curve
 ]]
 function GetHelixCurve(oPly, vO, aO, nA, nR, vD, aD, nT, tO)
-  local tH, nAng = (tO or {}), (tonumber(nAng) or 0)
+  local tH, nA = (tO or {}), (tonumber(nA) or 0)
   local vT = tonumber(nT); if(not vT) then vT = 100
     LogInstance("Samples default to [100] "..GetReport(nT)) end
   local rT = math.floor(vT); if(rT < 0) then
     LogInstance("Samples mismatch "..GetReport(vT)); return nil end
   local nR = (tonumber(nR) or 0); if(nR == 0) then
-    LogInstance("Radius is zero "..GetReport(nT)); return nil end
+    LogInstance("Radius is zero"); return nil end
   local nA = (tonumber(nA) or 0); if(nA == 0) then
-    LogInstance("Ark length is zero "..GetReport(nT)); return nil end
+    LogInstance("Helix arc is zero"); return nil end
   local vF, vR = aO:Forward(), aO:Right()
-  local vU, dA = aO:Up(), -(nA / (nT - 1))
+  local vU, dA = aO:Up(), -(nA / (rT - 1))
   if(nR < 0) then dA = -dA; vR:Negate() end
   print("Base", vF, vR, dA)
   -- Apply offsets
   vR:Mul(math.abs(nR))
-  local oO = Vector(vR); oO:Add(vO); vR:Negate()
+  local oO = Vector(vO); oO:Add(vR); vR:Negate()
   local oA = vR:AngleEx(vU)
   local oB = BasisVector(vR, oA)
   print("Cent", oO, oA, oB)
   table.insert(tH, Vector(oO)); tH[1]:Add(vR)
-  for iC = 2, nT do oA:RotateAroundAxis(vU, dA)
+  for iC = 2, rT do oA:RotateAroundAxis(vU, dA)
     local vF = oA:Forward() * oB.x
     local vR = oA:Right()   * oB.y
     local vU = oA:Up()      * oB.z

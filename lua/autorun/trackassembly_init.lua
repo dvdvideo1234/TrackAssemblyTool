@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.787"
+asmlib.TOOL_VERSION = "10.788"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -865,13 +865,12 @@ if(CLIENT) then
       local scrW, scrH = surface.ScreenWidth(), surface.ScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then return end -- Monitor object not present
-      local nDr = asmlib.DEG_RAD -- Degrees to radians conversion
-      local nBr = (acTo:GetRadialAngle() * nDr) -- Convert radial angle
+      local nBr = math.rad(acTo:GetRadialAngle()) -- Convert radial angle
       local nK, nN = acTo:GetRadialSegm(), conWorkMode:GetSize()
       local nR  = (math.min(scrW, scrH) / (2 * gnRatio))
       local mXY = asmlib.NewXY(gui.MouseX(), gui.MouseY())
       local vCn = asmlib.NewXY(math.floor(scrW/2), math.floor(scrH/2))
-      local nMr, vTx, nD = (gnMaxRot * nDr), asmlib.NewXY(), (nR / gnRatio) -- Max angle [2pi]
+      local nMr, vTx, nD = math.rad(gnMaxRot), asmlib.NewXY(), (nR / gnRatio) -- Max angle [2pi]
       local vA, vB = asmlib.NewXY(), asmlib.NewXY()
       local tP = {asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY()}
       local vF, vN = asmlib.NewXY(nR, 0), asmlib.NewXY(math.Clamp(nR - nD, 0, nR), 0)
