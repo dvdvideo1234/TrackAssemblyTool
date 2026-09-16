@@ -6457,7 +6457,6 @@ function CalculateBezierCurve(oPly, nSmp)
   local nC = #tC.Node; if(nC <= 0) then
     LogInstance("Nodes missing"); return nil end
   local iSmp = math.floor((nC - 1) * nSmp)
-  if(not tC) then LogInstance("Curve missing"); return nil end
   table.Empty(tC.Snap) -- The size of all snaps
   tC.SSize, tC.SKept = 0, 0 -- Amount of snapped points
   table.Empty(tC.CNode) -- Reset the curve and snapping
@@ -6481,18 +6480,18 @@ end
  * vD > Current node displacement given by X/Y/Z offsets
  * aD > Current angle displacement given by P/Y/R offsets
  * vT > Amount of samples to calculate the curve for
- * tO   > When provided it is used to store the curve
+ * tH   > When provided it is used to store the curve
 ]]
-function GetHelixCurve(oPly, vO, aO, nA, nR, vD, aD, nT, tO)
-  local tH, nA = (tO or {}), (tonumber(nA) or 0)
+function GetHelixCurve(vO, aO, nA, nR, nT, vD, aD, tH, tN)
+  local nA = (tonumber(nA) or 0); if(nA == 0) then
+    LogInstance("Helix arc is zero"); return nil end
+  local nR = (tonumber(nR) or 0); if(nR == 0) then
+    LogInstance("Radius is zero"); return nil end
   local vT = tonumber(nT); if(not vT) then vT = 100
     LogInstance("Samples default to [100] "..GetReport(nT)) end
   local rT = math.floor(vT); if(rT < 0) then
     LogInstance("Samples mismatch "..GetReport(vT)); return nil end
-  local nR = (tonumber(nR) or 0); if(nR == 0) then
-    LogInstance("Radius is zero"); return nil end
-  local nA = (tonumber(nA) or 0); if(nA == 0) then
-    LogInstance("Helix arc is zero"); return nil end
+  local tH, tN = (tH or {}), (tN or {})
   local vF, vR = aO:Forward(), aO:Right()
   local vU, dA = aO:Up(), -(nA / (rT - 1))
   local ap, ay, ar = aD:Unpack()
@@ -6506,6 +6505,7 @@ function GetHelixCurve(oPly, vO, aO, nA, nR, vD, aD, nT, tO)
   local oA = vR:AngleEx(vU); ay = dA - ay
   local oH = BasisVector(Vector(vR), oA)
   table.insert(tH, Vector(oO)); tH[1]:Add(vR)
+  table.insert(tN, vU)
   for iC = 2, rT do
     oO:Add(vS)
     oA:RotateAroundAxis(vU, ay)
@@ -6517,8 +6517,26 @@ function GetHelixCurve(oPly, vO, aO, nA, nR, vD, aD, nT, tO)
     aU:Set(oA:Up())      aU:Mul(oH.z)
     vV:Add(aF); vV:Add(aR); vV:Add(aU)
     table.insert(tH, vV)
-  end
-  return tH, oB, oH
+    local vD = Vector(vV); vD:Sub(tH[iC-1])
+    local vT = Vector(oO); vT:Sub(vV)
+    local vN = vT:Crss(vD); vN:Normalize()
+    table.insert(tN, vN)
+  end; return tH, tN
+end
+
+function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
+  local tC = GetCacheCurve(oPly)
+  if(not tC) then LogInstance("Curve missing"); return nil end
+  table.Empty(tC.Snap) -- The size of all snaps
+  tC.SSize, tC.SKept = 0, 0 -- Amount of snapped points
+  table.Empty(tC.CNode) -- Reset the curve and snapping
+  table.Empty(tC.CNorm); tC.CSize = 0 -- And normals
+  GetHelixCurve(vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp, tC.CNode, tC.CNorm)
+  tC.CSize = #tC.CNode
+  tC.Info.UCS[1]:Set(tC.CNode[1]) -- Put the first node in the UCS
+  tC.Info.UCS[2]:Set(tC.CNorm[1]) -- Put the first normal in the UCS
+  tC.CSize = iSmp + 2 -- Get stack depth total samples including ends
+  return tC -- Return the updated curve information reference
 end
 
 function GetToolInformation()
