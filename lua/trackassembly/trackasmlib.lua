@@ -6495,24 +6495,30 @@ function GetHelixCurve(oPly, vO, aO, nA, nR, vD, aD, nT, tO)
     LogInstance("Helix arc is zero"); return nil end
   local vF, vR = aO:Forward(), aO:Right()
   local vU, dA = aO:Up(), -(nA / (rT - 1))
+  local ap, ay, ar = aD:Unpack()
+  local vx, vy, vz = vD:Unpack()
+  local vS = (vF * vx) + (vR * vy) + (vU * vz)
+  local aF, aR, aU = Vector(), Vector(), Vector()
   if(nR < 0) then dA = -dA; vR:Negate() end
-  print("Base", vF, vR, dA)
-  -- Apply offsets
-  vR:Mul(math.abs(nR))
-  local oO = Vector(vO); oO:Add(vR); vR:Negate()
-  local oA = vR:AngleEx(vU)
-  local oB = BasisVector(vR, oA)
-  print("Cent", oO, oA, oB)
+  vR:Mul(math.abs(nR)); table.Empty(tH)
+  local oO = Vector(vO); oO:Add(vR)
+  local oB = Vector(oO); vR:Negate()
+  local oA = vR:AngleEx(vU); ay = dA - ay
+  local oH = BasisVector(Vector(vR), oA)
   table.insert(tH, Vector(oO)); tH[1]:Add(vR)
-  for iC = 2, rT do oA:RotateAroundAxis(vU, dA)
-    local vF = oA:Forward() * oB.x
-    local vR = oA:Right()   * oB.y
-    local vU = oA:Up()      * oB.z
-    local vV = Vector(oO); vV:Add(vF)
-               vV:Add(vR); vV:Add(vU)
+  for iC = 2, rT do
+    oO:Add(vS)
+    oA:RotateAroundAxis(vU, ay)
+    oA:RotateAroundAxis(vR, ap)
+    oA:RotateAroundAxis(vF, ar)
+    local vV = Vector(oO)
+    aF:Set(oA:Forward()) aF:Mul(oH.x)
+    aR:Set(oA:Right())   aR:Mul(oH.y)
+    aU:Set(oA:Up())      aU:Mul(oH.z)
+    vV:Add(aF); vV:Add(aR); vV:Add(aU)
     table.insert(tH, vV)
   end
-  return tH
+  return tH, oB, oH
 end
 
 function GetToolInformation()
