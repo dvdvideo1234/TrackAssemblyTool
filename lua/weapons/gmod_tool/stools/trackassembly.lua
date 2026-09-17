@@ -1319,18 +1319,7 @@ function TOOL:LeftClick(stTrace)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
-  if(workmode == 6) then
-    local vO = Vector(stTrace.HitPos)
-    local aO = asmlib.GetNormalAngle(user, stTrace, surfsnap, angsnap)
-    local nA = 90
-    local nR = 60
-    local vD = Vector(nextx  , nexty  , nextz)
-    local aD = Angle(nextpic, nextyaw, nextrol)
-    local nT = 90
-    local tO = {}
-    asmlib.GetHelixCurve(user, vO, aO, nA, nR, vD, aD, nT, tO)
-    asmlib.LogTable(tO, "HELIX")
-  elseif(workmode == 3 or workmode == 5) then
+  if(workmode == 3 or workmode == 5 or workmode == 6) then
     if(poQueue:IsBusy(user)) then asmlib.Notify(user, "ERROR", "Server busy !"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
       self:LogStatus(stTrace,"(Hold) Holder model not piece"); return false end
@@ -1343,6 +1332,14 @@ function TOOL:LeftClick(stTrace)
       asmlib.CalculateRomCurve(user, curvsmple, curvefact)
     elseif(workmode == 5) then
       asmlib.CalculateBezierCurve(user, curvsmple)
+    elseif(workmode == 6) then
+      local vO = Vector(stTrace.HitNormal); vO:Mul(elevpnt); vO:Add(stTrace.HitPos)
+      local aO = asmlib.GetNormalAngle(user, stTrace, surfsnap, angsnap)
+      local nA = stackcnt * nextyaw
+      local vD = Vector(nextx  , nexty  , nextz)
+      local aD = Angle(nextpic, 0, nextrol)
+      asmlib.CalculateHelixCurve(user, vO, aO, nA, actrad, curvsmple, vD, aD)
+      asmlib.LogTable(tO, "HELIX")
     end
     for iD = 1, (tC.CSize - 1) do asmlib.UpdateCurveSnap(user, iD, nD) end
     poQueue:Attach(user, {
@@ -1912,7 +1909,8 @@ function TOOL:UpdateGhost(oPly)
       end
     else
       if(workmode == 4) then
-        self:UpdateGhostFlipOver(stTrace) end
+        self:UpdateGhostFlipOver(stTrace)
+      end
     end
   else
     local stSpawn = self:UpdateGhostSpawn(stTrace, oPly)
@@ -2326,8 +2324,6 @@ function TOOL:DrawHUD()
           hudMonitor:DrawLine(Os,Ss,"m")
           hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(user, stSpawn.SPos),"c")
         end
-      elseif(workmode == 4) then
-
       end
       if(not self:GetDeveloperMode()) then return end
       self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
