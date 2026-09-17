@@ -1335,10 +1335,8 @@ function TOOL:LeftClick(stTrace)
     elseif(workmode == 6) then
       local vO = Vector(stTrace.HitNormal); vO:Mul(elevpnt); vO:Add(stTrace.HitPos)
       local aO = asmlib.GetNormalAngle(user, stTrace, surfsnap, angsnap)
-      local nA = stackcnt * nextyaw
-      local vD = Vector(nextx  , nexty  , nextz)
-      local aD = Angle(nextpic, 0, nextrol)
-      asmlib.CalculateHelixCurve(user, vO, aO, nA, actrad, curvsmple, vD, aD)
+      local vD, aD = Vector(nextx  , nexty  , nextz), Angle(nextpic, 0, nextrol)
+      asmlib.CalculateHelixCurve(user, vO, aO, nextyaw * nextyaw, actrad, curvsmple, vD, aD)
       asmlib.LogTable(tO, "HELIX")
     end
     for iD = 1, (tC.CSize - 1) do asmlib.UpdateCurveSnap(user, iD, nD) end

@@ -6527,14 +6527,15 @@ function GetHelixCurve(vO, aO, nA, nR, nT, vD, aD, tC)
       aR:Set(oA:Right())   aR:Mul(oH.y)
       aU:Set(oA:Up())      aU:Mul(oH.z)
       vV:Add(aF); vV:Add(aR); vV:Add(aU)
-      local vD = Vector(vV); vD:Sub(tcH[iC-1])
+      local iP = ((iC-2) * nN + iN)
+      local vD = Vector(vV); vD:Sub(tcH[iP])
       local vT = Vector(oO); vT:Sub(vV)
       local vN = vT:Cross(vD); vN:Normalize()
       table.insert(tcH, vV)
       table.insert(tcN, vN)
       if(iN == nN) then
-        table.insert(tH, vV)
-        table.insert(tN, vN)
+        table.insert(tH, Vector(vV))
+        table.insert(tN, Vector(vN))
       end
     end
   end
