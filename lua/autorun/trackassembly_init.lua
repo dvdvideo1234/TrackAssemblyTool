@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.789"
+asmlib.TOOL_VERSION = "10.790"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -580,6 +580,58 @@ asmlib.SetAction("CLEAR_CURVE_NODE",
     return true
   end)
 
+asmlib.SetAction("UPDATE_HELIX",
+  function(tData, oPly, aNew, bMute) local sLog = "*"..tData.Slot
+    local tC   = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
+    local vOrg = aNew[1] -- Current helix start location vector     ( Origin POS )
+    local aOrg = aNew[2] -- Current helix start location angle      ( Origin ANG )
+    local nAng = aNew[3] -- Amount of degrees calculating the curve ( End angle )
+    local nRad = aNew[4] -- Player trace location curve data        ( Radius )
+    local nSmp = aNew[5] -- Player trace angle curve data           ( Samples )
+    local vDsp = aNew[6] -- Player trace hits POA location or not   ( Displace POS )
+    local aDsp = aNew[7] -- The index to change at when requested   ( Displace ANG )
+    local tC = asmlib.CalculateHelixCurve(oPly, vOrg, aOrg, 100 * nAng, nRad, nSmp, vDsp, aDsp); if(not tC) then
+      asmlib.LogInstance("Curve mismatch "..asmlib.GetReport(oPly, nAng, nRad, nSmp), sLog); return false end
+    if(SERVER and not bMute) then
+      asmlib.Notify(oPly, "CLEANUP", "Helix updated: %s !", iD)
+      net.Start(gsLibName.."SendUpdateHelix")
+        net.WriteEntity(oPly)
+        net.WriteVector(vOrg)
+        net.WriteAngle (aOrg)
+        net.WriteFloat (nAng)
+        net.WriteFloat (nRad)
+        net.WriteUInt(nSmp, 16)
+        net.WriteVector(vDsp)
+        net.WriteAngle (aDsp)
+      net.Send(oPly)
+      oPly:SetNWBool(gsToolPrefL.."engcurve", true)
+    end; return true
+  end)
+
+asmlib.SetAction("CLEAR_HELIX",
+  function(tData, oPly, bMute) local sLog = "*"..tData.Slot
+    local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
+    if(SERVER and not bMute) then
+      if(tC.Size > 0) then
+        asmlib.Notify(oPly, "CLEANUP", "Helix cleared: %s !", tC.Size)
+      else
+        asmlib.Notify(oPly, "CLEANUP", "Helix cleared !", tC.Size)
+      end
+      net.Start(gsLibName.."SendClearHelix")
+      net.WriteEntity(oPly); net.Send(oPly)
+      oPly:SetNWBool(gsToolPrefL.."engcurve", false)
+    end
+    table.Empty(tC.Snap) -- The size of all snaps
+    tC.SSize, tC.SKept, tC.MSize = 0, 0, 0 -- Amount of snapped points
+    table.Empty(tC.Node) -- Reset the curve and snapping
+    table.Empty(tC.Norm); tC.Size = 0 -- And normals
+    table.Empty(tC.CNode) -- Reset the curve and snapping
+    table.Empty(tC.CNorm); tC.CSize = 0 -- And normals
+    return true
+  end)
+
 if(SERVER) then
 
   util.AddNetworkString(gsLibName.."SendRefreshDSV")
@@ -591,6 +643,8 @@ if(SERVER) then
   util.AddNetworkString(gsLibName.."SendRemoveCurveNode")
   util.AddNetworkString(gsLibName.."SendInsertCurveNode")
   util.AddNetworkString(gsLibName.."SendClearCurveNode")
+  util.AddNetworkString(gsLibName.."SendUpdateHelix")
+  util.AddNetworkString(gsLibName.."SendClearHelix")
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
     function(oPly,oEnt,tData) local sLog = "*DUPE_PHYS_SETTINGS"

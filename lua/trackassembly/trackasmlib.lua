@@ -2902,6 +2902,7 @@ function GetCacheCurve(pPly)
     stData.Info.Pos = {Vector(), Vector()} -- Start and end positions of active points
     stData.Info.Ang = {Angle (), Angle ()} -- Start and end angles of active points
     stData.Info.UCS = {Vector(), Vector()} -- Origin and normal vector for the iteration
+    stData.Info.Oro = {Vector(), Angle()}  -- Origin position and orientation injected
     stData.Info.Ors = {Vector(), Angle()}  -- Origin position and orientation start
     stData.Info.Ore = {Vector(), Angle()}  -- Origin position and orientation end
     stData.Snap  = {} -- Contains array of position and angle snap information
@@ -2911,11 +2912,13 @@ function GetCacheCurve(pPly)
     stData.CNode = {} -- The place where the curve nodes are stored
     stData.CNorm = {} -- The place where the curve normals are stored
     stData.Size  = 0  -- The amount of points for the primary node array
+    stData.MSize = 0  -- The amount of points for node multi sampling
     stData.CSize = 0  -- The amount of points for the calculated nodes array
     stData.SSize = 0  -- The amount of points for the snaps node array
     stData.SKept = 0  -- The amount of total snap points the snaps node array
   end
   if(not stData.Size ) then stData.Size  = 0 end
+  if(not stData.MSize) then stData.MSize = 0 end
   if(not stData.CSize) then stData.CSize = 0 end
   if(not stData.SSize) then stData.SSize = 0 end
   if(not stData.SKept) then stData.SKept = 0 end
@@ -5230,7 +5233,8 @@ end
  * This function performs a trace relative to the entity point chosen
  * trEnt  > Entity chosen for the trace
  * ivPoID > Point ID selected for its model
- * nLen   > Length of the trace
+ * nLen   > Length of the trace ( used to find entities near by )
+ * vDir   > The direction of the trace (default to point world)
 ]]
 function GetTraceEntityPoint(trEnt, ivPoID, nLen, vDir)
   if(not (trEnt and trEnt:IsValid())) then
@@ -6473,7 +6477,7 @@ end
 
 --[[
  * Fills up the the general curve space for the given player
- * https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+ * https://en.wikipedia.org/wiki/Helix
  * oPly > Player to fill the calculation for
  * vO > Origin position as a world space vector
  * aO > Origin angle as a world space orientation
@@ -6483,34 +6487,47 @@ end
  * vD > Current node displacement given by X/Y/Z offsets
  * aD > Current angle displacement given by P/Y/R offsets
 ]]
-function GetHelixCurve(vO, aO, nA, nR, nT, vD, aD, tC)
-  local nA = (tonumber(nA) or 0); if(nA == 0) then
+function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
+  local tC = GetCacheCurve(oPly); if(not tC) then
+    LogInstance("Curve missing"); return nil end
+  table.Empty(tC.Snap) -- The size of all snaps
+  tC.SSize, tC.SKept, tC.MSize = 0, 0, 0 -- Amount of snapped points
+  table.Empty(tC.Base) -- Reset the curve and snapping
+  table.Empty(tC.Node) -- Reset the curve and snapping
+  table.Empty(tC.Norm); tC.Size = 0 -- And normals
+  table.Empty(tC.CNode) -- Reset the curve and snapping
+  table.Empty(tC.CNorm); tC.CSize = 0 -- And normals
+  tC.Info.Ors[1]:Zero(); tC.Info.Ors[2]:Zero()
+  tC.Info.Ore[1]:Zero(); tC.Info.Ore[2]:Zero()
+  local nAng = (tonumber(nAng) or 0); if(nAng == 0) then
     LogInstance("Helix arc is zero"); return nil end
-  local nR = (tonumber(nR) or 0); if(nR == 0) then
+  local nRad = (tonumber(nRad) or 0); if(nRad == 0) then
     LogInstance("Radius is zero"); return nil end
-  local vT = tonumber(nT); if(not vT) then vT = 100
-    LogInstance("Samples default to [100] "..GetReport(nT)) end
+  local vT = tonumber(nSmp); if(not vT) then vT = 100
+    LogInstance("Samples default to [100] "..GetReport(nSmp)) end
   local rT = math.floor(vT); if(rT < 0) then
     LogInstance("Samples mismatch "..GetReport(vT)); return nil end
-  local tH, tN = (tcH or tC.Node), (tcN or tC.Norm)
-  local tcH, tcN = (tcH or tC.CNode), (tcN or tC.CNorm)
-  local vF, vR = aO:Forward(), aO:Right()
-  local vU, dA = aO:Up(), -(nA / (rT - 1))
-  if(nR < 0) then nR = math.abs(nR); dA = -dA; vR:Negate() end
-  local nL = 2 * math.pi * nR * (math.abs(dA) / 360)
-  local nN = 2 * math.ceil(nL)
-  local nT = rT + (rT - 1) * nN
-  tC.Size = rT; tC.CSize = nT; tC.MSize = nN
-  local vx, vy, vz = vD:Unpack()
-  local ap, ay, ar = aD:Unpack(); dA = dA / nN
-  vx, vy, vz = vx / nN, vy / nN, vz / nN
-  ap, ay, ar = ap / nN, ay / nN, ar / nN
+  local vOrg = tC.Info.Oro[1]:IsZero() and vOrg or tC.Info.Oro[1]
+  local aOrg = tC.Info.Oro[2]:IsZero() and aOrg or tC.Info.Oro[2]
+  local tH , tN, tB = tC.Node, tC.Norm, tC.Base
+  local tcH, tcN = tC.CNode, tC.CNorm
+  local vF, vR = aOrg:Forward(), aOrg:Right()
+  local vU, dA = aOrg:Up(), -(nAng / (rT - 1))
+  if(nRad < 0) then nRad = math.abs(nRad); dA = -dA; vR:Negate() end
+  local nL = nRad * math.rad(math.abs(dA)) -- Ark length
+  local nN = 2 * math.ceil(nL) -- Amount of inner points
+  local nS, nD = rT + (rT - 1) * nN, (nN + 1) -- Total points count
+  tC.Size = rT; tC.CSize = nS; tC.MSize = nN
+  local vx, vy, vz = vDsp:Unpack(); dA = dA / nD
+  local ap, ay, ar = aDsp:Unpack()
+  vx, vy, vz = vx / nD, vy / nD, vz / nD
+  ap, ay, ar = ap / nD, ay / nD, ar / nD
   local vS = (vF * vx) + (vR * vy) + (vU * vz)
   local aF, aR, aU = Vector(), Vector(), Vector()
-  vR:Mul(nR); table.Empty(tcH); table.Empty(tcN)
-  local oO = Vector(vO); oO:Add(vR)
+  vR:Mul(nRad); table.Empty(tcH); table.Empty(tcN)
+  local oO = Vector(vOrg); oO:Add(vR); ay = dA - ay
   local oB = Vector(oO); vR:Negate()
-  local oA = vR:AngleEx(vU); ay = dA - ay
+  local oA = vR:AngleEx(vU)
   local oH = BasisVector(Vector(vR), oA)
   table.insert(tcH, Vector(oO)); tcH[1]:Add(vR)
   table.insert(tH , Vector(oO)); tH [1]:Add(vR)
@@ -6518,7 +6535,7 @@ function GetHelixCurve(vO, aO, nA, nR, nT, vD, aD, tC)
   tC.Info.Ors[1]:Set(oO)
   tC.Info.Ors[2]:Set(oA)
   for iC = 2, rT do
-    for iN = 1, nN do oO:Add(vS)
+    for iN = 1, nD do oO:Add(vS)
       oA:RotateAroundAxis(vU, ay)
       oA:RotateAroundAxis(vR, ap)
       oA:RotateAroundAxis(vF, ar)
@@ -6528,12 +6545,13 @@ function GetHelixCurve(vO, aO, nA, nR, nT, vD, aD, tC)
       aU:Set(oA:Up())      aU:Mul(oH.z)
       vV:Add(aF); vV:Add(aR); vV:Add(aU)
       local iP = ((iC-2) * nN + iN)
-      local vD = Vector(vV); vD:Sub(tcH[iP])
+      local vA = Vector(vV); vA:Sub(tcH[iP])
       local vT = Vector(oO); vT:Sub(vV)
-      local vN = vT:Cross(vD); vN:Normalize()
+      local vN = vT:Cross(vA); vN:Normalize()
       table.insert(tcH, vV)
       table.insert(tcN, vN)
-      if(iN == nN) then
+      if(iN == nD) then
+        table.insert(tB, Vector(vV))
         table.insert(tH, Vector(vV))
         table.insert(tN, Vector(vN))
       end
@@ -6541,18 +6559,6 @@ function GetHelixCurve(vO, aO, nA, nR, nT, vD, aD, tC)
   end
   tC.Info.Ore[1]:Set(oO)
   tC.Info.Ore[2]:Set(oA)
-end
-
-function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
-  local tC = GetCacheCurve(oPly)
-  if(not tC) then LogInstance("Curve missing"); return nil end
-  table.Empty(tC.Snap) -- The size of all snaps
-  tC.SSize, tC.SKept = 0, 0 -- Amount of snapped points
-  table.Empty(tC.Node) -- Reset the curve and snapping
-  table.Empty(tC.Norm); tC.Size = 0 -- And normals
-  table.Empty(tC.CNode) -- Reset the curve and snapping
-  table.Empty(tC.CNorm); tC.CSize = 0 -- And normals
-  GetHelixCurve(vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp, tC)
   tC.Info.UCS[1]:Set(tC.CNode[1]) -- Put the first node in the UCS
   tC.Info.UCS[2]:Set(tC.CNorm[1]) -- Put the first normal in the UCS
   return tC -- Return the updated curve information reference
