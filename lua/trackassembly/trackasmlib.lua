@@ -4360,7 +4360,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
       local iID = math.floor(tonumber(vID) or (IsDisable(vID) and iR or 0))-- Convert number
       -- Where the line ID must be read from. Skip the key itself and convert disabled value
       if(iR == iID) then aRow[iD] = iID else -- Validate the line ID having sequential values
-        LogInstance("Sync point ID scatter " -- After line ID validation assigned in the slot
+        LogInstance("Sync ID discontinuity " -- After line ID validation assigned in the slot
           ..GetReport(sHew, iR, vID, iID, vK), sTable); return false end
       if(not makTab:ArrayMatch(aRow,false,"",true,true)) then -- Do a value matching
         LogInstance("Sync matching failed " -- Store the matched value in the original
