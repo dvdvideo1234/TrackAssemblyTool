@@ -4396,9 +4396,6 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     local sKey = tSort[iS].Key -- Extract sorted key
     local fRec = fData[sKey] -- Index the data pool
     local vKey = makTab:Match(sKey,1,true,"\"",true)
-    if(not IsHere(vKey)) then O:Flush(); O:Close()
-      LogInstance("Write matching PK failed "
-        ..GetReport(sHew,sKey),sTable); return false end
     for iR = 1, fRec.Size do local fRow = fRec[iR]
       if(not makTab:Trigger("Record", fRow)) then O:Flush(); O:Close(); return false end
       O:Write(defTab.Name); O:Write(sDelim) -- Write down the table name for unified source
