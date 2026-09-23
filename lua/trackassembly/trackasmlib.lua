@@ -3338,8 +3338,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
    * snIn > String or number data content
    * vID  > Column ID or name to be matched to
    * bQ   > Force quote on the string being matched
-   * sQ   > force a quote character to be used when [bQ] is enabled
-   * bRe  > Replace the single SQL quite with two quotes
+   * sQ   > Force a quote character to be used when [bQ] is enabled
+   * bRe  > Do not replace the single SQL quite with two quotes
    * bNo  > Do not replace empty strings with NULL
   ]]--
   function self:Match(snIn,vID,bQ,sQ,bRe,bNo)
@@ -4320,7 +4320,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder "..GetReport(sHew),sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
-  local fName = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name)
+  local fName, tKeys = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name), {}
   if(file.Exists(fName, "DATA")) then
     local I = GetReader(GetConcat(sTable,".",sPref,".",sFunc))
     if(I:Open(fName):IsDeny()) then return false end
@@ -4345,15 +4345,17 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end -- The file contents are read locally then converted
     if(I:Finish():IsDeny()) then return false end
   else LogInstance("Creating file "..GetReport(sHew, fName),sTable) end
-  for key, rec in pairs(tData) do -- Check the given table and match the key
+  for key, rec in pairs(tData) do -- Modifying a table while reading does undefined behavior
     local vK = makTab:Match(key,1,false,"",true,true); if(not IsHere(vK)) then
       LogInstance("Sync matching PK failed "..GetReport(sHew,key),sTable); return false end
-    local sKey, sVK = tostring(key), tostring(vK); if(sKey ~= sVK) then
-      LogInstance(" Sync key mismatch "..GetReport(sHew, sKey, sVK),sTable)
-      tData[vK] = tData[key]; tData[key] = nil -- Override the key casing after matching
-    end local tRec = tData[vK] -- Create local reference to the record of the matched key
-    for iR = 1, #tRec do  -- Read the processed row reference. Validate and assign for export
-      local tRow, vID, nID, sID = tRec[iR]; table.insert(tRow, 1, key) -- fill the PK for routines
+    if(tostring(key) ~= tostring(vK)) then tKeys[key] = vK end
+  end -- Loop the list of keys that must be stored as matched and update entries
+  for key, vK in pairs(tKeys) do tData[vK] = tData[key]; tData[key] = nil
+    LogInstance("Sync key mismatch "..GetReport(sHew, key), sTable)
+  end -- Process the updated table with correctly matched keys
+  for vK, tRec in pairs(tData) do -- Check the given table and match the key
+    for iR = 1, #tRec do -- Read the processed row reference. Validate and assign for export
+      local tRow, vID, nID, sID = tRec[iR]; table.insert(tRow, 1, vK) -- fill the PK for routines
       vID = tRow[iD]; nID, sID = tonumber(vID), tostring(vID) -- Convert line ID to a number
       nID = (nID or (IsDisable(sID) and iR or 0)) -- In case it is disabled take the row number
       -- Where the line ID must be read from. Skip the key itself and convert the disabled value
