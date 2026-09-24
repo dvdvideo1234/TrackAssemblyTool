@@ -4309,7 +4309,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder "..GetReport(sHew),sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
-  local fName = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name)
+  local fName, tKeys = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name), {}
   if(file.Exists(fName, "DATA")) then
     local I = GetReader(GetConcat(sTable,".",sPref,".",sFunc))
     if(I:Open(fName):IsDeny()) then return false end
@@ -4334,26 +4334,28 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end -- The file contents are read locally then converted
     if(I:Finish():IsDeny()) then return false end
   else LogInstance("Creating file "..GetReport(sHew, fName),sTable) end
-  for key, rec in pairs(tData) do -- Check the given table and match the key
-    local vK = makTab:Match(key,1,false,"",true,true); if(not IsHere(vK)) then
-      LogInstance("Sync matching PK failed "..GetReport(sHew,key),sTable); return false end
-    local sKey, sVK = tostring(key), tostring(vK); if(sKey ~= sVK) then
-      LogInstance(" Sync key mismatch "..GetReport(sHew, sKey, sVK),sTable)
-      tData[vK] = tData[key]; tData[key] = nil -- Override the key casing after matching
-    end local tRec = tData[vK] -- Create local reference to the record of the matched key
-    for iR = 1, #tRec do  -- Read the processed row reference. Validate and assign for export
-      local tRow, vID, nID, sID = tRec[iR]; table.insert(tRow, 1, key) -- fill the PK for routines
-      vID = tRow[iD]; nID, sID = tonumber(vID), tostring(vID) -- Convert line ID to a number
-      nID = (nID or (IsDisable(sID) and iR or 0)) -- In case it is disabled take the row number
-      -- Where the line ID must be read from. Skip the key itself and convert the disabled value
-      if(iR ~= nID) then -- Validate the line ID being in proper borders and sequential values
-        LogInstance("Sync point ID scatter " -- After line ID validation it is assigned in the slot
-          ..GetReport(sHew, iR, vID, nID, sID, sKey), sTable); return false end; tRow[iD] = nID
-      if(not makTab:ArrayMatch(tRow,false,"",true,true)) then -- Do a value matching without quotes
-        LogInstance("Sync matching failed " -- Store the matched value in the same place as the original
-          ..GetReport(sHew, iR, vID, nID, sID, sKey), sTable); return false end
+  for oK, tRec in pairs(tData) do -- Modifying a table while reading does undefined behavior
+    local vK = makTab:Match(oK,1,false,"",true,true); if(not IsHere(vK)) then
+      LogInstance("Sync matching PK failed "..GetReport(sHew,oK),sTable); return false end
+    if(tostring(oK) ~= tostring(vK)) then tKeys[oK] = vK end
+  end -- Loop the list of keys that must be stored as matched and update entries
+  for oK, vK in pairs(tKeys) do tData[vK] = tData[oK]; tData[oK] = nil
+    LogInstance("Sync key mismatch "..GetReport(sHew, oK), sTable)
+  end -- Process the updated table with correctly matched keys
+  for vK, tRec in pairs(tData) do -- Check the given table and match the key
+    for iR = 1, #tRec do -- Validate and assign for export
+      local aRow = tRec[iR]; table.insert(aRow, 1, vK) -- Fill the PK for the routines
+      local vID = aRow[iD] -- Read the processed row reference and grab the line ID
+      local iID = math.floor(tonumber(vID) or (IsDisable(vID) and iR or 0))-- Convert number
+      -- Where the line ID must be read from. Skip the key itself and convert disabled value
+      if(iR == iID) then aRow[iD] = iID else -- Validate the line ID having sequential values
+        LogInstance("Sync ID discontinuity " -- After line ID validation assigned in the slot
+          ..GetReport(sHew, iR, vID, iID, vK), sTable); return false end
+      if(not makTab:ArrayMatch(aRow,false,"",true,true)) then -- Do a value matching
+        LogInstance("Sync matching failed " -- Store the matched value in the original
+          ..GetReport(sHew, iR, vID, iID, vK), sTable); return false end
       -- Check whenever triggers are available. Run them if present
-      if(not makTab:Trigger("ImportDSV", tRow)) then return false end
+      if(not makTab:Trigger("ImportDSV", aRow)) then return false end
     end -- Register the read line to the output file
     if(bRepl) then -- Replace the data when enabled overwrites the file data
       if(tData[vK] and fData[vK]) then -- Both places have the same model
@@ -4382,10 +4384,6 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   for iS = 1, tSort.Size do
     local sKey = tSort[iS].Key -- Extract sorted key
     local fRec = fData[sKey] -- Index the data pool
-    local vKey = makTab:Match(sKey,1,true,"\"",true)
-    if(not IsHere(vKey)) then O:Flush(); O:Close()
-      LogInstance("Write matching PK failed "
-        ..GetReport(sHew,sKey),sTable); return false end
     for iR = 1, fRec.Size do local fRow = fRec[iR]
       if(not makTab:Trigger("Record", fRow)) then O:Flush(); O:Close(); return false end
       O:Write(defTab.Name); O:Write(sDelim) -- Write down the table name for unified source
