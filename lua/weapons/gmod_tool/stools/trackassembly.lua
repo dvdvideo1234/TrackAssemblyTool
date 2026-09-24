@@ -590,7 +590,7 @@ function TOOL:GetGhostsDepth()
     return math.min(ghostcnt, math.max(stackcnt, 1))
   elseif(workmode == 2) then -- Intersection. Force lower bound here
     return math.min(ghostcnt, 1) -- Force lower bound one otherwise ghosts
-  elseif(workmode == 3 or workmode == 5, or workmode == 6) then -- Track curving interpolation
+  elseif(workmode == 3 or workmode == 5 or workmode == 6) then -- Track curving interpolation
     return (stackcnt > 0 and math.min(stackcnt, ghostcnt) or ghostcnt)
   elseif(workmode == 4) then local tArr = self:GetFlipOver() -- Read flip array
     return math.min(ghostcnt, (tArr and #tArr or 1)) -- Disable via ghosts count
@@ -1154,8 +1154,11 @@ end
 
 --[[
  * Triggers helix recalculation
+ * stTrace > Trace structure from the player
+ * bPnt    > Use trace active point as helix origin
+ * bCao    > Recalculate the curve using the current origin
 ]]
-function TOOL:HelixUpdate(stTrace, bPnt)
+function TOOL:HelixUpdate(stTrace, bPnt, bCao)
   local angsnap   = self:GetAngSnap()
   local elevpnt   = self:GetElevation()
   local surfsnap  = self:GetSurfaceSnap()
@@ -1165,7 +1168,12 @@ function TOOL:HelixUpdate(stTrace, bPnt)
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   tU[1], tU[2] = Vector(), Angle() -- Obtain transform from the active point
-  if(bPnt and oE and oE:IsValid()) then
+  if(bCao) then
+    local tC = GetCacheCurve(oPly); if(not tC) then
+      LogInstance("Curve missing"); return false end
+    tU[1]:Set(tC.Info.Oro[1]) -- Use the already present origin
+    tU[2]:Set(tC.Info.Oro[2]) -- Use the already present angle
+  elseif(bPnt and oE and oE:IsValid()) then
     local oM, oP, oA = oE:GetModel(), oE:GetPos(), oE:GetAngles()
     local oID, oL, oPOA, oRec = asmlib.GetEntityHitID(oE, stTrace.HitPos)
     if(not asmlib.IsHere(oRec)) then
@@ -1735,7 +1743,9 @@ function TOOL:RightClick(stTrace)
   elseif(workmode == 4 and not user:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
   elseif(workmode == 6) then -- The user does not put nodes
-    self:HelixUpdate(stTrace, user:KeyDown(IN_USE)); return true
+    local bPnt = user:KeyDown(IN_USE)
+    local bCao = user:KeyDown(IN_SPEED)
+    self:HelixUpdate(stTrace, bPnt, bCao); return true
   end
   if(stTrace.HitWorld) then
     if(enpntmscr or (user:KeyDown(IN_USE) and not enpntmscr)) then
@@ -1938,7 +1948,9 @@ function TOOL:UpdateGhost(oPly)
   if(not stTrace) then return end
   if(not asmlib.HasGhosts()) then return end
   local workmode = self:GetWorkingMode()
-  if(workmode == 3 or workmode == 5 or workmode == 6) then
+  if(workmode == 3 or workmode == 5) then
+    self:UpdateGhostCurve() return -- Curving does ghosting
+  else(workmode == 6 and self:IsHelix())
     self:UpdateGhostCurve() return -- Curving does ghosting
   end -- Call curving mode return early and update
   local atGho, trRec = asmlib.ARRAY_GHOST

@@ -6475,6 +6475,7 @@ end
 
 --[[
  * Fills up the the general curve space for the given player
+ * https://jpop.fandom.com/wiki/STYX_HELIX
  * https://en.wikipedia.org/wiki/Helix
  * oPly > Player to fill the calculation for
  * vO > Origin position as a world space vector
@@ -6505,8 +6506,8 @@ function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
     LogInstance("Samples default to [100] "..GetReport(nSmp)) end
   local rT = math.floor(vT); if(rT < 0) then
     LogInstance("Samples mismatch "..GetReport(vT)); return nil end
-  local vOrg = tC.Info.Oro[1]:IsZero() and vOrg or tC.Info.Oro[1]
-  local aOrg = tC.Info.Oro[2]:IsZero() and aOrg or tC.Info.Oro[2]
+  local vOrg = Vector(vOrg or tC.Info.Oro[1]); tC.Info.Oro[1]:Set(vOrg)
+  local aOrg = Angle (aOrg or tC.Info.Oro[2]); tC.Info.Oro[2]:Set(aOrg)
   local tH , tN, tB = tC.Node, tC.Norm, tC.Base
   local tcH, tcN = tC.CNode, tC.CNorm
   local vF, vR = aOrg:Forward(), aOrg:Right()
@@ -6514,7 +6515,7 @@ function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
   if(nRad < 0) then nRad = math.abs(nRad); dA = -dA; vR:Negate() end
   local nL = nRad * math.rad(math.abs(dA)) -- Ark length
   local nN = 2 * math.ceil(nL) -- Amount of inner points
-  local nS, nD = rT + (rT - 1) * nN, (nN + 1) -- Total points count
+  local nS, nD = rT + (rT - 1) * nN, (nN + 1) -- Total points
   tC.Size = rT; tC.CSize = nS; tC.MSize = nN
   local vx, vy, vz = vDsp:Unpack(); dA = dA / nD
   local ap, ay, ar = aDsp:Unpack()
