@@ -4345,13 +4345,13 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end -- The file contents are read locally then converted
     if(I:Finish():IsDeny()) then return false end
   else LogInstance("Creating file "..GetReport(sHew, fName),sTable) end
-  for key, rec in pairs(tData) do -- Modifying a table while reading does undefined behavior
-    local vK = makTab:Match(key,1,false,"",true,true); if(not IsHere(vK)) then
-      LogInstance("Sync matching PK failed "..GetReport(sHew,key),sTable); return false end
-    if(tostring(key) ~= tostring(vK)) then tKeys[key] = vK end
+  for oK, tRec in pairs(tData) do -- Modifying a table while reading does undefined behavior
+    local vK = makTab:Match(oK,1,false,"",true,true); if(not IsHere(vK)) then
+      LogInstance("Sync matching PK failed "..GetReport(sHew,oK),sTable); return false end
+    if(tostring(oK) ~= tostring(vK)) then tKeys[oK] = vK end
   end -- Loop the list of keys that must be stored as matched and update entries
-  for key, vK in pairs(tKeys) do tData[vK] = tData[key]; tData[key] = nil
-    LogInstance("Sync key mismatch "..GetReport(sHew, key), sTable)
+  for oK, vK in pairs(tKeys) do tData[vK] = tData[oK]; tData[oK] = nil
+    LogInstance("Sync key mismatch "..GetReport(sHew, oK), sTable)
   end -- Process the updated table with correctly matched keys
   for vK, tRec in pairs(tData) do -- Check the given table and match the key
     for iR = 1, #tRec do -- Validate and assign for export
