@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.790"
+asmlib.TOOL_VERSION = "10.791"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -2253,14 +2253,14 @@ asmlib.NewTable("PIECES",{
       return true
     end
   },
-  [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
-  [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
-  [3] = {"NAME"  , "TEXT"   ,  nil , "QMK"},
-  [4] = {"LINEID", "INTEGER", "FLR",  nil },
-  [5] = {"POINT" , "TEXT"   ,  nil ,  nil },
-  [6] = {"ORIGIN", "TEXT"   ,  nil ,  nil },
-  [7] = {"ANGLE" , "TEXT"   ,  nil ,  nil },
-  [8] = {"CLASS" , "TEXT"   ,  nil ,  nil }
+  [1] = {"MODEL" , "TEXT"   , {"LOW", "QMK"}},
+  [2] = {"TYPE"  , "TEXT"   , "QMK"},
+  [3] = {"NAME"  , "TEXT"   , "QMK"},
+  [4] = {"LINEID", "INTEGER", "FLR"},
+  [5] = {"POINT" , "TEXT"   ,      },
+  [6] = {"ORIGIN", "TEXT"   ,      },
+  [7] = {"ANGLE" , "TEXT"   ,      },
+  [8] = {"CLASS" , "TEXT"   ,      }
 },true,true)
 
 asmlib.NewTable("ADDITIONS",{
@@ -2343,18 +2343,18 @@ asmlib.NewTable("ADDITIONS",{
       end; return true
     end
   },
-  [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
-  [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
-  [3]  = {"ENTCLASS" , "TEXT"   ,  nil ,  nil },
-  [4]  = {"LINEID"   , "INTEGER", "FLR",  nil },
-  [5]  = {"POSOFF"   , "TEXT"   ,  nil ,  nil },
-  [6]  = {"ANGOFF"   , "TEXT"   ,  nil ,  nil },
-  [7]  = {"MOVETYPE" , "INTEGER", "FLR",  nil },
-  [8]  = {"PHYSINIT" , "INTEGER", "FLR",  nil },
-  [9]  = {"DRSHADOW" , "INTEGER", "FLR",  nil },
-  [10] = {"PHMOTION" , "INTEGER", "FLR",  nil },
-  [11] = {"PHYACTIV" , "INTEGER", "FLR",  nil },
-  [12] = {"SETSOLID" , "INTEGER", "FLR",  nil },
+  [1]  = {"MODELBASE", "TEXT"   , {"LOW", "QMK"}},
+  [2]  = {"MODELADD" , "TEXT"   , {"LOW", "QMK"}},
+  [3]  = {"ENTCLASS" , "TEXT"          },
+  [4]  = {"LINEID"   , "INTEGER", "FLR"},
+  [5]  = {"POSOFF"   , "TEXT"          },
+  [6]  = {"ANGOFF"   , "TEXT"          },
+  [7]  = {"MOVETYPE" , "INTEGER", "FLR"},
+  [8]  = {"PHYSINIT" , "INTEGER", "FLR"},
+  [9]  = {"DRSHADOW" , "INTEGER", "FLR"},
+  [10] = {"PHMOTION" , "INTEGER", "FLR"},
+  [11] = {"PHYACTIV" , "INTEGER", "FLR"},
+  [12] = {"SETSOLID" , "INTEGER", "FLR"},
 },true,true)
 
 asmlib.NewTable("PHYSPROPERTIES",{
@@ -2441,9 +2441,9 @@ asmlib.NewTable("PHYSPROPERTIES",{
       end; return true
     end
   },
-  [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
-  [2] = {"LINEID", "INTEGER", "FLR",  nil },
-  [3] = {"NAME"  , "TEXT"   ,  nil ,  nil }
+  [1] = {"TYPE"  , "TEXT"   , "QMK"},
+  [2] = {"LINEID", "INTEGER", "FLR"},
+  [3] = {"NAME"  , "TEXT"          }
 },true,true)
 
 ------------ POPULATE DB ------------

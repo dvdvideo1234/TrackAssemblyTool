@@ -3025,7 +3025,6 @@ function NewTable(sTable,defTab,bReload,bDelete)
     LogInstance("Table nick is mandatory"); return false end
   if(not istable(defTab)) then
     LogInstance("Table definition missing for "..GetReport(sTable)); return false end
-  local symDis, emFva = OPSYM_DISABLE, EMPTYSTR_BLNU
   local self, tabCmd, tabDef = {}, {}, table.Copy(defTab)
   tabDef.Nick = sTable:upper(); tabDef.Name = TOOLNAME_PU..tabDef.Nick
   local sMoDB, tDBmo = MODE_DATABASE, ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
@@ -3040,10 +3039,25 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local sT = tostring(vRow[2] or ""); if(IsBlank(sT)) then
       LogInstance("Missing table column type "..GetReport(iCnt), tabDef.Nick); return false end
     vRow[1], vRow[2] = sN, sT -- Convert settings to string and store back
-  end
-  for iCnt = 1, tabDef.Size do local defCol = tabDef[iCnt]
-    defCol[3] = GetEmpty(defCol[3], emFva, symDis)
-    defCol[4] = GetEmpty(defCol[4], emFva, symDis)
+    if(not IsHere(vRow[3])) then vRow[3] = {} else
+      local vCon, sD = vRow[3], (OPSYM_VERTDIV or "|")
+      if(istable(vCon)) then -- Config is table
+        local tKeys = table.GetKeys(vCon)
+        for iD = 1, #tKeys do -- Column parameters
+          local vK = tKeys[iD] -- Parameter key
+          local vV = vCon[vK] -- Parameter name
+          vCon[vV] = true; vCon[vK] = nil -- Remap matching
+          if(iD ~= 1) then SetConcat(sD) end; SetConcat(vV)
+        end -- The configuration parameter is a s/n
+        LogInstance("Configure conv "..GetReport(iCnt, sN, GetConcat()), tabDef.Nick)
+      elseif(isstring(vCon) or isnumber(vCon)) then
+        vRow[3] = {[vCon] = true}
+        LogInstance("Configure conv "..GetReport(iCnt, sN, vCon), tabDef.Nick)
+      else -- The configuration parameter is skipped
+        vRow[3] = {} -- No configuration for this column
+        LogInstance("Configure skip "..GetReport(iCnt, sN), tabDef.Nick)
+      end
+    end
   end; table.insert(libQTable, tabDef.Nick)
   libCache[tabDef.Name] = {}; libQTable[tabDef.Nick] = self
   -- Read table definition
@@ -3131,8 +3145,11 @@ function NewTable(sTable,defTab,bReload,bDelete)
   end
   --[[
    * Data matching wrapper that works on an array
-   * tArr > Array being converted to record
-   * tO   > Data output when provided
+   * tArr > Array being converted and validated
+   * bQ   > Force quote on the string being matched
+   * sQ   > Force a quote character to be used when [bQ] is enabled
+   * bRe  > Do not replace the single SQL quite with two quotes
+   * bNo  > Do not replace empty strings with NULL
   ]]
   function self:ArrayMatch(tArr, bQ, sQ, bRe, bNo)
     local qtDef = self:GetDefinition() -- Table definition index
@@ -3306,15 +3323,13 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local nS, nE = tabDef.Name:find(tabDef.Nick); if(not (nS and nE and nS > 1 and nE == tabDef.Name:len())) then
       LogInstance("Mismatch "..GetReport(tabDef.Name, tabDef.Nick), qtDef.Nick); bStat = false end
     for iD = 1, qtDef.Size do local tCol = qtDef[iD] if(not istable(tCol)) then
-        LogInstance("Mismatch type "..GetReport(iD),qtDef.Nick); bStat = false end
+        LogInstance("Mismatch base "..GetReport(iD),qtDef.Nick); bStat = false end
       if(not isstring(tCol[1])) then -- Check table column name
         LogInstance("Mismatch name "..GetReport(iD, tCol[1]), qtDef.Nick); bStat = false end
       if(not isstring(tCol[2])) then -- Check table column type
         LogInstance("Mismatch type "..GetReport(iD, tCol[2]), qtDef.Nick); bStat = false end
-      if(tCol[3] and not isstring(tCol[3])) then -- Check trigger control
-        LogInstance("Mismatch ctrl "..GetReport(iD, tCol[3]), qtDef.Nick); bStat = false end
-      if(tCol[4] and not isstring(tCol[4])) then -- Check quote conversion
-        LogInstance("Mismatch conv "..GetReport(iD, tCol[4]),qtDef.Nick); bStat = false end
+      if(not istable(tCol[3])) then -- Check trigger control
+        LogInstance("Mismatch conf "..GetReport(iD, tCol[3]), qtDef.Nick); bStat = false end
     end; return bStat -- Successfully validated the builder table
   end
   -- Creates table column list as string
@@ -3339,8 +3354,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
    * vID  > Column ID or name to be matched to
    * bQ   > Force quote on the string being matched
    * sQ   > Force a quote character to be used when [bQ] is enabled
-   * bRe  > Do not replace the single SQL quite with two quotes
-   * bNo  > Do not replace empty strings with NULL
+   * bRe  > Force ignore replacing quotes in an SQL value when configured
+   * bNo  > Force ignore replacing empty strings with NULL
   ]]--
   function self:Match(snIn,vID,bQ,sQ,bRe,bNo)
     local qtDef, sNull = self:GetDefinition(), MISS_NOSQL
@@ -3348,15 +3363,15 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Column ID mismatch "..GetReport(vID),qtDef.Nick); return nil end
     local defCol = qtDef[nvID]; if(not IsHere(defCol)) then
       LogInstance("Invalid column "..GetReport(nvID),qtDef.Nick); return nil end
-    local tyCo, opCo = tostring(defCol[2] or ""), tostring(defCol[3] or "")
+    local tyCo, opCo = tostring(defCol[2] or ""), defCol[3]
     local sMoDB, snOu = MODE_DATABASE -- Read database mode
     local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
-      LogInstance("Unsupported mode "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil end
+      LogInstance("Unsupported mode "..GetReport(vID,tyCo,snIn),qtDef.Nick); return nil end
     if(tyCo == "TEXT") then snOu = tostring(snIn or "")
       if(not bNo and IsBlank(snOu)) then snOu = sNull end
-        snOu = (((opCo == "LOW") and snOu:lower()) or
-                ((opCo == "CAP") and snOu:upper()) or snOu)
-      if(not bRe and sMoDB == "SQL" and defCol[4] == "QMK") then
+        snOu = (((opCo.LOW) and snOu:lower()) or
+                ((opCo.CAP) and snOu:upper()) or snOu)
+      if(not bRe and sMoDB == "SQL" and opCo.QMK) then
         snOu = snOu:gsub("'","''") end
       if(bQ) then
         local sqCh = (sQ and tostring(sQ or ""):sub(1,1) or
@@ -3366,12 +3381,12 @@ function NewTable(sTable,defTab,bReload,bDelete)
       end
     elseif(tyCo == "REAL" or tyCo == "INTEGER") then
       snOu = tonumber(snIn); if(not IsHere(snOu)) then
-        LogInstance("Invalid number "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil end
+        LogInstance("Invalid number "..GetReport(vID,tyCo,snIn),qtDef.Nick); return nil end
       if(tyCo == "INTEGER") then
-        snOu = (((opCo == "FLR") and math.floor(snOu)) or
-                ((opCo == "CEL") and math.ceil (snOu)) or snOu)
+        snOu = (((opCo.FLR) and math.floor(snOu)) or
+                ((opCo.CEL) and math.ceil (snOu)) or snOu)
       end
-    else LogInstance("Invalid type "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil
+    else LogInstance("Invalid type "..GetReport(vID,tyCo,snIn),qtDef.Nick); return nil
     end; return snOu
   end
   -- Build SQL drop statement
@@ -4082,6 +4097,8 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality "..GetReport(vEq)); return false end
   local tHew, sMoDB = PATTEM_EXCATHED, MODE_DATABASE
+  local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode"); return false end
   local sHew, sFunc = tHew.Fmt:format(fPref, nEq), debug.getinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew)); return true end
@@ -4244,6 +4261,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   local bFile, tHew, sHew = file.Exists(sTable, "DATA"), PATTEM_EXDSVHED
   local sDelim, sFunc, fName = tostring(sDelim or OPSYM_DELIMIT):sub(1,1), debug.getinfo(1).name
   local sMoDB, bRef = MODE_DATABASE, tobool(bRef)
+  local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode"); return false end
   if(bFile) then fName = sTable -- Use the settings form the file or override
     LogInstance("Reading configuration "..GetReport(fName))
     local F = file.Open(fName, "rb", "DATA"); if(not F) then
@@ -4312,6 +4331,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   local tHew, sMoDB = PATTEM_EXDSVHED, MODE_DATABASE
+  local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode"); return nil end
   local sHew, sFunc = tHew.Fmt:format(fPref, sTable, sDelim), debug.getinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew),sTable); return true end
@@ -4320,7 +4341,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder "..GetReport(sHew),sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
-  local fName, tKeys = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name), {}
+  local fName, tKeys = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name), table.GetKeys(tData)
   if(file.Exists(fName, "DATA")) then
     local I = GetReader(GetConcat(sTable,".",sPref,".",sFunc))
     if(I:Open(fName):IsDeny()) then return false end
@@ -4345,25 +4366,23 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end -- The file contents are read locally then converted
     if(I:Finish():IsDeny()) then return false end
   else LogInstance("Creating file "..GetReport(sHew, fName),sTable) end
-  for oK, tRec in pairs(tData) do -- Modifying a table while reading does undefined behavior
+  for iK = 1, #tKeys do -- Check the given table and match the key
+    local oK = tKeys[iK] -- The key provided by the track pack creator
+    local tRec = tData[oK] -- The record identified by this key
     local vK = makTab:Match(oK,1,false,"",true,true); if(not IsHere(vK)) then
-      LogInstance("Sync matching PK failed "..GetReport(sHew,oK),sTable); return false end
-    if(tostring(oK) ~= tostring(vK)) then tKeys[oK] = vK end
-  end -- Loop the list of keys that must be stored as matched and update entries
-  for oK, vK in pairs(tKeys) do tData[vK] = tData[oK]; tData[oK] = nil
-    LogInstance("Sync key mismatch "..GetReport(sHew, oK), sTable)
-  end -- Process the updated table with correctly matched keys
-  for vK, tRec in pairs(tData) do -- Check the given table and match the key
+      LogInstance("Primary key mismatch "..GetReport(sHew,oK),sTable); return false end
+    if(tostring(oK) ~= tostring(vK)) then tData[vK] = tRec; tData[oK] = nil
+      LogInstance("Primary key remap "..GetReport(sHew, oK), sTable) end
     for iR = 1, #tRec do -- Validate and assign for export
       local aRow = tRec[iR]; table.insert(aRow, 1, vK) -- Fill the PK for the routines
       local vID = aRow[iD] -- Read the processed row reference and grab the line ID
       local iID = math.floor(tonumber(vID) or (IsDisable(vID) and iR or 0))-- Convert number
       -- Where the line ID must be read from. Skip the key itself and convert disabled value
       if(iR == iID) then aRow[iD] = iID else -- Validate the line ID having sequential values
-        LogInstance("Sync ID discontinuity " -- After line ID validation assigned in the slot
+        LogInstance("Discontinuity ID " -- After line ID validation assigned in the slot
           ..GetReport(sHew, iR, vID, iID, vK), sTable); return false end
       if(not makTab:ArrayMatch(aRow,false,"",true,true)) then -- Do a value matching
-        LogInstance("Sync matching failed " -- Store the matched value in the original
+        LogInstance("Matching failed " -- Store the matched value in the original
           ..GetReport(sHew, iR, vID, iID, vK), sTable); return false end
       -- Check whenever triggers are available. Run them if present
       if(not makTab:Trigger("ImportDSV", aRow)) then return false end
@@ -4413,6 +4432,8 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   local bFile, sMos, sSrc = file.Exists(sTable, "DATA"), "rc-"
   local sDelim = tostring(sDelim or OPSYM_DELIMIT):sub(1,1)
   local sMoDB, sFunc = MODE_DATABASE, debug.getinfo(1).name
+  local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode"); return nil end
   local fPref, tHea = tostring(sPref or GetInstPrefix()):lower(), FORM_HEADEREXP
   if(bFile) then sSrc = sTable -- Use the settings form the file or override
     LogInstance("Reading configuration "..GetReport(sSrc))
@@ -5020,8 +5041,7 @@ function ExportTypeCAT(sType)
   local sMoDB = MODE_DATABASE -- Read database mode
   local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode "..GetReport(sType)); return end
-  local tCat = TABLE_CATEGORIES -- Categories table
-  local sMoDB, tCax = MODE_DATABASE, {} -- Read database mode
+  local tCat, tCax = TABLE_CATEGORIES, {} -- Categories table
   local sName = GetConcat("[", sMoDB, "-cat]", sPref):lower()
   if(not RunComponentType(sType, function(iTy, sTy)
     tCax[sTy] = tCat[sTy]; return true
