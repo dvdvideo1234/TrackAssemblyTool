@@ -716,7 +716,6 @@ function InitBase(sName, sPurp)
   OPSYM_DIRECTORY = "/"
   OPSYM_SEPARATOR = ","
   OPSYM_ENTPOSANG = "!"
-  DEG_RAD = math.pi / 180
   EPSILON_ZERO = 1e-5
   CURVE_MARGIN = 15
   CURVE_NODEMR = 0.1
@@ -1290,10 +1289,17 @@ function GetContainer(sKey, sDef)
       miTop = (miTop - 1) end; return self
   end
   -- Finds a value in the container
-  function self:Find(vVal)
-    for iK, vV in pairs(mData) do
-      if(vV == vVal) then
-        return iK, (isstring(iK) and mID[iK] or nil)
+  function self:Find(vV, vK)
+    for iK, iV in pairs(mData) do
+      local bT = (vK and istable(iV))
+      if(bT) then
+        if(iV[vK] == vV) then
+          return iK, (isstring(iK) and mID[iK] or nil)
+        end
+      else
+        if(iV == vV) then
+          return iK, (isstring(iK) and mID[iK] or nil)
+        end
       end
     end; return nil, nil
   end
@@ -1318,20 +1324,20 @@ function GetContainer(sKey, sDef)
     return self
   end
   -- Records an element from the container
-  function self:Record(nsKey, vVal)
+  function self:Record(nsKey, vV)
     local iK, bK = (nsKey or mDef), IsHere(nsKey)
     if(isnumber(iK) or not bK) then
       if(not bK) then iK = (miTop + 1) end
       if(iK > miTop) then miTop = iK end
-      if(not IsHere(mData[iK]) and IsHere(vVal)) then
-        miAll = (miAll + 1); end; mData[iK] = vVal
+      if(not IsHere(mData[iK]) and IsHere(vV)) then
+        miAll = (miAll + 1); end; mData[iK] = vV
     else
       if(not IsHere(mData[iK])) then
         mhCnt = (mhCnt + 1)
         mID[mhCnt] = iK
         mID[iK] = mhCnt
-        mData[iK] = vVal
-      else mData[iK] = vVal end
+        mData[iK] = vV
+      else mData[iK] = vV end
     end; return self:Refresh()
   end
   -- Deletes an element from the container
@@ -1356,32 +1362,32 @@ function GetContainer(sKey, sDef)
   function self:Pull(nKey)
     if(nKey) then local nKey = tonumber(nKey)
       if(nKey and nKey > 0 and nKey <= miTop) then
-        local vVal = mData[nKey]
-        local bV = IsHere(vVal)
+        local vV = mData[nKey]
+        local bV = IsHere(vV)
         if(bV) then miAll = miAll - 1 end
-        self:Arrange(nKey, false); return vVal
+        self:Arrange(nKey, false); return vV
       end; return nil
     else
-      local vVal = mData[miTop]
-      self:Delete(); return vVal
+      local vV = mData[miTop]
+      self:Delete(); return vV
     end
   end
   -- Pushes an element to the container-stack
-  function self:Push(vVal, nKey)
+  function self:Push(vV, nKey)
     if(nKey) then
-      local bV = IsHere(vVal)
+      local bV = IsHere(vV)
       local nKey = tonumber(nKey)
       if(not nKey) then return self end
       if(nKey > 0 and nKey <= miTop) then
         if(bV) then miAll = miAll + 1 end
         self:Arrange(nKey, true)
-        mData[nKey] = vVal
+        mData[nKey] = vV
       elseif(nKey > miTop) then
         if(bV) then miAll = miAll + 1 end
-        mData[nKey], miTop = vVal, nKey
+        mData[nKey], miTop = vV, nKey
       end; return self
     else
-      return self:Record(nil, vVal)
+      return self:Record(nil, vV)
     end
   end -- Register the class under the key
   LogInstance("Container registered "..GetReport(mKey))
@@ -1567,9 +1573,9 @@ function GetScreen(sW, sH, eW, eH, conClr, sKey)
     if(sMeth == "SURF") then
       if(self:Enclose(pO) == -1) then return self end
       if(self:Enclose(pS) == -1) then return self end
-      local nR, nC = tonumber(tArgs[2]), (tonumber(tArgs[3]) or 0)
+      local nD, nC = tonumber(tArgs[2]), (tonumber(tArgs[3]) or 0)
       surface.SetTexture(self:GetMaterial(surface.GetTextureID, tArgs[1]))
-      if(nR and nR ~= 0) then local nD = (nR / DEG_RAD)
+      if(nD and nD ~= 0) then
         surface.DrawTexturedRectRotated(pO.x,pO.y,pS.x,pS.y,nD)
       else -- Use the regular rectangle function without sin/cos rotation
         if(nC and nC > 0) then
@@ -1593,8 +1599,8 @@ function GetScreen(sW, sH, eW, eH, conClr, sKey)
     local rgbCl, keyCl = self:GetColor(keyCl,sMeth)
     if(sMeth == "SURF") then surface.DrawCircle(pC.x, pC.y, nRad, rgbCl)
     elseif(sMeth == "SEGM") then
+      local nMax = math.rad(MAX_ROTATION)
       local nItr = math.Clamp((tonumber(tArgs[1]) or 1),1,200)
-      local nMax = (MAX_ROTATION * DEG_RAD)
       local xyOld, xyNew, xyRad = NewXY(), NewXY(), NewXY(nRad, 0)
       local nStp, nAng = (nMax / nItr), 0; AddXY(xyOld, xyRad, pC)
       while(nItr > 0) do nAng = nAng + nStp
@@ -2896,6 +2902,9 @@ function GetCacheCurve(pPly)
     stData.Info.Pos = {Vector(), Vector()} -- Start and end positions of active points
     stData.Info.Ang = {Angle (), Angle ()} -- Start and end angles of active points
     stData.Info.UCS = {Vector(), Vector()} -- Origin and normal vector for the iteration
+    stData.Info.Oro = {Vector(), Angle()}  -- Origin position and orientation injected
+    stData.Info.Ors = {Vector(), Angle()}  -- Origin position and orientation start
+    stData.Info.Ore = {Vector(), Angle()}  -- Origin position and orientation end
     stData.Snap  = {} -- Contains array of position and angle snap information
     stData.Node  = {} -- Contains array of node positions for the curve calculation
     stData.Norm  = {} -- Contains array of normal vector for the curve calculation
@@ -2903,11 +2912,13 @@ function GetCacheCurve(pPly)
     stData.CNode = {} -- The place where the curve nodes are stored
     stData.CNorm = {} -- The place where the curve normals are stored
     stData.Size  = 0  -- The amount of points for the primary node array
+    stData.MSize = 0  -- The amount of points for node multi sampling
     stData.CSize = 0  -- The amount of points for the calculated nodes array
     stData.SSize = 0  -- The amount of points for the snaps node array
     stData.SKept = 0  -- The amount of total snap points the snaps node array
   end
   if(not stData.Size ) then stData.Size  = 0 end
+  if(not stData.MSize) then stData.MSize = 0 end
   if(not stData.CSize) then stData.CSize = 0 end
   if(not stData.SSize) then stData.SSize = 0 end
   if(not stData.SKept) then stData.SKept = 0 end
@@ -3014,7 +3025,6 @@ function NewTable(sTable,defTab,bReload,bDelete)
     LogInstance("Table nick is mandatory"); return false end
   if(not istable(defTab)) then
     LogInstance("Table definition missing for "..GetReport(sTable)); return false end
-  local symDis, emFva = OPSYM_DISABLE, EMPTYSTR_BLNU
   local self, tabCmd, tabDef = {}, {}, table.Copy(defTab)
   tabDef.Nick = sTable:upper(); tabDef.Name = TOOLNAME_PU..tabDef.Nick
   local sMoDB, tDBmo = MODE_DATABASE, ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
@@ -3029,10 +3039,25 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local sT = tostring(vRow[2] or ""); if(IsBlank(sT)) then
       LogInstance("Missing table column type "..GetReport(iCnt), tabDef.Nick); return false end
     vRow[1], vRow[2] = sN, sT -- Convert settings to string and store back
-  end
-  for iCnt = 1, tabDef.Size do local defCol = tabDef[iCnt]
-    defCol[3] = GetEmpty(defCol[3], emFva, symDis)
-    defCol[4] = GetEmpty(defCol[4], emFva, symDis)
+    if(not IsHere(vRow[3])) then vRow[3] = {} else
+      local vCon, sD = vRow[3], (OPSYM_VERTDIV or "|")
+      if(istable(vCon)) then -- Config is table
+        local tKeys = table.GetKeys(vCon)
+        for iD = 1, #tKeys do -- Column parameters
+          local vK = tKeys[iD] -- Parameter key
+          local vV = vCon[vK] -- Parameter name
+          vCon[vV] = true; vCon[vK] = nil -- Remap matching
+          if(iD ~= 1) then SetConcat(sD) end; SetConcat(vV)
+        end -- The configuration parameter is a s/n
+        LogInstance("Configure conv "..GetReport(iCnt, sN, GetConcat()), tabDef.Nick)
+      elseif(isstring(vCon) or isnumber(vCon)) then
+        vRow[3] = {[vCon] = true}
+        LogInstance("Configure conv "..GetReport(iCnt, sN, vCon), tabDef.Nick)
+      else -- The configuration parameter is skipped
+        vRow[3] = {} -- No configuration for this column
+        LogInstance("Configure skip "..GetReport(iCnt, sN), tabDef.Nick)
+      end
+    end
   end; table.insert(libQTable, tabDef.Nick)
   libCache[tabDef.Name] = {}; libQTable[tabDef.Nick] = self
   -- Read table definition
@@ -3120,8 +3145,11 @@ function NewTable(sTable,defTab,bReload,bDelete)
   end
   --[[
    * Data matching wrapper that works on an array
-   * tArr > Array being converted to record
-   * tO   > Data output when provided
+   * tArr > Array being converted and validated
+   * bQ   > Force quote on the string being matched
+   * sQ   > Force a quote character to be used when [bQ] is enabled
+   * bRe  > Do not replace the single SQL quite with two quotes
+   * bNo  > Do not replace empty strings with NULL
   ]]
   function self:ArrayMatch(tArr, bQ, sQ, bRe, bNo)
     local qtDef = self:GetDefinition() -- Table definition index
@@ -3295,15 +3323,13 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local nS, nE = tabDef.Name:find(tabDef.Nick); if(not (nS and nE and nS > 1 and nE == tabDef.Name:len())) then
       LogInstance("Mismatch "..GetReport(tabDef.Name, tabDef.Nick), qtDef.Nick); bStat = false end
     for iD = 1, qtDef.Size do local tCol = qtDef[iD] if(not istable(tCol)) then
-        LogInstance("Mismatch type "..GetReport(iD),qtDef.Nick); bStat = false end
+        LogInstance("Mismatch base "..GetReport(iD),qtDef.Nick); bStat = false end
       if(not isstring(tCol[1])) then -- Check table column name
         LogInstance("Mismatch name "..GetReport(iD, tCol[1]), qtDef.Nick); bStat = false end
       if(not isstring(tCol[2])) then -- Check table column type
         LogInstance("Mismatch type "..GetReport(iD, tCol[2]), qtDef.Nick); bStat = false end
-      if(tCol[3] and not isstring(tCol[3])) then -- Check trigger control
-        LogInstance("Mismatch ctrl "..GetReport(iD, tCol[3]), qtDef.Nick); bStat = false end
-      if(tCol[4] and not isstring(tCol[4])) then -- Check quote conversion
-        LogInstance("Mismatch conv "..GetReport(iD, tCol[4]),qtDef.Nick); bStat = false end
+      if(not istable(tCol[3])) then -- Check trigger control
+        LogInstance("Mismatch conf "..GetReport(iD, tCol[3]), qtDef.Nick); bStat = false end
     end; return bStat -- Successfully validated the builder table
   end
   -- Creates table column list as string
@@ -3327,9 +3353,9 @@ function NewTable(sTable,defTab,bReload,bDelete)
    * snIn > String or number data content
    * vID  > Column ID or name to be matched to
    * bQ   > Force quote on the string being matched
-   * sQ   > force a quote character to be used when [bQ] is enabled
-   * bRe  > Replace the single SQL quite with two quotes
-   * bNo  > Do not replace empty strings with NULL
+   * sQ   > Force a quote character to be used when [bQ] is enabled
+   * bRe  > Force ignore replacing quotes in an SQL value when configured
+   * bNo  > Force ignore replacing empty strings with NULL
   ]]--
   function self:Match(snIn,vID,bQ,sQ,bRe,bNo)
     local qtDef, sNull = self:GetDefinition(), MISS_NOSQL
@@ -3337,15 +3363,15 @@ function NewTable(sTable,defTab,bReload,bDelete)
       LogInstance("Column ID mismatch "..GetReport(vID),qtDef.Nick); return nil end
     local defCol = qtDef[nvID]; if(not IsHere(defCol)) then
       LogInstance("Invalid column "..GetReport(nvID),qtDef.Nick); return nil end
-    local tyCo, opCo = tostring(defCol[2] or ""), tostring(defCol[3] or "")
+    local tyCo, opCo = tostring(defCol[2] or ""), defCol[3]
     local sMoDB, snOu = MODE_DATABASE -- Read database mode
     local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
-      LogInstance("Unsupported mode "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil end
+      LogInstance("Unsupported mode "..GetReport(vID,tyCo,snIn),qtDef.Nick); return nil end
     if(tyCo == "TEXT") then snOu = tostring(snIn or "")
       if(not bNo and IsBlank(snOu)) then snOu = sNull end
-        snOu = (((opCo == "LOW") and snOu:lower()) or
-                ((opCo == "CAP") and snOu:upper()) or snOu)
-      if(not bRe and sMoDB == "SQL" and defCol[4] == "QMK") then
+        snOu = (((opCo.LOW) and snOu:lower()) or
+                ((opCo.CAP) and snOu:upper()) or snOu)
+      if(not bRe and sMoDB == "SQL" and opCo.QMK) then
         snOu = snOu:gsub("'","''") end
       if(bQ) then
         local sqCh = (sQ and tostring(sQ or ""):sub(1,1) or
@@ -3355,12 +3381,12 @@ function NewTable(sTable,defTab,bReload,bDelete)
       end
     elseif(tyCo == "REAL" or tyCo == "INTEGER") then
       snOu = tonumber(snIn); if(not IsHere(snOu)) then
-        LogInstance("Invalid number "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil end
+        LogInstance("Invalid number "..GetReport(vID,tyCo,snIn),qtDef.Nick); return nil end
       if(tyCo == "INTEGER") then
-        snOu = (((opCo == "FLR") and math.floor(snOu)) or
-                ((opCo == "CEL") and math.ceil (snOu)) or snOu)
+        snOu = (((opCo.FLR) and math.floor(snOu)) or
+                ((opCo.CEL) and math.ceil (snOu)) or snOu)
       end
-    else LogInstance("Invalid type "..GetReport(vID,tyCo,opCo,snIn),qtDef.Nick); return nil
+    else LogInstance("Invalid type "..GetReport(vID,tyCo,snIn),qtDef.Nick); return nil
     end; return snOu
   end
   -- Build SQL drop statement
@@ -4071,6 +4097,8 @@ function ExportCategory(vEq, tData, sPref, bExp)
   local nEq = (tonumber(vEq) or 0); if(nEq <= 0) then
     LogInstance("Wrong equality "..GetReport(vEq)); return false end
   local tHew, sMoDB = PATTEM_EXCATHED, MODE_DATABASE
+  local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode"); return false end
   local sHew, sFunc = tHew.Fmt:format(fPref, nEq), debug.getinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew)); return true end
@@ -4233,6 +4261,8 @@ function ImportDSV(sTable, bComm, sPref, sDelim, bExp, bRef)
   local bFile, tHew, sHew = file.Exists(sTable, "DATA"), PATTEM_EXDSVHED
   local sDelim, sFunc, fName = tostring(sDelim or OPSYM_DELIMIT):sub(1,1), debug.getinfo(1).name
   local sMoDB, bRef = MODE_DATABASE, tobool(bRef)
+  local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode"); return false end
   if(bFile) then fName = sTable -- Use the settings form the file or override
     LogInstance("Reading configuration "..GetReport(fName))
     local F = file.Open(fName, "rb", "DATA"); if(not F) then
@@ -4301,6 +4331,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
     LogInstance("Prefix mismatch "..GetReport(sPref, fPref), sTable); return false end
   local tHew, sMoDB = PATTEM_EXDSVHED, MODE_DATABASE
+  local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode"); return nil end
   local sHew, sFunc = tHew.Fmt:format(fPref, sTable, sDelim), debug.getinfo(1).name
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew),sTable); return true end
@@ -4309,7 +4341,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder "..GetReport(sHew),sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
-  local fName = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name)
+  local fName, tKeys = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name), table.GetKeys(tData)
   if(file.Exists(fName, "DATA")) then
     local I = GetReader(GetConcat(sTable,".",sPref,".",sFunc))
     if(I:Open(fName):IsDeny()) then return false end
@@ -4334,26 +4366,26 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
     end -- The file contents are read locally then converted
     if(I:Finish():IsDeny()) then return false end
   else LogInstance("Creating file "..GetReport(sHew, fName),sTable) end
-  for key, rec in pairs(tData) do -- Check the given table and match the key
-    local vK = makTab:Match(key,1,false,"",true,true); if(not IsHere(vK)) then
-      LogInstance("Sync matching PK failed "..GetReport(sHew,key),sTable); return false end
-    local sKey, sVK = tostring(key), tostring(vK); if(sKey ~= sVK) then
-      LogInstance(" Sync key mismatch "..GetReport(sHew, sKey, sVK),sTable)
-      tData[vK] = tData[key]; tData[key] = nil -- Override the key casing after matching
-    end local tRec = tData[vK] -- Create local reference to the record of the matched key
-    for iR = 1, #tRec do  -- Read the processed row reference. Validate and assign for export
-      local tRow, vID, nID, sID = tRec[iR]; table.insert(tRow, 1, key) -- fill the PK for routines
-      vID = tRow[iD]; nID, sID = tonumber(vID), tostring(vID) -- Convert line ID to a number
-      nID = (nID or (IsDisable(sID) and iR or 0)) -- In case it is disabled take the row number
-      -- Where the line ID must be read from. Skip the key itself and convert the disabled value
-      if(iR ~= nID) then -- Validate the line ID being in proper borders and sequential values
-        LogInstance("Sync point ID scatter " -- After line ID validation it is assigned in the slot
-          ..GetReport(sHew, iR, vID, nID, sID, sKey), sTable); return false end; tRow[iD] = nID
-      if(not makTab:ArrayMatch(tRow,false,"",true,true)) then -- Do a value matching without quotes
-        LogInstance("Sync matching failed " -- Store the matched value in the same place as the original
-          ..GetReport(sHew, iR, vID, nID, sID, sKey), sTable); return false end
+  for iK = 1, #tKeys do -- Check the given table and match the key
+    local oK = tKeys[iK] -- The key provided by the track pack creator
+    local tRec = tData[oK] -- The record identified by this key
+    local vK = makTab:Match(oK,1,false,"",true,true); if(not IsHere(vK)) then
+      LogInstance("Primary key mismatch "..GetReport(sHew,oK),sTable); return false end
+    if(tostring(oK) ~= tostring(vK)) then tData[vK] = tRec; tData[oK] = nil
+      LogInstance("Primary key remap "..GetReport(sHew, oK), sTable) end
+    for iR = 1, #tRec do -- Validate and assign for export
+      local aRow = tRec[iR]; table.insert(aRow, 1, vK) -- Fill the PK for the routines
+      local vID = aRow[iD] -- Read the processed row reference and grab the line ID
+      local iID = math.floor(tonumber(vID) or (IsDisable(vID) and iR or 0))-- Convert number
+      -- Where the line ID must be read from. Skip the key itself and convert disabled value
+      if(iR == iID) then aRow[iD] = iID else -- Validate the line ID having sequential values
+        LogInstance("Discontinuity ID " -- After line ID validation assigned in the slot
+          ..GetReport(sHew, iR, vID, iID, vK), sTable); return false end
+      if(not makTab:ArrayMatch(aRow,false,"",true,true)) then -- Do a value matching
+        LogInstance("Matching failed " -- Store the matched value in the original
+          ..GetReport(sHew, iR, vID, iID, vK), sTable); return false end
       -- Check whenever triggers are available. Run them if present
-      if(not makTab:Trigger("ImportDSV", tRow)) then return false end
+      if(not makTab:Trigger("ImportDSV", aRow)) then return false end
     end -- Register the read line to the output file
     if(bRepl) then -- Replace the data when enabled overwrites the file data
       if(tData[vK] and fData[vK]) then -- Both places have the same model
@@ -4382,10 +4414,6 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   for iS = 1, tSort.Size do
     local sKey = tSort[iS].Key -- Extract sorted key
     local fRec = fData[sKey] -- Index the data pool
-    local vKey = makTab:Match(sKey,1,true,"\"",true)
-    if(not IsHere(vKey)) then O:Flush(); O:Close()
-      LogInstance("Write matching PK failed "
-        ..GetReport(sHew,sKey),sTable); return false end
     for iR = 1, fRec.Size do local fRow = fRec[iR]
       if(not makTab:Trigger("Record", fRow)) then O:Flush(); O:Close(); return false end
       O:Write(defTab.Name); O:Write(sDelim) -- Write down the table name for unified source
@@ -4404,6 +4432,8 @@ function TranslateDSV(sTable, sPref, sDelim, bExp)
   local bFile, sMos, sSrc = file.Exists(sTable, "DATA"), "rc-"
   local sDelim = tostring(sDelim or OPSYM_DELIMIT):sub(1,1)
   local sMoDB, sFunc = MODE_DATABASE, debug.getinfo(1).name
+  local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
+    LogInstance("Unsupported mode"); return nil end
   local fPref, tHea = tostring(sPref or GetInstPrefix()):lower(), FORM_HEADEREXP
   if(bFile) then sSrc = sTable -- Use the settings form the file or override
     LogInstance("Reading configuration "..GetReport(sSrc))
@@ -5011,8 +5041,7 @@ function ExportTypeCAT(sType)
   local sMoDB = MODE_DATABASE -- Read database mode
   local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode "..GetReport(sType)); return end
-  local tCat = TABLE_CATEGORIES -- Categories table
-  local sMoDB, tCax = MODE_DATABASE, {} -- Read database mode
+  local tCat, tCax = TABLE_CATEGORIES, {} -- Categories table
   local sName = GetConcat("[", sMoDB, "-cat]", sPref):lower()
   if(not RunComponentType(sType, function(iTy, sTy)
     tCax[sTy] = tCat[sTy]; return true
@@ -5222,7 +5251,8 @@ end
  * This function performs a trace relative to the entity point chosen
  * trEnt  > Entity chosen for the trace
  * ivPoID > Point ID selected for its model
- * nLen   > Length of the trace
+ * nLen   > Length of the trace ( used to find entities near by )
+ * vDir   > The direction of the trace (default to point world)
 ]]
 function GetTraceEntityPoint(trEnt, ivPoID, nLen, vDir)
   if(not (trEnt and trEnt:IsValid())) then
@@ -6451,7 +6481,6 @@ function CalculateBezierCurve(oPly, nSmp)
   local nC = #tC.Node; if(nC <= 0) then
     LogInstance("Nodes missing"); return nil end
   local iSmp = math.floor((nC - 1) * nSmp)
-  if(not tC) then LogInstance("Curve missing"); return nil end
   table.Empty(tC.Snap) -- The size of all snaps
   tC.SSize, tC.SKept = 0, 0 -- Amount of snapped points
   table.Empty(tC.CNode) -- Reset the curve and snapping
@@ -6461,6 +6490,96 @@ function CalculateBezierCurve(oPly, nSmp)
   tC.Info.UCS[1]:Set(tC.CNode[1]) -- Put the first node in the UCS
   tC.Info.UCS[2]:Set(tC.CNorm[1]) -- Put the first normal in the UCS
   tC.CSize = iSmp + 2 -- Get stack depth total samples including ends
+  return tC -- Return the updated curve information reference
+end
+
+--[[
+ * Fills up the the general curve space for the given player
+ * https://jpop.fandom.com/wiki/STYX_HELIX
+ * https://en.wikipedia.org/wiki/Helix
+ * oPly > Player to fill the calculation for
+ * vO > Origin position as a world space vector
+ * aO > Origin angle as a world space orientation
+ * nA > Angle to preform the rotation for
+ * nR > Radius margin used for resize the circle
+ * vT > Amount of samples to calculate the curve for
+ * vD > Current node displacement given by X/Y/Z offsets
+ * aD > Current angle displacement given by P/Y/R offsets
+]]
+function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
+  local tC = GetCacheCurve(oPly); if(not tC) then
+    LogInstance("Curve missing"); return nil end
+  table.Empty(tC.Snap) -- The size of all snaps
+  tC.SSize, tC.SKept, tC.MSize = 0, 0, 0 -- Amount of snapped points
+  table.Empty(tC.Base) -- Reset the curve and snapping
+  table.Empty(tC.Node) -- Reset the curve and snapping
+  table.Empty(tC.Norm); tC.Size = 0 -- And normals
+  table.Empty(tC.CNode) -- Reset the curve and snapping
+  table.Empty(tC.CNorm); tC.CSize = 0 -- And normals
+  tC.Info.Ors[1]:Zero(); tC.Info.Ors[2]:Zero()
+  tC.Info.Ore[1]:Zero(); tC.Info.Ore[2]:Zero()
+  local nAng = (tonumber(nAng) or 0); if(nAng == 0) then
+    LogInstance("Helix arc is zero"); return nil end
+  local nRad = (tonumber(nRad) or 0); if(nRad == 0) then
+    LogInstance("Radius is zero"); return nil end
+  local vT = tonumber(nSmp); if(not vT) then vT = 100
+    LogInstance("Samples default to [100] "..GetReport(nSmp)) end
+  local rT = math.floor(vT); if(rT < 0) then
+    LogInstance("Samples mismatch "..GetReport(vT)); return nil end
+  local vOrg = Vector(vOrg or tC.Info.Oro[1]); tC.Info.Oro[1]:Set(vOrg)
+  local aOrg = Angle (aOrg or tC.Info.Oro[2]); tC.Info.Oro[2]:Set(aOrg)
+  local tH , tN, tB = tC.Node, tC.Norm, tC.Base
+  local tcH, tcN = tC.CNode, tC.CNorm
+  local vF, vR = aOrg:Forward(), aOrg:Right()
+  local vU, dA = aOrg:Up(), -(nAng / (rT - 1))
+  if(nRad < 0) then nRad = math.abs(nRad); dA = -dA; vR:Negate() end
+  local nL = nRad * math.rad(math.abs(dA)) -- Ark length
+  local nN = 2 * math.ceil(nL) -- Amount of inner points
+  local nS, nD = rT + (rT - 1) * nN, (nN + 1) -- Total points
+  tC.Size = rT; tC.CSize = nS; tC.MSize = nN
+  local vx, vy, vz = vDsp:Unpack(); dA = dA / nD
+  local ap, ay, ar = aDsp:Unpack()
+  vx, vy, vz = vx / nD, vy / nD, vz / nD
+  ap, ay, ar = ap / nD, ay / nD, ar / nD
+  local vS = (vF * vx) + (vR * vy) + (vU * vz)
+  local aF, aR, aU = Vector(), Vector(), Vector()
+  vR:Mul(nRad); table.Empty(tcH); table.Empty(tcN)
+  local oO = Vector(vOrg); oO:Add(vR); ay = dA - ay
+  local oB = Vector(oO); vR:Negate()
+  local oA = vR:AngleEx(vU)
+  local oH = BasisVector(Vector(vR), oA)
+  table.insert(tcH, Vector(oO)); tcH[1]:Add(vR)
+  table.insert(tH , Vector(oO)); tH [1]:Add(vR)
+  table.insert(tcN, vU); table.insert(tN, vU)
+  tC.Info.Ors[1]:Set(oO)
+  tC.Info.Ors[2]:Set(oA)
+  for iC = 2, rT do
+    for iN = 1, nD do oO:Add(vS)
+      oA:RotateAroundAxis(vU, ay)
+      oA:RotateAroundAxis(vR, ap)
+      oA:RotateAroundAxis(vF, ar)
+      local vV = Vector(oO)
+      aF:Set(oA:Forward()) aF:Mul(oH.x)
+      aR:Set(oA:Right())   aR:Mul(oH.y)
+      aU:Set(oA:Up())      aU:Mul(oH.z)
+      vV:Add(aF); vV:Add(aR); vV:Add(aU)
+      local iP = ((iC-2) * nN + iN)
+      local vA = Vector(vV); vA:Sub(tcH[iP])
+      local vT = Vector(oO); vT:Sub(vV)
+      local vN = vT:Cross(vA); vN:Normalize()
+      table.insert(tcH, vV)
+      table.insert(tcN, vN)
+      if(iN == nD) then
+        table.insert(tB, Vector(vV))
+        table.insert(tH, Vector(vV))
+        table.insert(tN, Vector(vN))
+      end
+    end
+  end
+  tC.Info.Ore[1]:Set(oO)
+  tC.Info.Ore[2]:Set(oA)
+  tC.Info.UCS[1]:Set(tC.CNode[1]) -- Put the first node in the UCS
+  tC.Info.UCS[2]:Set(tC.CNorm[1]) -- Put the first normal in the UCS
   return tC -- Return the updated curve information reference
 end
 

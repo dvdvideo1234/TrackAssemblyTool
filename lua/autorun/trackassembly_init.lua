@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.785"
+asmlib.TOOL_VERSION = "10.791"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -173,12 +173,14 @@ local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("CURVE") -- Catmull-Rom spline interpolation fitting
       conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
       conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
+      conWorkMode:Push("HELIX") -- Produces spiral arks with given offset
+
 local conEditorDB = asmlib.GetContainer("FILE_EDIT")
       conEditorDB:Push({
         Name = "Wiremod by WireTeam", -- Addon name and the button label
-        ID = "160250458", -- Dedicated WSID when present in steamworks
-        Code = function() return WireLib end, -- The global library being uses for configuration
-        Here = function() return asmlib.IsHere(WireLib) end, -- Checks if the forrect version is installed
+        ID = "160250458", -- Dedicated WSID when present in steam works
+        Code = function() return WireLib end, -- The global library being used for configuration
+        Here = function() return asmlib.IsHere(WireLib) end, -- Checks if the correct version is installed
         Open = function(tCon, sPre, sNam)
           if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           local bS, oC = pcall(tCon.Code); if(not bS) then
@@ -209,7 +211,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
         end})
       conEditorDB:Push({
         Name = "Luapad by Wrefgtzweve", -- Addon name and the button label
-        ID = nil, -- Dedicated WSID when present in steamworks
+        ID = nil, -- Dedicated WSID when present in steam-works
         Code = function() return luapad end, -- The global library being uses for configuration
         Here = function() return asmlib.IsHere(luapad and luapad.ToggleSettingsMenu or nil) end,
         URL = "https://github.com/wrefgtzweve/luapad",
@@ -277,7 +279,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
         end})
       conEditorDB:Push({
         Name = "Luapad by Sparkz", -- Addon name and the button label
-        ID = "107905654", -- Dedicated WSID when present in steamworks
+        ID = "107905654", -- Dedicated WSID when present in steam-works
         Code = function() return luapad end, -- The global library being uses for configuration
         Here = function() return asmlib.IsHere(luapad and luapad.ShowConfirmDialog or nil) end,
         URL = "https://github.com/dvdvideo1234/garrysmod-luapad/tree/optimize",
@@ -578,6 +580,58 @@ asmlib.SetAction("CLEAR_CURVE_NODE",
     return true
   end)
 
+asmlib.SetAction("UPDATE_HELIX",
+  function(tData, oPly, aNew, bMute) local sLog = "*"..tData.Slot
+    local tC   = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
+    local vOrg = aNew[1] -- Current helix start location vector     ( Origin POS )
+    local aOrg = aNew[2] -- Current helix start location angle      ( Origin ANG )
+    local nAng = aNew[3] -- Amount of degrees calculating the curve ( End angle )
+    local nRad = aNew[4] -- Player trace location curve data        ( Radius )
+    local nSmp = aNew[5] -- Player trace angle curve data           ( Samples )
+    local vDsp = aNew[6] -- Player trace hits POA location or not   ( Displace POS )
+    local aDsp = aNew[7] -- The index to change at when requested   ( Displace ANG )
+    local tC = asmlib.CalculateHelixCurve(oPly, vOrg, aOrg, 100 * nAng, nRad, nSmp, vDsp, aDsp); if(not tC) then
+      asmlib.LogInstance("Curve mismatch "..asmlib.GetReport(oPly, nAng, nRad, nSmp), sLog); return false end
+    if(SERVER and not bMute) then
+      asmlib.Notify(oPly, "CLEANUP", "Helix updated: %s !", iD)
+      net.Start(gsLibName.."SendUpdateHelix")
+        net.WriteEntity(oPly)
+        net.WriteVector(vOrg)
+        net.WriteAngle (aOrg)
+        net.WriteFloat (nAng)
+        net.WriteFloat (nRad)
+        net.WriteUInt(nSmp, 16)
+        net.WriteVector(vDsp)
+        net.WriteAngle (aDsp)
+      net.Send(oPly)
+      oPly:SetNWBool(gsToolPrefL.."engcurve", true)
+    end; return true
+  end)
+
+asmlib.SetAction("CLEAR_HELIX",
+  function(tData, oPly, bMute) local sLog = "*"..tData.Slot
+    local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
+    if(SERVER and not bMute) then
+      if(tC.Size > 0) then
+        asmlib.Notify(oPly, "CLEANUP", "Helix cleared: %s !", tC.Size)
+      else
+        asmlib.Notify(oPly, "CLEANUP", "Helix cleared !", tC.Size)
+      end
+      net.Start(gsLibName.."SendClearHelix")
+      net.WriteEntity(oPly); net.Send(oPly)
+      oPly:SetNWBool(gsToolPrefL.."engcurve", false)
+    end
+    table.Empty(tC.Snap) -- The size of all snaps
+    tC.SSize, tC.SKept, tC.MSize = 0, 0, 0 -- Amount of snapped points
+    table.Empty(tC.Node) -- Reset the curve and snapping
+    table.Empty(tC.Norm); tC.Size = 0 -- And normals
+    table.Empty(tC.CNode) -- Reset the curve and snapping
+    table.Empty(tC.CNorm); tC.CSize = 0 -- And normals
+    return true
+  end)
+
 if(SERVER) then
 
   util.AddNetworkString(gsLibName.."SendRefreshDSV")
@@ -589,6 +643,8 @@ if(SERVER) then
   util.AddNetworkString(gsLibName.."SendRemoveCurveNode")
   util.AddNetworkString(gsLibName.."SendInsertCurveNode")
   util.AddNetworkString(gsLibName.."SendClearCurveNode")
+  util.AddNetworkString(gsLibName.."SendUpdateHelix")
+  util.AddNetworkString(gsLibName.."SendClearHelix")
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
     function(oPly,oEnt,tData) local sLog = "*DUPE_PHYS_SETTINGS"
@@ -761,6 +817,7 @@ if(CLIENT) then
   asmlib.ToIcon("workmode_curve"   , "vector"            ) -- Catmull-Rom curve line segment fitting
   asmlib.ToIcon("workmode_over"    , "shape_move_back"   ) -- Trace normal ray location piece flip-spawn
   asmlib.ToIcon("workmode_turn"    , "arrow_turn_right"  ) -- Produces smoother turns with Bezier curve
+  asmlib.ToIcon("workmode_helix"   , "circlecross"       ) -- Produces spiral arks with given offset
   asmlib.ToIcon("property_type"    , "package_green"     )
   asmlib.ToIcon("property_name"    , "note"              )
   asmlib.ToIcon("modedb_lua"       , "database_lightning")
@@ -862,13 +919,12 @@ if(CLIENT) then
       local scrW, scrH = surface.ScreenWidth(), surface.ScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then return end -- Monitor object not present
-      local nDr = asmlib.DEG_RAD -- Degrees to radians conversion
-      local nBr = (acTo:GetRadialAngle() * nDr) -- Convert radial angle
+      local nBr = math.rad(acTo:GetRadialAngle()) -- Convert radial angle
       local nK, nN = acTo:GetRadialSegm(), conWorkMode:GetSize()
       local nR  = (math.min(scrW, scrH) / (2 * gnRatio))
       local mXY = asmlib.NewXY(gui.MouseX(), gui.MouseY())
       local vCn = asmlib.NewXY(math.floor(scrW/2), math.floor(scrH/2))
-      local nMr, vTx, nD = (gnMaxRot * nDr), asmlib.NewXY(), (nR / gnRatio) -- Max angle [2pi]
+      local nMr, vTx, nD = math.rad(gnMaxRot), asmlib.NewXY(), (nR / gnRatio) -- Max angle [2pi]
       local vA, vB = asmlib.NewXY(), asmlib.NewXY()
       local tP = {asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY()}
       local vF, vN = asmlib.NewXY(nR, 0), asmlib.NewXY(math.Clamp(nR - nD, 0, nR), 0)
@@ -941,7 +997,7 @@ if(CLIENT) then
       pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
       function pnFrame:OnClose()
-        local iK = conElements:Find(self) -- Find panel key index
+        local iK = conElements:Find(self, 1) -- Find panel key index
         if(IsValid(self)) then self:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
@@ -1206,9 +1262,9 @@ if(CLIENT) then
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
                     local iE = asmlib.GetAsmConvar("texteditid", "INT") -- Current editor
-                    local tCon, vH, oC = conEditorDB:Select(iE) -- Read editor configuration
+                    local tCon, vH, oC = conEditorDB:Select(iE), nil, nil -- Read configuration
                     if(tCon) then local bS -- Update the success flag scope no return
-                      bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Fefault flag
+                      bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Default flag
                         asmlib.LogInstance("Locator error: "..vH, sLog..".ListView") end
                       bS, oC = pcall(tCon.Code); if(not bS) then oC = nil -- Default library
                         asmlib.LogInstance("Library error: "..oC, sLog..".ListView") end
@@ -1227,7 +1283,7 @@ if(CLIENT) then
                       pnLink:ShowCloseButton(true)
                       pnLink:SetDeleteOnClose(false)
                       function pnLink:OnClose()
-                        local iK = conElements:Find(self) -- Find panel key index
+                        local iK = conElements:Find(self, 1) -- Find panel key index
                         if(IsValid(self)) then self:Remove() end -- Delete the valid panel
                         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
                       end
@@ -1266,7 +1322,7 @@ if(CLIENT) then
                         pnIns:SetTooltip(pnIns:GetChecked() and language.GetPhrase(sT.."stedx_iv") or language.GetPhrase(sT.."stedx_ix"))
                         pnBtn:SetTooltip(language.GetPhrase(sT.."stedx_bt")); table.insert(tA, pnAct); pnAct:SetName(sN); pnBtn:SetText(sN)
                         pnBtn:SetTooltip(asmlib.IsHere(tCon.URL) and tostring(tCon.URL) or sUR:format(asmlib.WorkshopID(sN)))
-                        function pnAct:OnChange(bA) -- Uncheck all other checkboxes
+                        function pnAct:OnChange(bA) -- Uncheck all other check boxes
                           if(bA) then -- In case we are checking uncheck others and apply this
                             for iA = 1, #tA do local cA = tA[iA] -- Uncheck everything else
                               if(IsValid(cA)) then
@@ -1280,13 +1336,13 @@ if(CLIENT) then
                                 end
                               end -- Text editor is chosen only when current is equal to self
                             end -- Only enabling a checkbox will trigger uncheck
-                          else -- Called with false.If all are falce reset the convar
+                          else -- Called with false.If all are false reset the convar
                             self:SetChecked(false) -- Set this check box to false
                             self:SetTooltip(language.GetPhrase(sT.."stedx_ax"))
-                            for iA = 1, #tA do local cA = tA[iA] -- Ceck status
+                            for iA = 1, #tA do local cA = tA[iA] -- Check status
                               if(IsValid(cA) and cA:GetChecked()) then return end
                             end; asmlib.SetAsmConvar(oPly, "texteditid", 0)
-                          end -- Reaturn early if one check box is enabled
+                          end -- Return early if one check box is enabled
                         end -- Change from true to false remove the active editor
                         function pnBtn:DoClick() gui.OpenURL(self:GetTooltip()) end
                         function pnBtn:DoRightClick() SetClipboardText(self:GetTooltip()) end
@@ -1340,7 +1396,7 @@ if(CLIENT) then
       pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
       function pnFrame:OnClose()
-        local iK = conElements:Find(self) -- Find panel key index
+        local iK = conElements:Find(self, 1) -- Find panel key index
         if(IsValid(self)) then self:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
@@ -2197,14 +2253,14 @@ asmlib.NewTable("PIECES",{
       return true
     end
   },
-  [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
-  [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
-  [3] = {"NAME"  , "TEXT"   ,  nil , "QMK"},
-  [4] = {"LINEID", "INTEGER", "FLR",  nil },
-  [5] = {"POINT" , "TEXT"   ,  nil ,  nil },
-  [6] = {"ORIGIN", "TEXT"   ,  nil ,  nil },
-  [7] = {"ANGLE" , "TEXT"   ,  nil ,  nil },
-  [8] = {"CLASS" , "TEXT"   ,  nil ,  nil }
+  [1] = {"MODEL" , "TEXT"   , {"LOW", "QMK"}},
+  [2] = {"TYPE"  , "TEXT"   , "QMK"},
+  [3] = {"NAME"  , "TEXT"   , "QMK"},
+  [4] = {"LINEID", "INTEGER", "FLR"},
+  [5] = {"POINT" , "TEXT"   ,      },
+  [6] = {"ORIGIN", "TEXT"   ,      },
+  [7] = {"ANGLE" , "TEXT"   ,      },
+  [8] = {"CLASS" , "TEXT"   ,      }
 },true,true)
 
 asmlib.NewTable("ADDITIONS",{
@@ -2287,18 +2343,18 @@ asmlib.NewTable("ADDITIONS",{
       end; return true
     end
   },
-  [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
-  [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
-  [3]  = {"ENTCLASS" , "TEXT"   ,  nil ,  nil },
-  [4]  = {"LINEID"   , "INTEGER", "FLR",  nil },
-  [5]  = {"POSOFF"   , "TEXT"   ,  nil ,  nil },
-  [6]  = {"ANGOFF"   , "TEXT"   ,  nil ,  nil },
-  [7]  = {"MOVETYPE" , "INTEGER", "FLR",  nil },
-  [8]  = {"PHYSINIT" , "INTEGER", "FLR",  nil },
-  [9]  = {"DRSHADOW" , "INTEGER", "FLR",  nil },
-  [10] = {"PHMOTION" , "INTEGER", "FLR",  nil },
-  [11] = {"PHYACTIV" , "INTEGER", "FLR",  nil },
-  [12] = {"SETSOLID" , "INTEGER", "FLR",  nil },
+  [1]  = {"MODELBASE", "TEXT"   , {"LOW", "QMK"}},
+  [2]  = {"MODELADD" , "TEXT"   , {"LOW", "QMK"}},
+  [3]  = {"ENTCLASS" , "TEXT"          },
+  [4]  = {"LINEID"   , "INTEGER", "FLR"},
+  [5]  = {"POSOFF"   , "TEXT"          },
+  [6]  = {"ANGOFF"   , "TEXT"          },
+  [7]  = {"MOVETYPE" , "INTEGER", "FLR"},
+  [8]  = {"PHYSINIT" , "INTEGER", "FLR"},
+  [9]  = {"DRSHADOW" , "INTEGER", "FLR"},
+  [10] = {"PHMOTION" , "INTEGER", "FLR"},
+  [11] = {"PHYACTIV" , "INTEGER", "FLR"},
+  [12] = {"SETSOLID" , "INTEGER", "FLR"},
 },true,true)
 
 asmlib.NewTable("PHYSPROPERTIES",{
@@ -2385,9 +2441,9 @@ asmlib.NewTable("PHYSPROPERTIES",{
       end; return true
     end
   },
-  [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
-  [2] = {"LINEID", "INTEGER", "FLR",  nil },
-  [3] = {"NAME"  , "TEXT"   ,  nil ,  nil }
+  [1] = {"TYPE"  , "TEXT"   , "QMK"},
+  [2] = {"LINEID", "INTEGER", "FLR"},
+  [3] = {"NAME"  , "TEXT"          }
 },true,true)
 
 ------------ POPULATE DB ------------

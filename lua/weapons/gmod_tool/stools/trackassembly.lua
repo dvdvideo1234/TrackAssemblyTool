@@ -142,6 +142,26 @@ if(CLIENT) then
         asmlib.LogInstance("Clear curve error "..asmlib.GetReport(oU, sR)) end
     end)
 
+  net.Receive(gsLibName.."SendUpdateHelix" ,
+    function(nLen) local tU = {}
+      oU    = net.WriteEntity(oPly)   -- Player who applied the curve change     ( User )
+      tU[1] = net.WriteVector(vOrg)   -- Current helix start location vector     ( Origin POS )
+      tU[2] = net.WriteAngle (aOrg)   -- Current helix start location angle      ( Origin ANG )
+      tU[3] = net.WriteFloat (nAng)   -- Amount of degrees calculating the curve ( End angle )
+      tU[4] = net.WriteFloat (nRad)   -- Player trace location curve data        ( Radius )
+      tU[5] = net.WriteUInt(nSmp, 16) -- Player trace angle curve data           ( Samples )
+      tU[6] = net.WriteVector(vDsp)   -- Player trace hits POA location or not   ( Displace POS )
+      tU[7] = net.WriteAngle (aDsp)   -- The index to change at when requested   ( Displace ANG )
+      local bS, sR = asmlib.DoAction("UPDATE_HELIX", oU, tU); if(not bS) then
+        asmlib.LogInstance("Update helix error "..asmlib.GetReport(oU, nSmp, sR)) end
+    end)
+
+  net.Receive(gsLibName.."SendClearHelix" ,
+    function(nLen) local oU = net.ReadEntity()
+      local bS, sR = asmlib.DoAction("CLEAR_HELIX", oU); if(not bS) then
+        asmlib.LogInstance("Clear helix error "..asmlib.GetReport(oU, sR)) end
+    end)
+
   hook.Add("Think", gsToolPrefL.."update_ghosts", asmlib.GetActionCode("DRAW_GHOSTS"))
   hook.Add("PreDrawHalos", gsToolPrefL.."update_contextval", asmlib.GetActionCode("UPDATE_CONTEXTVAL"))
   hook.Add("PostDrawHUD", gsToolPrefL.."radial_menu_draw", asmlib.GetActionCode("DRAW_RADMENU"))
@@ -570,7 +590,7 @@ function TOOL:GetGhostsDepth()
     return math.min(ghostcnt, math.max(stackcnt, 1))
   elseif(workmode == 2) then -- Intersection. Force lower bound here
     return math.min(ghostcnt, 1) -- Force lower bound one otherwise ghosts
-  elseif(workmode == 3 or workmode == 5) then -- Track curving interpolation
+  elseif(workmode == 3 or workmode == 5 or workmode == 6) then -- Track curving interpolation
     return (stackcnt > 0 and math.min(stackcnt, ghostcnt) or ghostcnt)
   elseif(workmode == 4) then local tArr = self:GetFlipOver() -- Read flip array
     return math.min(ghostcnt, (tArr and #tArr or 1)) -- Disable via ghosts count
@@ -669,6 +689,13 @@ end
 -- Returns true if there are entity ID stored
 function TOOL:IsFlipOver()
   return (self:GetFlipOverID():len() > 0)
+end
+
+function TOOL:IsHelix()
+  local tC  = asmlib.GetCacheCurve(user)
+  if(not tC) then return false end
+  if(not tC.Size) then return false end
+  return (tC.Size > 0)
 end
 
 -- Returns an array or entity ID numbers
@@ -1116,11 +1143,67 @@ end
  * bMute > Enable this flag to mute (skip sending) the net* messages
 ]]
 function TOOL:CurveClear(bMute)
-  local user, sID = self:GetOwner()
+  local user = self:GetOwner()
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
     asmlib.LogInstance("Curve missing", gtLogs); return nil end
   -- Show how many nodes are deleted then delete them
   local bS, sR = asmlib.DoAction("CLEAR_CURVE_NODE", user, bMute); if(not bS) then
+    asmlib.LogInstance("Clear curve error "..asmlib.GetReport(user, sR), gtLogs); return nil end
+  return tC -- Returns the updated curve nodes table
+end
+
+--[[
+ * Triggers helix recalculation
+ * stTrace > Trace structure from the player
+ * bPnt    > Use trace active point as helix origin
+ * bCao    > Recalculate the curve using the current origin
+]]
+function TOOL:HelixUpdate(stTrace, bPnt, bCao)
+  local angsnap   = self:GetAngSnap()
+  local elevpnt   = self:GetElevation()
+  local surfsnap  = self:GetSurfaceSnap()
+  local nextx  , nexty  , nextz   = self:GetPosOffsets()
+  local nextpic, nextyaw, nextrol = self:GetAngOffsets()
+  local user, tU, oE  = self:GetOwner(), {}, stTrace.Entity
+  local tC = asmlib.GetCacheCurve(user); if(not tC) then
+    asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  tU[1], tU[2] = Vector(), Angle() -- Obtain transform from the active point
+  if(bCao) then
+    local tC = GetCacheCurve(oPly); if(not tC) then
+      LogInstance("Curve missing"); return false end
+    tU[1]:Set(tC.Info.Oro[1]) -- Use the already present origin
+    tU[2]:Set(tC.Info.Oro[2]) -- Use the already present angle
+  elseif(bPnt and oE and oE:IsValid()) then
+    local oM, oP, oA = oE:GetModel(), oE:GetPos(), oE:GetAngles()
+    local oID, oL, oPOA, oRec = asmlib.GetEntityHitID(oE, stTrace.HitPos)
+    if(not asmlib.IsHere(oRec)) then
+      asmlib.LogInstance("Trace model not piece "..asmlib.GetReport(oM)); return false end
+    tU[1]:SetUnpacked(trPOA.O:Get()); tU[1]:Rotate(oA); tU[1]:Add(oP)
+    tU[2]:SetUnpacked(trPOA.A:Get()); tU[2]:Set(trEnt:LocalToWorldAngles(tU[2]))
+  else -- Obtain the origin transform from the trace surface
+    tU[1]:Set(stTrace.HitNormal); tU[1]:Mul(elevpnt); tU[1]:Add(stTrace.HitPos)
+    tU[2]:Set(asmlib.GetNormalAngle(user, stTrace, surfsnap, angsnap))
+  end
+  tU[3] = 100 * nextyaw -- Yaw is unused anyway, so scale it and apply end angle
+  tU[4] = self:GetActiveRadius() -- Helix circle is the active radius
+  tU[5] = self:GetCurveSamples() -- Helix base nodes are the curve samples
+  tU[6] = Vector(nextx  , nexty  , nextz) -- Linear displacement from the offsets
+  tU[7] = Angle(nextpic, 0, nextrol) -- Angular displacements form angle offsets
+  local bS, sR = asmlib.DoAction("UPDATE_HELIX", user, tU, bMute); if(not bS) then
+    asmlib.LogInstance("Update curve error "..asmlib.GetReport(user, sR), gtLogs) end
+  return tC -- Returns the updated curve nodes table
+end
+
+--[[
+ * Clears all the curve nodes on the server and sends to the client to do the same
+ * bMute > Enable this flag to mute (skip sending) the net* messages
+]]
+function TOOL:HelixClear(bMute)
+  local user = self:GetOwner()
+  local tC = asmlib.GetCacheCurve(user); if(not tC) then
+    asmlib.LogInstance("Curve missing", gtLogs); return nil end
+  -- Show how many nodes are deleted then delete them
+  local bS, sR = asmlib.DoAction("CLEAR_HELIX", user, bMute); if(not bS) then
     asmlib.LogInstance("Clear curve error "..asmlib.GetReport(user, sR), gtLogs); return nil end
   return tC -- Returns the updated curve nodes table
 end
@@ -1319,12 +1402,16 @@ function TOOL:LeftClick(stTrace)
   local nextx  , nexty  , nextz   = self:GetPosOffsets()
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
 
-  if(workmode == 3 or workmode == 5) then
+  if(workmode == 3 or workmode == 5 or workmode == 6) then
     if(poQueue:IsBusy(user)) then asmlib.Notify(user, "ERROR", "Server busy !"); return true end
     local hdRec = asmlib.CacheQueryPiece(model); if(not asmlib.IsHere(hdRec)) then
-      self:LogStatus(stTrace,"(Hold) Holder model not piece"); return false end
+      self:LogStatus(stTrace,"(Curve) Holder model not piece"); return false end
     local tC, nD = self:CurveCheck(); if(not asmlib.IsHere(tC)) then
-      self:LogStatus(stTrace,"(Curve) Validation fail"); return nil end
+      self:LogStatus(stTrace,"(Curve) Validation fail"); return false end
+    if(workmode == 6 and not self:IsHelix()) then
+      asmlib.Notify(user, "ERROR", "Helix origin missing: %s !", fnmodel)
+      self:LogStatus(stTrace,"(Curve) Helix origin missing"); return false
+    end -- Helix is already calculated via right click
     local fInt = asmlib.FORM_INTEGER
     local curvefact, curvsmple = self:GetCurveFactor()  , self:GetCurveSamples()
     local crvturnlm, crvleanlm = self:GetCurvatureTurn(), self:GetCurvatureLean()
@@ -1332,7 +1419,7 @@ function TOOL:LeftClick(stTrace)
       asmlib.CalculateRomCurve(user, curvsmple, curvefact)
     elseif(workmode == 5) then
       asmlib.CalculateBezierCurve(user, curvsmple)
-    end
+    end -- Helix will not need recalculation
     for iD = 1, (tC.CSize - 1) do asmlib.UpdateCurveSnap(user, iD, nD) end
     poQueue:Attach(user, {
       stard = 1,
@@ -1655,6 +1742,10 @@ function TOOL:RightClick(stTrace)
     end; return false
   elseif(workmode == 4 and not user:KeyDown(IN_SPEED)) then
     self:SetFlipOver(trEnt); return true
+  elseif(workmode == 6) then -- The user does not put nodes
+    local bPnt = user:KeyDown(IN_USE)
+    local bCao = user:KeyDown(IN_SPEED)
+    self:HelixUpdate(stTrace, bPnt, bCao); return true
   end
   if(stTrace.HitWorld) then
     if(enpntmscr or (user:KeyDown(IN_USE) and not enpntmscr)) then
@@ -1684,6 +1775,7 @@ function TOOL:Reload(stTrace)
   local user       = self:GetOwner()
   local workmode   = self:GetWorkingMode()
   local bfover     = self:IsFlipOver()
+  local bhelix     = self:IsHelix()
   local upspanchor = self:GetUpSpawnAnchor()
   if(stTrace.HitWorld and user:IsAdmin()) then
     if(self:GetDeveloperMode()) then
@@ -1727,6 +1819,8 @@ function TOOL:Reload(stTrace)
     end
   elseif(workmode == 4 and bfover) then
     self:ClearFlipOver(); return true
+  elseif(workmode == 6 and bhelix) then
+    self:HelixClear(); return true
   end
   -- Grab the trace track model for remove
   if(trEnt and trEnt:IsValid()) then
@@ -1791,14 +1885,15 @@ function TOOL:UpdateGhostCurve()
       local curvefact = self:GetCurveFactor()
       local curvsmple = self:GetCurveSamples()
       user:SetNWBool(gsToolPrefL.."engcurve", false)
-      if(workmode == 3) then
+      if(workmode == 3) then -- Calculate curve from the nodes
         asmlib.CalculateRomCurve(user, curvsmple, curvefact)
-      elseif(workmode == 5) then
+      elseif(workmode == 5) then -- Calculate curve from the nodes
         asmlib.CalculateBezierCurve(user, curvsmple)
-      end
-      for iD = 1, (tCrv.CSize - 1) do
-        asmlib.UpdateCurveSnap(user, iD, nD)
-      end
+      elseif(workmode == 6 and not self:IsHelix()) then
+        for iG = 1, #tGho do if(tGho and tGho:IsValid()) then eGho:SetNoDraw(true) end end
+        return -- Nodes and curve should already be calculated. Otherwise skip drawing
+      end -- When nodes and curve are populated update the snap stack
+      for iD = 1, (tCrv.CSize - 1) do asmlib.UpdateCurveSnap(user, iD, nD) end
       asmlib.Notify(nil, "UNDO", "Curve snap %s segments !", tCrv.SKept)
     end
     for iD = 1, tCrv.SSize do local tS = tCrv.Snap[iD]
@@ -1853,7 +1948,11 @@ function TOOL:UpdateGhost(oPly)
   if(not stTrace) then return end
   if(not asmlib.HasGhosts()) then return end
   local workmode = self:GetWorkingMode()
-  if(workmode == 3 or workmode == 5) then self:UpdateGhostCurve() return end
+  if(workmode == 3 or workmode == 5) then
+    self:UpdateGhostCurve() return -- Curving does ghosting
+  else(workmode == 6 and self:IsHelix())
+    self:UpdateGhostCurve() return -- Curving does ghosting
+  end -- Call curving mode return early and update
   local atGho, trRec = asmlib.ARRAY_GHOST
   local trEnt, model = stTrace.Entity, self:GetModel()
   local pointid, pnextid = self:GetPointID()
@@ -1901,7 +2000,8 @@ function TOOL:UpdateGhost(oPly)
       end
     else
       if(workmode == 4) then
-        self:UpdateGhostFlipOver(stTrace) end
+        self:UpdateGhostFlipOver(stTrace)
+      end
     end
   else
     local stSpawn = self:UpdateGhostSpawn(stTrace, oPly)
@@ -2167,7 +2267,7 @@ function TOOL:DrawNextPoint(oScreen, oPly, stSpawn)
   end
 end
 
-function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
+function TOOL:DrawFlipAssist(oScreen, oPly, stTrace)
   if(not self:GetPointAssist()) then return end
   local actrad = self:GetActiveRadius()
   local vF, vU, trEnt = Vector(), Vector(), stTrace.Entity
@@ -2177,96 +2277,136 @@ function TOOL:DrawFlipAssist(hudMonitor, oPly, stTrace)
   vF:Set(aOv:Forward()); vF:Mul(actrad); vF:Add(wOv)
   vU:Set(aOv:Up()); vU:Mul(actrad); vU:Add(wOv)
   local oO, oF, oU = wOv:ToScreen(), vF:ToScreen(), vU:ToScreen()
-  hudMonitor:DrawCircle(xH, asmlib.GetViewRadius(oPly, stTrace.HitPos, 0.5), "g", "SURF")
+  oScreen:DrawCircle(xH, asmlib.GetViewRadius(oPly, stTrace.HitPos, 0.5), "g", "SURF")
   local tE, nE = self:GetFlipOver(true, true)
   for iD = 1, nE do local eID = tE[iD]
     if(not asmlib.IsOther(eID)) then
       local vePos = eID:GetPos()
       local spPos, spAng = asmlib.GetTransformOver(eID, wOv, aOv, spnflat)
       local Os, Oe = vePos:ToScreen(), spPos:ToScreen()
-      hudMonitor:DrawLine(oO, Os, "y", "SEGM", {20})
-      hudMonitor:DrawLine(oO, Oe, "y")
-      hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, vePos), "c", "SURF")
-      hudMonitor:DrawCircle(Oe, asmlib.GetViewRadius(oPly, spPos), "m")
+      oScreen:DrawLine(oO, Os, "y", "SEGM", {20})
+      oScreen:DrawLine(oO, Oe, "y")
+      oScreen:DrawCircle(Os, asmlib.GetViewRadius(oPly, vePos), "c", "SURF")
+      oScreen:DrawCircle(Oe, asmlib.GetViewRadius(oPly, spPos), "m")
     end
   end
-  hudMonitor:DrawLine(oO, oU, "b", "SURF")
-  hudMonitor:DrawLine(oO, oF, "r")
-  hudMonitor:DrawLine(oO, xH, "g")
+  oScreen:DrawLine(oO, oU, "b", "SURF")
+  oScreen:DrawLine(oO, oF, "r")
+  oScreen:DrawLine(oO, xH, "g")
   if(bAct and not stTrace.HitWorld and wOr) then
     local Op = wOr:ToScreen()
-    hudMonitor:DrawLine(xH, Op, "y")
+    oScreen:DrawLine(xH, Op, "y")
     if(model == trEnt:GetModel() and wO1 and wO2) then
       local Op1 = wO1:ToScreen()
       local Op2 = wO2:ToScreen()
-      hudMonitor:DrawLine(oO, Op1, "ry")
-      hudMonitor:DrawLine(oO, Op2)
-      hudMonitor:DrawCircle(Op1, asmlib.GetViewRadius(oPly, wO1), "r")
-      hudMonitor:DrawCircle(Op2, asmlib.GetViewRadius(oPly, wO2))
-      hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5), "b")
+      oScreen:DrawLine(oO, Op1, "ry")
+      oScreen:DrawLine(oO, Op2)
+      oScreen:DrawCircle(Op1, asmlib.GetViewRadius(oPly, wO1), "r")
+      oScreen:DrawCircle(Op2, asmlib.GetViewRadius(oPly, wO2))
+      oScreen:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5), "b")
     else
-      hudMonitor:DrawCircle(Op, asmlib.GetViewRadius(oPly, wOr), "r")
-      hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5))
+      oScreen:DrawCircle(Op, asmlib.GetViewRadius(oPly, wOr), "r")
+      oScreen:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5))
     end
   else
-    hudMonitor:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5), "r")
+    oScreen:DrawCircle(oO, asmlib.GetViewRadius(oPly, wOv, 1.5), "r")
   end
 end
 
-function TOOL:DrawProgress(hudMonitor, oPly)
+function TOOL:DrawProgress(oScreen, oPly)
   local sKey = (gsToolPrefL.."progress")
   local nPrg = oPly:GetNWFloat(sKey, 0)
   if(nPrg > 0) then
     local fP = asmlib.FORM_PROGRESS
     local nR = asmlib.GOLDEN_RATIO
     local xyP, nD  = asmlib.NewXY(),  2
-    local xyO, xyW = hudMonitor:GetCorners()
+    local xyO, xyW = oScreen:GetCorners()
     local nW , nH  = (xyW.x - xyO.x), (xyW.y - xyO.y)
     local xyS = asmlib.NewXY((nR - 1) * (1 / 4) * nW, 36)
     xyP.x, xyP.y = ((nW / 2) - xyS.x / 2), (nH - (nH / 4) - xyS.y / 2)
-    hudMonitor:DrawRect(xyP, xyS,"pb","SURF",{"vgui/white", nil, 6})
+    oScreen:DrawRect(xyP, xyS,"pb","SURF",{"vgui/white", nil, 6})
     xyS.x, xyS.y = ((nPrg / 100) * (xyS.x - 2 * nD)), (xyS.y - 2 * nD)
     xyP.x, xyP.y = ((nW / 2) - (xyS.x / 2)), (xyP.y + nD)
-    hudMonitor:DrawRect(xyP, xyS,"pf","SURF",{"vgui/white", nil, 4})
+    oScreen:DrawRect(xyP, xyS,"pf","SURF",{"vgui/white", nil, 4})
     local ncX, ncY = (xyP.x + xyS.x / 2), (xyP.y + xyS.y / 2)
-    hudMonitor:SetTextOrigin(ncX, ncY):DrawText(fP:format(nPrg), "k", "SURF", {"Trebuchet24", true})
+    oScreen:SetTextOrigin(ncX, ncY):DrawText(fP:format(nPrg), "k", "SURF", {"Trebuchet24", true})
   end
 end
 
-function TOOL:DrawSnapRegular(hudMonitor, oPly, stSpawn, vHit)
+function TOOL:DrawSnapRegular(oScreen, oPly, stSpawn, vHit)
   local sizeucs = self:GetSizeUCS()
   local actrad = self:GetActiveRadius()
   local nRad = asmlib.GetCacheRadius(oPly, vHit)
   local Ss, Tp = stSpawn.SPos:ToScreen(), vHit:ToScreen()
-  local Ob = hudMonitor:DrawUCS(oPly, stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs})
-  local Os = hudMonitor:DrawUCS(oPly, stSpawn.OPos, stSpawn.OAng)
-  hudMonitor:DrawLine(Ob,Tp,"y")
-  hudMonitor:DrawCircle(Tp,(nRad * (stSpawn.RLen / actrad)) / 2)
-  hudMonitor:DrawLine(Ob,Os)
-  hudMonitor:DrawLine(Ob,Pp,"r")
-  hudMonitor:DrawCircle(Os, asmlib.GetViewRadius(oPly, stSpawn.OPos, 0.5),"r")
-  hudMonitor:DrawLine(Os,Ss,"m")
-  hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(oPly, stSpawn.SPos),"c")
+  local Ob = oScreen:DrawUCS(oPly, stSpawn.BPos, stSpawn.BAng, "SURF", {sizeucs})
+  local Os = oScreen:DrawUCS(oPly, stSpawn.OPos, stSpawn.OAng)
+  oScreen:DrawLine(Ob,Tp,"y")
+  oScreen:DrawCircle(Tp,(nRad * (stSpawn.RLen / actrad)) / 2)
+  oScreen:DrawLine(Ob,Os)
+  oScreen:DrawLine(Ob,Pp,"r")
+  oScreen:DrawCircle(Os, asmlib.GetViewRadius(oPly, stSpawn.OPos, 0.5),"r")
+  oScreen:DrawLine(Os,Ss,"m")
+  oScreen:DrawCircle(Ss, asmlib.GetViewRadius(oPly, stSpawn.SPos),"c")
+end
+
+function TOOL:DrawHelixNode(oScreen, user, stTrace)
+  local tC  = asmlib.GetCacheCurve(user); if(not tC) then return end
+  local bPnt, sizeucs, nO = input.IsKeyDown(KEY_E), self:GetSizeUCS(), 1.5
+  if(self:IsHelix()) then
+    local vO, aO = tC.Info.Ors[1], tC.Info.Ors[2]
+    for iD = 2, tC.Size do
+      local vD = tC.Node[iD]
+      local vN = tC.Norm[iD]
+      local vP = tC.Node[iD - 1]
+      local nD = asmlib.GetViewRadius(oPly, vD, nO)
+      local xyD, xyP = vD:ToScreen(), vP:ToScreen()
+      local xyN = (vD + sizeucs * vN):ToScreen()
+      oScreen:DrawLine(xyP, xyD, "r", "SURF")
+      oScreen:DrawCircle(xyD, nD, "y","SURF")
+    end
+    local xO = oScreen:DrawUCS(user, vO, aO, "SURF", {sizeucs})
+    oScreen:DrawCircle(xO, asmlib.GetViewRadius(user, vO),"c")
+  else local vO, aO, oE = Vector(), Angle(), stTrace.Entity
+    if(bPnt and oE and oE:IsValid()) then
+      local oM, oP, oA = oE:GetModel(), oE:GetPos(), oE:GetAngles()
+      local oID, oL, oPOA, oRec = asmlib.GetEntityHitID(oE, stTrace.HitPos)
+      if(not asmlib.IsHere(oRec)) then
+        asmlib.LogInstance("Trace model not piece "..asmlib.GetReport(oM)); return false end
+      vO:SetUnpacked(oPOA.O:Get()); vO:Rotate(oA); vO:Add(oP)
+      aO:SetUnpacked(oPOA.A:Get()); aO:Set(trEnt:LocalToWorldAngles(aO))
+    else -- Obtain the origin transform from the trace surface
+      vO:Set(stTrace.HitNormal); vO:Mul(elevpnt); vO:Add(stTrace.HitPos)
+      aO:Set(asmlib.GetNormalAngle(user, stTrace, surfsnap, angsnap))
+    end
+    local xO = oScreen:DrawUCS(user, vO, aO, "SURF", {sizeucs})
+    oScreen:DrawCircle(xO, asmlib.GetViewRadius(user, vO),"c")
+  end
 end
 
 function TOOL:DrawHUD()
   if(SERVER) then return end
   if(not asmlib.IsInit()) then return end
   local scrW, scrH = surface.ScreenWidth(), surface.ScreenHeight()
-  local hudMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
-  if(not hudMonitor) then return end
+  local oScreen = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
+  if(not oScreen) then return end
   if(not self:GetAdviser()) then return end
   local user = LocalPlayer()
   local stTrace = asmlib.GetCacheTrace(user)
   if(not (stTrace and stTrace.Hit)) then return end
-  self:DrawProgress(hudMonitor, user)
+  self:DrawProgress(oScreen, user)
   local workmode, model = self:GetWorkingMode(), self:GetModel()
   if(workmode == 3 or workmode == 5) then
-    self:DrawCurveNode(hudMonitor, user, stTrace)
+    self:DrawCurveNode(oScreen, user, stTrace)
     if(not self:GetDeveloperMode()) then return end
-    self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"}); return
+    self:DrawTextSpawn(oScreen, "k","SURF",{"DebugSpawnTA"}); return
   elseif(workmode == 4 and self:IsFlipOver()) then
-    self:DrawFlipAssist(hudMonitor, user, stTrace); return
+    self:DrawFlipAssist(oScreen, user, stTrace); return
+    if(not self:GetDeveloperMode()) then return end
+    self:DrawTextSpawn(oScreen, "k","SURF",{"DebugSpawnTA"}); return
+  elseif(workmode == 6 and self:IsHelix()) then
+    self:DrawHelixNode(oScreen, user, stTrace)
+    if(not self:GetDeveloperMode()) then return end
+    self:DrawTextSpawn(oScreen, "k","SURF",{"DebugSpawnTA"}); return
   end
   local trEnt, trHit, trRec = stTrace.Entity, stTrace.HitPos
   local pointid, pnextid = self:GetPointID()
@@ -2285,41 +2425,39 @@ function TOOL:DrawHUD()
                       actrad,spnflat,igntype,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
     if(not stSpawn) then
       if(workmode == 1 or workmode == 4) then
-        self:DrawSnapAssist(hudMonitor, user, stTrace)
+        self:DrawSnapAssist(oScreen, user, stTrace)
       elseif(workmode == 2) then
-        self:DrawRelateAssist(hudMonitor, user, stTrace)
+        self:DrawRelateAssist(oScreen, user, stTrace)
       end; return -- Must stop on invalid spawn
     else -- Patch the drawing for certain working modes
       if(workmode == 1 or workmode == 4) then
-        self:DrawNextPoint(hudMonitor, user, stSpawn)
-        self:DrawSnapRegular(hudMonitor, user, stSpawn, trHit)
+        self:DrawNextPoint(oScreen, user, stSpawn)
+        self:DrawSnapRegular(oScreen, user, stSpawn, trHit)
       elseif(workmode == 2) then -- Draw point intersection
         local Os = stSpawn.OPos:ToScreen()
         local Ss = stSpawn.SPos:ToScreen()
         if(asmlib.IntersectRayRead(user, "relate")) then
           local vX, vX1, vX2 = self:IntersectSnap(trEnt, trHit, stSpawn, true)
-          local Rp, Re = self:DrawRelateIntersection(hudMonitor, user)
+          local Rp, Re = self:DrawRelateIntersection(oScreen, user)
           if(Rp and vX) then
-            local xX , O1 , O2  = self:DrawModelIntersection(hudMonitor, user, stSpawn)
-            local pXx, pX1, pX2 = self:DrawPillarIntersection(hudMonitor, vX ,vX1, vX2)
-            hudMonitor:DrawLine(Rp,xX,"ry")
-            hudMonitor:DrawLine(Os,xX)
-            hudMonitor:DrawLine(Rp,O2,"g")
-            hudMonitor:DrawLine(Os,O1,"r")
-            hudMonitor:DrawLine(xX,pXx,"b")
+            local xX , O1 , O2  = self:DrawModelIntersection(oScreen, user, stSpawn)
+            local pXx, pX1, pX2 = self:DrawPillarIntersection(oScreen, vX ,vX1, vX2)
+            oScreen:DrawLine(Rp,xX,"ry")
+            oScreen:DrawLine(Os,xX)
+            oScreen:DrawLine(Rp,O2,"g")
+            oScreen:DrawLine(Os,O1,"r")
+            oScreen:DrawLine(xX,pXx,"b")
           end
         else
-          self:DrawNextPoint(hudMonitor, user, stSpawn)
-          self:DrawRelateAssist(hudMonitor, user, stTrace)
-          self:DrawSnapAssist(hudMonitor, user, stTrace, nil, true)
-          hudMonitor:DrawLine(Os,Ss,"m")
-          hudMonitor:DrawCircle(Ss, asmlib.GetViewRadius(user, stSpawn.SPos),"c")
+          self:DrawNextPoint(oScreen, user, stSpawn)
+          self:DrawRelateAssist(oScreen, user, stTrace)
+          self:DrawSnapAssist(oScreen, user, stTrace, nil, true)
+          oScreen:DrawLine(Os,Ss,"m")
+          oScreen:DrawCircle(Ss, asmlib.GetViewRadius(user, stSpawn.SPos),"c")
         end
-      elseif(workmode == 4) then
-
       end
       if(not self:GetDeveloperMode()) then return end
-      self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
+      self:DrawTextSpawn(oScreen, "k","SURF",{"DebugSpawnTA"})
     end
   else
     local angsnap  = self:GetAngSnap()
@@ -2337,28 +2475,28 @@ function TOOL:DrawHUD()
             vPos:Add(nextx * aAng:Forward())
             vPos:Add(nexty * aAng:Right())
             vPos:Add(nextz * aAng:Up())
-      hudMonitor:DrawUCS(user, vPos, aAng, "SURF", {sizeucs})
+      oScreen:DrawUCS(user, vPos, aAng, "SURF", {sizeucs})
       if(workmode == 2) then -- Draw point intersection
-        self:DrawRelateIntersection(hudMonitor, user) end
+        self:DrawRelateIntersection(oScreen, user) end
       if(not self:GetDeveloperMode()) then return end
-      local sX, sY = hudMonitor:GetSize()
-      hudMonitor:SetTextOrigin(0, sY / 2)
-      hudMonitor:DrawText("  POS: "..tostring(vPos),"k","SURF",{"DebugSpawnTA"})
-      hudMonitor:DrawText("  ANG: "..tostring(aAng))
+      local sX, sY = oScreen:GetSize()
+      oScreen:SetTextOrigin(0, sY / 2)
+      oScreen:DrawText("  POS: "..tostring(vPos),"k","SURF",{"DebugSpawnTA"})
+      oScreen:DrawText("  ANG: "..tostring(aAng))
     else -- Relative to the active Point
       if(not (pointid > 0 and pnextid > 0)) then return end
       local stSpawn = asmlib.GetNormalSpawn(user,trHit + elevpnt * stTrace.HitNormal,
                          aAng,model,pointid,nextx,nexty,nextz,nextpic,nextyaw,nextrol)
       if(not stSpawn) then return end
       if(workmode == 1) then
-        self:DrawNextPoint(hudMonitor, user, stSpawn)
+        self:DrawNextPoint(oScreen, user, stSpawn)
       elseif(workmode == 2) then -- Draw point intersection
-        self:DrawRelateIntersection(hudMonitor, user)
-        self:DrawModelIntersection(hudMonitor, user, stSpawn)
+        self:DrawRelateIntersection(oScreen, user)
+        self:DrawModelIntersection(oScreen, user, stSpawn)
       end
-      self:DrawSnapRegular(hudMonitor, user, stSpawn, trHit)
+      self:DrawSnapRegular(oScreen, user, stSpawn, trHit)
       if(not self:GetDeveloperMode()) then return end
-      self:DrawTextSpawn(hudMonitor, "k","SURF",{"DebugSpawnTA"})
+      self:DrawTextSpawn(oScreen, "k","SURF",{"DebugSpawnTA"})
     end
   end
 end
