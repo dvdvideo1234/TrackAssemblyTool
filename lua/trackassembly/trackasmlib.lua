@@ -2716,7 +2716,7 @@ function Categorize(oTyp, fCat, ...)
       local sSe = OPSYM_DIRECTORY -- Separator
       tTyp = (tCat[sTyp] or {}); tCat[sTyp] = tTyp
       table.insert(tTxt, "function(m) local o = {}\n")
-      table.insert(tTxt, "function setBranch(v, p, b, q)\n")
+      table.insert(tTxt, "local function setBranch(v, p, b, q)\n")
       table.insert(tTxt, "  if(v:find(p)) then\n")
       table.insert(tTxt, "    local e = v:gsub(\"%W*\"..p..\"%W*\", \"_\")\n")
       table.insert(tTxt, "    if(b and o.M) then return e end\n")
@@ -4693,7 +4693,8 @@ function ExportTypeRUN(sType, bSet)
     LogInstance("Missing table builder "..GetReport(sType)); return end
   local defA = makA:GetDefinition(); if(not defA) then
     LogInstance("Missing table definition "..GetReport(sType)); return end
-  if(sMoDB == "SQL") then qPieces, qAdditions = {}, {}
+  local qPieces, qAdditions = {}, {} -- Local data table references
+  if(sMoDB == "SQL") then
     local qIndx = FORM_KEYSTMT:format(sFunc, defP.Nick)
     if(not RunComponentType(sType, function(iTy, sTy)
       local qTy = makP:Match(sTy, makP:GetColumnID("TYPE"), true)
@@ -4705,7 +4706,7 @@ function ExportTypeRUN(sType, bSet)
         LogInstance("SQL exec error "..GetReport(sql.LastError(), Q),defP.Nick); return false end
       for iR = 1, #qData do table.insert(qPieces, qData[iR]) end; return true
     end)) then LogInstance("Component routine error", defP.Nick); return end
-  elseif(sMoDB == "LUA") then qPieces, qAdditions = {}, {}
+  elseif(sMoDB == "LUA") then
     local tCache = libCache[defP.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing",defP.Nick); return false end
     if(not RunComponentType(sType, function(iTy, sTy)
@@ -4787,21 +4788,23 @@ function ExportTypeRUN(sType, bSet)
         local cMo = makP:GetColumnID("MODEL")
         local cLn = makP:GetColumnID("LINEID")
         if(not RunComponentType(sType, function(iTy, sTy)
-          local tCat = TABLE_CATEGORIES[sTy]
+          local tCat, bTy = TABLE_CATEGORIES[sTy], false
           local bCat = (istable(tCat) and tCat.Txt)
-          if(bCat) then
-            fE:Write("\n"); fE:Write(sIn:rep(1)); fE:Write(sSufx)
-            fE:Write(".Categorize(myType"); fE:Write(tostring(iTy)); fE:Write(", "); fE:Write("[[\n")
-            fE:Write(sIn:rep(2)); fE:Write(tCat.Txt:gsub("\n","\n"..sIn:rep(2)).."\n")
-            fE:Write(sIn:rep(1)); fE:Write("]])\n")
-          else
-            fE:Write("\n"); fE:Write(sIn:rep(1)); fE:Write(sSufx)
-            fE:Write(".Categorize(myType"); fE:Write(tostring(iTy)); fE:Write(")\n");
-          end
-          fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Begin() end\n")
           for iR = 1, #qPieces do
             local aRow = makP:GetRowToArray(qPieces[iR])
             if(aRow[cTy] == sTy) then
+              if(not bTy) then bTy = true
+                if(bCat) then
+                  fE:Write("\n"); fE:Write(sIn:rep(1)); fE:Write(sSufx)
+                  fE:Write(".Categorize(myType"); fE:Write(tostring(iTy)); fE:Write(", "); fE:Write("[[\n")
+                  fE:Write(sIn:rep(2)); fE:Write(tCat.Txt:gsub("\n","\n"..sIn:rep(2)).."\n")
+                  fE:Write(sIn:rep(1)); fE:Write("]])\n")
+                else
+                  fE:Write("\n"); fE:Write(sIn:rep(1)); fE:Write(sSufx)
+                  fE:Write(".Categorize(myType"); fE:Write(tostring(iTy)); fE:Write(")\n");
+                end
+                fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Begin() end\n")
+              end
               local sMo = aRow[cMo]; makP:ArrayMatch(aRow, true, "\"", true)
               if(not makP:Trigger(sFunc, aRow, bSet)) then
                 fS:Deny(); return false end
@@ -4813,13 +4816,16 @@ function ExportTypeRUN(sType, bSet)
               end
             end
           end; fE:Write(sIn:rep(1))
-          fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n"); return true
+          if(bTy) then -- We have at least one record for that type
+            fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n")
+          end; return true
         end)) then fS:Deny()
           LogInstance("Component routine error", defP.Nick); end
       elseif(sMak == "ADDITIONS") then
-        local cMo = makA:GetColumnID("MODELBASE")
-        fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Begin() end\n")
+        local cMo, bTy = makA:GetColumnID("MODELBASE")
         for iR = 1, #qAdditions do
+          if(not bTy) then bTy = true
+            fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Begin() end\n") end
           local aRow = makA:GetRowToArray(qAdditions[iR])
           local sMo = aRow[cMo]; makA:ArrayMatch(aRow, true, "\"", true)
           if(not makA:Trigger("ExportDSV", aRow, bSet)) then
@@ -4829,7 +4835,9 @@ function ExportTypeRUN(sType, bSet)
           fE:Write(sIn:rep(1)); fE:Write(sMak); fE:Write(":Record({")
           fE:Write(table.concat(aRow, ", ")); fE:Write("})\n")
         end
-        fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n")
+        if(bTy) then
+          fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n")
+        end
       elseif(sMak == "PHYSPROPERTIES") then
         fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Begin() end\n")
         fE:Write(sIn:rep(1)); fE:Write("if(gsModeDB == \"SQL\") then sql.Commit() end\n")
