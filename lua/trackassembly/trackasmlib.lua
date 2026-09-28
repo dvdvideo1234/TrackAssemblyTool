@@ -642,6 +642,16 @@ function ComponentType(sType, ...)
   end; return sU, tA, nA
 end
 
+function ComponentTypeID(sType)
+  local tU = TABLE_COMPONENTS.Data
+  local lU = TABLE_COMPONENTS.Type
+  local sT = GetStrip(sType)
+  local sU = GetTypeNormal(sT)
+  local sK, iT = lU[sU], 0
+  if(sK) then iT = tU[sK][sU] end
+  return iT
+end
+
 function IsFlag(vKey, vVal)
   local tFlag = TABLE_FLAGS
   if(not IsHere(tFlag)) then LogInstance("Missing "..GetReport(tFlag)); return nil end
