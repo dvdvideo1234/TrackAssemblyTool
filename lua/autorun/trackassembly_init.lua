@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.792"
+asmlib.TOOL_VERSION = "10.793"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -2085,8 +2085,13 @@ asmlib.NewTable("PIECES",{
       return true
     end,
     ExportTypeRUN = function(arLine, bSet)
-      local sM, sN  = "gsMissDB", "gsSymOff"
-      if(bSet) then arLine[2] = sN else arLine[4] = sN end
+      local tT, iT = asmlib.TABLE_COMPONENTS, 0
+      local sM, sN = "gsMissDB", "gsSymOff"
+      local sT = asmlib.GetStrip(arLine[2])
+      local sK = tT.Type[sT] -- Component key
+      if(sK) then iT = tT.Data[sK][sT] end
+      if(bSet) then arLine[2] = sN else
+        arLine[2], arLine[4] = "myType"..iT, sN end
       for iC = 1, #arLine do
         local bSQL = (asmlib.GetStrip(arLine[iC]) == gsNoSQL)
         arLine[iC] = (bSQL and sM or arLine[iC])

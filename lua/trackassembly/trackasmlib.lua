@@ -618,7 +618,8 @@ end
  * [...] > The internal track types being registered
 ]]
 function ComponentType(sType, ...)
-  local tU = TABLE_COMPONENTS
+  local tU = TABLE_COMPONENTS.Data
+  local lU = TABLE_COMPONENTS.Type
   local nT = select("#", ...)
   local sU = GetTypeNormal(sType)
   local tA = tU[sU] -- Index the component array
@@ -633,6 +634,7 @@ function ComponentType(sType, ...)
     if(sT ~= sU) then -- Do not register itself
       if(not tA[sT]) then -- Does not exist
         table.insert(tA, sT) -- Store it
+        lU[sT] = sU
         nA = nA + 1 -- Increment current size
         tA[sT] = nA -- Reverse indexed
       else LogInstance("Exists "..GetReport(sU, iT, sT)) end
@@ -868,7 +870,7 @@ function InitBase(sName, sPurp)
     Hdr = "^#.*DSV.*%(.+%)", Par = "%(.+%)"
   }
   HOVER_TRIGGER = {}
-  TABLE_COMPONENTS = {}
+  TABLE_COMPONENTS = {Data = {}, Type = {}}
   TABLE_MAPENUM = {
     ["MOVETYPE"] = { Fme = "%s_%s", Fmt = "%-19s",
       [tostring(GENV . MOVETYPE_NONE      )] = "NONE",
@@ -4865,7 +4867,7 @@ function ExportTypeRUN(sType, bSet)
                 fE:Write(aRow[cMo]); fE:Write("] = {\n")
                 if(not SetAdditionsRUN(sMo, qAdditions)) then
                   LogInstance("Addition error "..GetReport(iR,sMo)); return false end
-              end; aRow[cTy] = "myType"..iTy
+              end
               if(not makP:Trigger(sFunc, aRow, bSet)) then
                 fS:Deny(); return false end
               table.remove(aRow, cMo); fE:Write(sIn:rep(2))
