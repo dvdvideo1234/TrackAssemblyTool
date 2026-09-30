@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.795"
+asmlib.TOOL_VERSION = "10.796"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -2176,40 +2176,37 @@ asmlib.NewTable("PIECES",{
         end
       end; return true
     end,
-    ExportTypeDSV = function(fP, makP, PCache, fA, makA, ACache, sType, sDelim)
-      local tSort = asmlib.Arrange(PCache, "Type", "Name", "Slot"); if(not tSort) then
-        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType)); return false end
+    ExportTypeDSV = function(makP, tContent, sType)
       local sType, tType, nType = asmlib.ComponentType(sType) -- Normalize type
-      local defP, defA = makP:GetDefinition(), makA:GetDefinition()
-      local sClass = asmlib.ENTITY_DEFCLASS
-      for iP = 1, tSort.Size do
-        local stRec = tSort[iP] -- Sorted sequential key
-        local tData = PCache[stRec.Key] -- Index data
+      local sClass, makA = asmlib.ENTITY_DEFCLASS, asmlib.GetBuilderNick("ADDITIONS")
+      local contP = tContent[makP:GetDefinition().Nick]
+      local contA = tContent[makA:GetDefinition().Nick]
+      local tSort = asmlib.Arrange(contP.C, "Type", "Name", "Slot"); if(not tSort) then
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType)); return false end
+      for iP = 1, tSort.Size do -- For all the sorter cache keys
+        local stRec = tSort[iP] -- Extract sorted sequential index
+        local tData = stRec.Rec -- Index the requested data reference
         local rType, tOffs = tData.Type, tData.Offs -- Extract record type
         if(rType == sType or (tType[rType] and tType[rType] > 0)) then
-          local sData = asmlib.GetConcat(defP.Name, sDelim,
-            makP:Match(stRec.Key ,1, true, "\""), sDelim,
-            makP:Match(tData.Type,2, true, "\""), sDelim,
-            makP:Match(tData.Name,3, true, "\"")) -- Matching crashes only for numbers.
-          for iD = 1, #tOffs do -- The number is already inserted, so there will be no crash
+          for iD = 1, #tOffs do -- The number is already inserted
             local stPnt = tOffs[iD] -- Read current offsets from the model
             local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
             local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or gsNoSQL)
                   sC = ((sC == sClass) and gsNoSQL or sC) -- Export default class
-            fP:Write(sData); fP:Write(sDelim);
-            fP:Write(makP:Match(iD,4,true,"\"")); fP:Write(sDelim)
-            fP:Write("\""); fP:Write(sP); fP:Write("\""); fP:Write(sDelim)
-            fP:Write("\""); fP:Write(sO); fP:Write("\""); fP:Write(sDelim)
-            fP:Write("\""); fP:Write(sA); fP:Write("\""); fP:Write(sDelim)
-            fP:Write("\""); fP:Write(sC); fP:Write("\"\n")
-            if(iD == 1) then local tA = ACache[stRec.Key]
-              if(tA and tA.Size and tA.Size > 0) then
-                local sH = asmlib.GetConcat(defA.Name, sDelim)
-                for iA = 1, tA.Size do fA:Write(sH)
-                  local aRow = makA:GetRowToArray(tA[iA]); aRow[1] = stRec.Key
-                  for iC = 1, #aRow do aRow[iC] = makA:Match(aRow[iC],iC,true,"\"") end
-                  if(not makA:Trigger("ExportDSV", aRow)) then return false end
-                  fA:Write(table.concat(aRow, sDelim)); fA:Write("\n")
+            table.insert(contP.D, {
+              makP:Match(stRec.Key , 1, true, "\""),
+              makP:Match(tData.Type, 2, true, "\""),
+              makP:Match(tData.Name, 3, true, "\""),
+              makP:Match(iD, 4, true, "\""), sP, sO, sA, sC
+            })
+            if(iD == 1) then
+              for sM, tData in pairs(contA.C) do
+                if(sM == stRec.Key and tData and tData.Size and tData.Size > 0) then
+                  for iA = 1, tData.Size do
+                    local aRow = makA:GetRowToArray(tData[iA])
+                    aRow[1] = makA:Match(stRec.Key, 1, true, "\"")
+                    table.insert(contA.D, aRow)
+                  end
                 end
               end
             end
@@ -2340,7 +2337,7 @@ asmlib.NewTable("ADDITIONS",{
           oF:Write(table.concat(aRow, sDelim)); oF:Write("\n")
         end
       end; return true
-    end,
+    end
   },
   [1]  = {"MODELBASE", "TEXT"   , {"LOW", "QMK"}},
   [2]  = {"MODELADD" , "TEXT"   , {"LOW", "QMK"}},
@@ -2374,8 +2371,10 @@ asmlib.NewTable("PHYSPROPERTIES",{
       for iC = 1, #arLine do arLine[iC] = asmlib.GetStrip(arLine[iC]) end
       return true
     end,
-    ExportTypeRUN = function(arLine)
-      arLine[2] = "gsSymOff"; return true
+    ExportTypeRUN = function(arLine, bSet)
+      local sN = "gsSymOff"
+      if(bSet) then arLine[1] = sN else arLine[2] = sN end
+      return true
     end,
     Record = function(arLine)
       local noTY = asmlib.MISS_NOTP
@@ -2440,6 +2439,34 @@ asmlib.NewTable("PHYSPROPERTIES",{
         end
       end; return true
     end,
+    ExportTypeDSV = function(makR, tContent, sType)
+      local sType = asmlib.GetTypeNormal(sType)
+      local sType, tType, nType = asmlib.ComponentType(sType)
+      local sPref = asmlib.GetTypePrefix(sType)
+      local tProID = asmlib.HASH_PROPERTY
+      local pN, pT = tProID.Name, tProID.Type
+      local contR = tContent[makR:GetDefinition().Nick]
+      local tN, tC = contR.C[pN], {sType, unpack(tType)}
+      local tD = (tN[sType] or tN[sPref]); if(not asmlib.IsHere(tD)) then
+        asmlib.LogInstance("Content missing "..asmlib.GetReport(sType, sPref)); return true end
+      if(not (tD and tD.Size and tD.Size > 0)) then
+        asmlib.LogInstance("Content mismatch "..asmlib.GetReport(sType, sPref)); return true end
+      local tSort = asmlib.Arrange(tC); if(not tSort) then
+        asmlib.LogInstance("Sorting failed "..asmlib.GetReport(sType, sPref)) return false end
+      for iS = 1, tSort.Size do
+        local sT = tSort[iS].Rec
+        local sT = asmlib.GetTypeNormal(sT)
+        local sP = asmlib.GetTypePrefix(sT)
+        local tD = (tN[sT] or tN[sP])
+        if(tD and tD.Size and tD.Size > 0) then
+          for iD = 1, tD.Size do
+            local aR = {sT, iD, tD[iD]}
+            makR:ArrayMatch(aR, true,"\"")
+            table.insert(contR.D, aR)
+          end
+        end
+      end; return true
+    end,
     ExportTypeRUN = function(sType, makTab, tCache, qProps)
       local coTy = makTab:GetColumnName(1)
       local coLn = makTab:GetColumnName(2)
@@ -2451,12 +2478,9 @@ asmlib.NewTable("PHYSPROPERTIES",{
       local tN, qData = tCache[pN], {}
       local tR = (tN[sType] or tN[sPref]); if(not asmlib.IsHere(tR)) then
         asmlib.LogInstance("Content missing "..asmlib.GetReport(sType, sPref)); return true end
-      for iR = 1, tR.Size do  -- Allocate row memory
-        local qRow = {}
-        qRow[coTy] = sType
-        qRow[coLn] = iR
-        qRow[coPr] = tR[iR]
-        table.insert(qData, qRow)
+      for iR = 1, tR.Size do local qRow = {}
+        qRow[coTy], qRow[coLn], qRow[coPr] = sType, iR, tR[iR]
+        table.insert(qData, qRow) -- Convert the cache as query result
       end -- Must be the same format as returned from SQL
       local tSort = asmlib.Arrange(qData, coTy, coLn); if(not tSort) then
         LogInstance("Sort cache mismatch"); return false end

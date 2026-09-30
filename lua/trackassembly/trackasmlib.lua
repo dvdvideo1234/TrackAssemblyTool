@@ -4710,10 +4710,8 @@ function ExportTypeRUN(sType, bSet)
     LogInstance("Missing physproperties builder "..GetReport(sType)); return end
   local defR = makR:GetDefinition(); if(not defR) then
     LogInstance("Missing physproperties definition "..GetReport(sType)); return end
-  local qContents = {} -- Local data table references
-  RunBuilderCount(function(makTab, iD)
-   qContents[makTab:GetDefinition().Nick] = {}; return true
-  end)
+  local qContents = {}; RunBuilderCount(function(makTab, iD)
+    qContents[makTab:GetDefinition().Nick] = {}; return true end)
   if(sMoDB == "SQL") then
     RunBuilderCount(function(makTab, iD)
       local defTab = makTab:GetDefinition()
@@ -4883,6 +4881,10 @@ function ExportTypeRUN(sType, bSet)
                 fE:Write(".Categorize(myType"); fE:Write(tostring(iTy)); fE:Write(")\n");
                 fE:Write(sIn:rep(1)); fE:Write(fmSQL:format("Begin"))
               end
+              if(not makR:Trigger("ExportDSV", aRow, bSet)) then
+                fS:Deny(); break end
+              if(not makR:Trigger(sFunc, aRow, bSet)) then
+                fS:Deny(); break end
               fE:Write(sIn:rep(1)); fE:Write(sMak); fE:Write(":Record({")
               fE:Write(table.concat(aRow, ", ")); fE:Write("})\n")
             end
@@ -5018,66 +5020,107 @@ function ExportTypeDSV(sType, sDelim)
     LogInstance("Missing additions builder "..GetReport(sType, sPref)); return end
   local defA = makA:GetDefinition(); if(not IsHere(defA)) then
     LogInstance("Missing additions definition "..GetReport(sType, sPref)); return end
-  local sDelim, fMon = tostring(sDelim or OPSYM_DELIMIT):sub(1,1), GetConcat("[", sMoDB:lower(), "-dsv]")
+  local makR = GetBuilderNick("PHYSPROPERTIES"); if(not IsHere(makR)) then
+    LogInstance("Missing additions builder "..GetReport(sType, sPref)); return end
+  local defR = makR:GetDefinition(); if(not IsHere(defR)) then
+    LogInstance("Missing additions definition "..GetReport(sType, sPref)); return end
+  local fMon = GetConcat("[", sMoDB:lower(), "-dsv]")
+  local sDelim = tostring(sDelim or OPSYM_DELIMIT):sub(1,1)
   local pNam = GetLibraryPath(DIRPATH_EXP, fMon..sPref, defP.Name)
   local aNam = GetLibraryPath(DIRPATH_EXP, fMon..sPref, defA.Name)
+  local rNam = GetLibraryPath(DIRPATH_EXP, fMon..sPref, defR.Name)
   local P = file.Open(pNam, "wb", "DATA"); if(not P) then
     LogInstance("Open fail "..GetReport(sType, sPref, pNam, defP.Nick)); return end
   local A = file.Open(aNam, "wb", "DATA"); if(not A) then P:Flush(); P:Close()
-    LogInstance("Open fail "..GetReport(sType, sPref, aNam, defP.Nick)); return end
+    LogInstance("Open fail "..GetReport(sType, sPref, aNam, defA.Nick)); return end
+  local R = file.Open(rNam, "wb", "DATA"); if(not R) then P:Flush(); P:Close(); A:Flush(); A:Close()
+    LogInstance("Open fail "..GetReport(sType, sPref, rNam, defR.Nick)); return end
   P:Write(tHea.Src:format(sFunc, tHew.Fmt:format(sPref,defP.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
   P:Write(tHea.Tco:format(defP.Nick, makP:GetColumnList(sDelim)))
   A:Write(tHea.Src:format(sFunc, tHew.Fmt:format(sPref,defA.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
   A:Write(tHea.Tco:format(defA.Nick, makA:GetColumnList(sDelim)))
+  R:Write(tHea.Src:format(sFunc, tHew.Fmt:format(sPref,defR.Nick,sDelim):sub(2,-2), GetDateTime(), sMoDB))
+  R:Write(tHea.Tco:format(defR.Nick, makR:GetColumnList(sDelim)))
+  local qContents = {[defP.Nick] = P, [defA.Nick] = A, [defR.Nick] = R}
+  RunBuilderCount(function(makTab, iD)
+    local defTab = makTab:GetDefinition()
+    local conFsw, conCas = qContents[defTab.Nick], libCache[defTab.Name]
+    qContents[defTab.Nick] = {F = conFsw, C = conCas, D = {}}; return true
+  end) -- Helper file cleanup function not to leave them open
+  local function swCleanUp()
+    for sT, tD in pairs(qContents) do
+      if(tD.F) then tD.F:Flush(); tD.F:Close() end
+    end
+  end
   if(sMoDB == "SQL") then
-    local qsNov, qP = MISS_NOAV, {}
-    local qInxP = FORM_KEYSTMT:format(sFunc, defP.Nick)
-    local qInxA = FORM_KEYSTMT:format(sFunc, defA.Nick)
-    if(not RunComponentType(sType, function(iTy, sTy)
-      local qTy = makP:Match(sTy, makP:GetColumnID("TYPE"), true)
-      local Q = makP:Get(qInxP, qTy); if(not IsHere(Q)) then local tQ = makP:GetQuery(sFunc)
-        Q =  makP:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxP):Get(qInxP, qTy) end
-      if(not IsHere(Q)) then
-        LogInstance("Build statement failed "..GetReport(iTy,sTy),defP.Nick); return false end
-      local qData = sql.Query(Q); if(not qData and isbool(qData)) then
-        LogInstance("SQL exec error "..GetReport(iTy,sTy,sql.LastError(),Q), defP.Nick); return false end
-      local nR = #qData; P:Write(tHea.Qry:format(nR, Q))
-      for iR = 1, nR do table.insert(qP, qData[iR]) end; return true
-    end)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("Component routine error", defP.Nick); return end
-    local cMo, cLn = makP:GetColumnID("MODEL"), makP:GetColumnID("LINEID")
-    for iP = 1, #qP do
-      local aP = makP:GetRowToArray(qP[iP])
-      local sMo = aP[cMo]; makP:ArrayMatch(aP,true,"\"",true)
-      if(not makP:Trigger("ExportDSV", aP)) then
-        P:Flush(); P:Close(); A:Flush(); A:Close(); return end
-      P:Write(defP.Name); P:Write(sDelim); P:Write(table.concat(aP, sDelim))
-      if(aP[cLn] == 1) then
-        local qMo = makP:Match(sMo, cMo, true)
-        local Q = makA:Get(qInxA, qMo); if(not IsHere(Q)) then local tQ = makA:GetQuery(sFunc)
-          Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qInxA):Get(qInxA, qMo) end
-        if(not IsHere(Q)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-          LogInstance("Build statement failed "..GetReport(sType, sPref),defA.Nick); return end
-        local qA = sql.Query(Q); if(not qA and isbool(qA)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-          LogInstance("SQL exec error "..GetReport(sType, sPref, sql.LastError(), Q), defA.Nick); return end
-        if(IsHere(qA) and not IsEmpty(qA)) then A:Write(tHea.Qry:format(#qA, Q))
-          for iA = 1, #qA do
-            local aA = makA:GetRowToArray(qA[iA]); makA:ArrayMatch(aA,true,"\"",true)
-            if(not makA:Trigger("ExportDSV", aA)) then
-              P:Flush(); P:Close(); A:Flush(); A:Close(); return end
-            A:Write(defA.Name); A:Write(sDelim); A:Write(table.concat(aA), sDelim); A:Write("\n")
+    RunBuilderCount(function(makTab, iD)
+      local defTab = makTab:GetDefinition()
+      if(defTab.Nick == "ADDITIONS") then return true end
+      local tCo = qContents[defTab.Nick]
+      local bPi = (defTab.Nick == "PIECES")
+      local cLn = makTab:GetColumnID("LINEID")
+      local sID = FORM_KEYSTMT:format(sFunc, defTab.Nick)
+      if(not RunComponentType(sType, function(iTy, sTy)
+        local qTy = makTab:Match(sTy, makTab:GetColumnID("TYPE"), true)
+        local Q = makTab:Get(sID, qTy); if(not IsHere(Q)) then local tQ = makTab:GetQuery(sFunc)
+          Q =  makTab:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(sID):Get(sID, qTy) end
+        if(not IsHere(Q)) then
+          LogInstance("Build statement failed "..GetReport(iTy,sTy),defTab.Nick); return false end
+        local qData = sql.Query(Q); if(not qData and isbool(qData)) then
+          LogInstance("SQL exec error "..GetReport(iTy,sTy,sql.LastError(),Q), defTab.Nick); return false end
+        local nR = #qData; tCo.F:Write(tHea.Qry:format(nR, Q))
+        for iR = 1, nR do
+          local aR = makTab:GetRowToArray(qData[iR])
+                     makTab:ArrayMatch(aR,true,"\"",true)
+          if(not makTab:Trigger("ExportDSV", aR)) then swCleanUp(); return end
+          table.insert(tCo.D, aR)
+          if(bPi and aR[cLn] == 1) then
+            local tCo = qContents[defA.Nick]
+            local sID = FORM_KEYSTMT:format(sFunc, defA.Nick)
+            local Q = makA:Get(sID, aR[1]); if(not IsHere(Q)) then local tQ = makA:GetQuery(sFunc)
+              Q = makA:Select():Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(sID):Get(sID, aR[1]) end
+            if(not IsHere(Q)) then swCleanUp()
+              LogInstance("Build statement failed "..GetReport(iTy,sTy),defA.Nick); return end
+            local qData = sql.Query(Q); if(not qData and isbool(qData)) then swCleanUp()
+              LogInstance("SQL exec error "..GetReport(iTy,sTy, sql.LastError(), Q), defA.Nick); return end
+            if(IsHere(qA) and not IsEmpty(qA)) then
+              local nA = #qData; tCo.F:Write(tHea.Qry:format(nA, Q))
+              for iA = 1, nA do
+                local aA = makA:GetRowToArray(qData[iA])
+                           makA:ArrayMatch(aA,true,"\"",true)
+                if(not makA:Trigger("ExportDSV", aA)) then swCleanUp(); return end
+                table.insert(tCo.D, aA)
+              end
+            end
           end
-        end
-      end
-    end -- Matching will not crash as it is matched during insertion
+        end; return true
+      end)) then
+        LogInstance("Component routine error", defTab.Nick)
+        swCleanUp(); return false
+      end; return true
+    end)
   elseif(sMoDB == "LUA") then
-    local PCache, ACache = libCache[defP.Name], libCache[defA.Name]
-    if(not IsHere(PCache)) then P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("Cache missing "..GetReport(sType, sPref),defP.Nick); return end
-    if(not makP:Operator(sFunc, P, makP, PCache, A, makA, ACache, sType, sDelim)) then
-      P:Flush(); P:Close(); A:Flush(); A:Close()
-      LogInstance("Cache manager error "..GetReport(sType, sPref, sR),defP.Nick); return end
-  end; P:Flush(); P:Close(); A:Flush(); A:Close(); LogInstance("Success "..GetReport(sType, sPref))
+    RunBuilderCount(function(makTab, iD)
+      local defTab = makTab:GetDefinition()
+      if(defTab.Nick == "ADDITIONS") then return true end
+      if(not makTab:Operator("ExportTypeDSV", makTab, qContents, sType)) then
+        LogInstance("Cache manager error "..GetReport(sType, sPref), defTab.Nick)
+        swCleanUp(); return false
+      end; return true
+    end)
+  end
+  RunBuilderCount(function(makTab, iD)
+    local defTab = makTab:GetDefinition()
+    local conTab = qContents[defTab.Nick]
+    local oF, tC = conTab.F, conTab.D
+    for iC = 1, #tC do
+      local aRow = tC[iC]
+      oF:Write(defTab.Name); oF:Write(sDelim)
+      oF:Write(table.concat(aRow, sDelim))
+      oF:Write("\n")
+    end; return true
+  end); swCleanUp()
+  LogInstance("Success "..GetReport(sType, sPref))
 end
 
 --[[
