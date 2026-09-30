@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.794"
+asmlib.TOOL_VERSION = "10.795"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -2340,7 +2340,7 @@ asmlib.NewTable("ADDITIONS",{
           oF:Write(table.concat(aRow, sDelim)); oF:Write("\n")
         end
       end; return true
-    end
+    end,
   },
   [1]  = {"MODELBASE", "TEXT"   , {"LOW", "QMK"}},
   [2]  = {"MODELADD" , "TEXT"   , {"LOW", "QMK"}},
@@ -2363,6 +2363,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
     Erase     = {W = {{1,"%s"}}},
     Record    = {V = {"%s","%d","%s"}},
     ExportDSV = {O = {1,2}},
+    ExportTypeRUN = {W = {{1,"%s"}}, O = {1, 2}},
     CacheQueryProperty = {
       N = {S = {2, 3}, W = {{1,"%s"}}, O = {2}},
       T = {S = {1}   , W = {{2,"%s"}}, O = {1}},
@@ -2438,6 +2439,30 @@ asmlib.NewTable("PHYSPROPERTIES",{
           oF:Write(makTab:Match(sP,3,true,"\"")); oF:Write("\n")
         end
       end; return true
+    end,
+    ExportTypeRUN = function(sType, makTab, tCache, qProps)
+      local coTy = makTab:GetColumnName(1)
+      local coLn = makTab:GetColumnName(2)
+      local coPr = makTab:GetColumnName(3)
+      local tProID = asmlib.HASH_PROPERTY
+      local pN, pT = tProID.Name, tProID.Type
+      local sType = asmlib.GetTypeNormal(sType)
+      local sPref = asmlib.GetTypePrefix(sType)
+      local tN, qData = tCache[pN], {}
+      local tR = (tN[sType] or tN[sPref]); if(not asmlib.IsHere(tR)) then
+        asmlib.LogInstance("Content missing "..asmlib.GetReport(sType, sPref)); return true end
+      for iR = 1, tR.Size do  -- Allocate row memory
+        local qRow = {}
+        qRow[coTy] = sType
+        qRow[coLn] = iR
+        qRow[coPr] = tR[iR]
+        table.insert(qData, qRow)
+      end -- Must be the same format as returned from SQL
+      local tSort = asmlib.Arrange(qData, coTy, coLn); if(not tSort) then
+        LogInstance("Sort cache mismatch"); return false end
+      for iD = 1, tSort.Size do table.insert(qProps, tSort[iD].Rec) end
+      asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType))
+      return true
     end
   },
   [1] = {"TYPE"  , "TEXT"   , "QMK"},
