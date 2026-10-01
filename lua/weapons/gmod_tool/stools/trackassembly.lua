@@ -143,15 +143,15 @@ if(CLIENT) then
     end)
 
   net.Receive(gsLibName.."SendUpdateHelix" ,
-    function(nLen) local tU = {}
-      oU    = net.ReadEntity(oPly)   -- Player who applied the curve change     ( User )
-      tU[1] = net.ReadVector(vOrg)   -- Current helix start location vector     ( Origin POS )
-      tU[2] = net.ReadAngle (aOrg)   -- Current helix start location angle      ( Origin ANG )
-      tU[3] = net.ReadFloat (nAng)   -- Amount of degrees calculating the curve ( End angle )
-      tU[4] = net.ReadFloat (nRad)   -- Player trace location curve data        ( Radius )
-      tU[5] = net.ReadUInt(nSmp, 16) -- Player trace angle curve data           ( Samples )
-      tU[6] = net.ReadVector(vDsp)   -- Player trace hits POA location or not   ( Displace POS )
-      tU[7] = net.ReadAngle (aDsp)   -- The index to change at when requested   ( Displace ANG )
+    function(nLen) local tU, oU = {}
+      oU    = net.ReadEntity() -- Player who applied the curve change     ( User )
+      tU[1] = net.ReadVector() -- Current helix start location vector     ( Origin POS )
+      tU[2] = net.ReadAngle()  -- Current helix start location angle      ( Origin ANG )
+      tU[3] = net.ReadFloat()  -- Amount of degrees calculating the curve ( End angle )
+      tU[4] = net.ReadFloat()  -- Player trace location curve data        ( Radius )
+      tU[5] = net.ReadUInt(16) -- Player trace angle curve data           ( Samples )
+      tU[6] = net.ReadVector() -- Player trace hits POA location or not   ( Displace POS )
+      tU[7] = net.ReadAngle()  -- The index to change at when requested   ( Displace ANG )
       local bS, sR = asmlib.DoAction("UPDATE_HELIX", oU, tU); if(not bS) then
         asmlib.LogInstance("Update helix error "..asmlib.GetReport(oU, nSmp, sR)) end
     end)
@@ -1092,16 +1092,16 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
       local vN, vD = tC.Norm[mD], tC.Node[mD]
       local vO = Vector(); vO:Set(vD); vO:Sub(vB)
       local nextx, nexty, nextz = vO:Unpack()
-      asmlib.SetAsmConvar(oPly,"nextx", nextx)
-      asmlib.SetAsmConvar(oPly,"nexty", nextx)
-      asmlib.SetAsmConvar(oPly,"nextz", nextz - elevpnt)
+      asmlib.SetAsmConvar(user,"nextx", nextx)
+      asmlib.SetAsmConvar(user,"nexty", nextx)
+      asmlib.SetAsmConvar(user,"nextz", nextz - elevpnt)
       if(not (tN[mD-1] and tN[mD+1])) then vF = tR[2]:Forward() else
         vF = Vector(tN[mD+1]); vF:Sub(tN[mD-1]); vF:Normalize() end
       local aO = vF:AngleEx(vN)
       local nextpic, nextyaw, nextrol = aO:Unpack()
-      asmlib.SetAsmConvar(oPly,"nextpic", nextpic)
-      asmlib.SetAsmConvar(oPly,"nextyaw", nextyaw)
-      asmlib.SetAsmConvar(oPly,"nextrol", nextrol)
+      asmlib.SetAsmConvar(user,"nextpic", nextpic)
+      asmlib.SetAsmConvar(user,"nextyaw", nextyaw)
+      asmlib.SetAsmConvar(user,"nextrol", nextrol)
       return tC
     end
   end
@@ -1177,8 +1177,8 @@ function TOOL:HelixUpdate(stTrace, bPnt, bCao)
     local oID, oL, oPOA, oRec = asmlib.GetEntityHitID(oE, stTrace.HitPos)
     if(not asmlib.IsHere(oRec)) then
       asmlib.LogInstance("Trace model not piece "..asmlib.GetReport(oM)); return false end
-    tU[1]:SetUnpacked(trPOA.O:Get()); tU[1]:Rotate(oA); tU[1]:Add(oP)
-    tU[2]:SetUnpacked(trPOA.A:Get()); tU[2]:Set(trEnt:LocalToWorldAngles(tU[2]))
+    tU[1]:SetUnpacked(oPOA.O:Get()); tU[1]:Rotate(oA); tU[1]:Add(oP)
+    tU[2]:SetUnpacked(oPOA.A:Get()); tU[2]:Set(oE:LocalToWorldAngles(tU[2]))
   else -- Obtain the origin transform from the trace surface
     tU[1]:Set(stTrace.HitNormal); tU[1]:Mul(elevpnt); tU[1]:Add(stTrace.HitPos)
     tU[2]:Set(asmlib.GetNormalAngle(user, stTrace, surfsnap, angsnap))

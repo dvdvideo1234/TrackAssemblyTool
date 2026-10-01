@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.800"
+asmlib.TOOL_VERSION = "10.801"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -594,7 +594,7 @@ asmlib.SetAction("UPDATE_HELIX",
     local tC = asmlib.CalculateHelixCurve(oPly, vOrg, aOrg, 100 * nAng, nRad, nSmp, vDsp, aDsp); if(not tC) then
       asmlib.LogInstance("Curve mismatch "..asmlib.GetReport(oPly, nAng, nRad, nSmp), sLog); return false end
     if(SERVER and not bMute) then
-      asmlib.Notify(oPly, "CLEANUP", "Helix updated: %s !", iD)
+      asmlib.Notify(oPly, "CLEANUP", "Helix updated: %s !", tC.Size)
       net.Start(gsLibName.."SendUpdateHelix")
         net.WriteEntity(oPly)
         net.WriteVector(vOrg)
