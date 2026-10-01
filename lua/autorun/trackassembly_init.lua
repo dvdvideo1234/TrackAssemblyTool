@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.796"
+asmlib.TOOL_VERSION = "10.797"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -2115,6 +2115,7 @@ asmlib.NewTable("PIECES",{
       if(snPK) then tCache[snPK] = nil else table.Empty(tCache) end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine)
+      local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
@@ -2125,17 +2126,18 @@ asmlib.NewTable("PIECES",{
       if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
       if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK)); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK), defTab.Nick); return false end
       if(nOffsID ~= (stData.Size + 1)) then
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID,snPK)); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID,snPK), defTab.Nick); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
       if(not asmlib.IsHere(stPOA)) then
-        asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK)); return false end
+        asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK), defTab.Nick); return false end
       stData.Size = stData.Size + 1; return true
     end,
     ExportSyncDB = function(oF, makTab, tCache, sDelim)
+      local defTab = makTab:GetDefinition()
       local tSort, cT = asmlib.Arrange(tCache, "Type", "Name", "Slot"), nil
-      if(not tSort) then asmlib.LogInstance("Cannot sort cache data"); return false end
+      if(not tSort) then asmlib.LogInstance("Cannot sort cache data", defTab.Nick); return false end
       for iS = 1, tSort.Size do local stRec = tSort[iS]
         local sKey, vRec = stRec.Key, stRec.Rec
         if(not cT or cT ~= vRec.Type) then cT = vRec.Type
@@ -2151,7 +2153,7 @@ asmlib.NewTable("PIECES",{
     ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
-        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref)); return false end
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref), defTab.Nick); return false end
       local sClass = asmlib.ENTITY_DEFCLASS
       for iR = 1, tSort.Size do
         local stRec = tSort[iR]
@@ -2177,12 +2179,12 @@ asmlib.NewTable("PIECES",{
       end; return true
     end,
     ExportTypeDSV = function(makP, tContent, sType)
-      local sType, tType, nType = asmlib.ComponentType(sType) -- Normalize type
+      local defP = makP:GetDefinition() -- Normalize type
+      local sType, tType, nType = asmlib.ComponentType(sType)
       local sClass, makA = asmlib.ENTITY_DEFCLASS, asmlib.GetBuilderNick("ADDITIONS")
-      local contP = tContent[makP:GetDefinition().Nick]
-      local contA = tContent[makA:GetDefinition().Nick]
+      local contP, contA = tContent[defP.Nick], tContent[makA:GetDefinition().Nick]
       local tSort = asmlib.Arrange(contP.C, "Type", "Name", "Slot"); if(not tSort) then
-        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType)); return false end
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType), defP.Nick); return false end
       for iP = 1, tSort.Size do -- For all the sorter cache keys
         local stRec = tSort[iP] -- Extract sorted sequential index
         local tData = stRec.Rec -- Index the requested data reference
@@ -2214,19 +2216,20 @@ asmlib.NewTable("PIECES",{
         end
       end; return true
     end,
-    ExportTypeRUN = function(sType, makP, PCache, qPieces)
-      local coMo, coTy = makP:GetColumnName(1), makP:GetColumnName(2)
-      local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
-      local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
-      local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
-      local sClass, qData = asmlib.ENTITY_DEFCLASS, {}
+    ExportTypeRUN = function(sType, makTab, PCache, qPieces)
+      local defTab = makTab:GetDefinition()
       local sType = asmlib.GetTypeNormal(sType)
       local sPref = asmlib.GetTypePrefix(sType)
+      local sClass, qData = asmlib.ENTITY_DEFCLASS, {}
+      local coMo, coTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
+      local coNm, coLn = makTab:GetColumnName(3), makTab:GetColumnName(4)
+      local coP , coO  = makTab:GetColumnName(5), makTab:GetColumnName(6)
+      local coA , coC  = makTab:GetColumnName(7), makTab:GetColumnName(8)
       for mod, rec in pairs(PCache) do
         if(rec.Type == sType or rec.Pref == sPref) then
           local iID, tOffs = 1, rec.Offs -- Start from the first point
           local rPOA = tOffs[iID]; if(not asmlib.IsHere(rPOA)) then
-            asmlib.LogInstance("Missing point ID "..asmlib.GetReport(iID, rec.Slot)) return false end
+            asmlib.LogInstance("Missing point ID "..asmlib.GetReport(iID, rec.Slot), defTab.Nick) return false end
           for iID = 1, rec.Size do  -- Allocate row memory
             local qRow = {}; rPOA = tOffs[iID]
             local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
@@ -2243,9 +2246,10 @@ asmlib.NewTable("PIECES",{
         end
       end -- Must be the same format as returned from SQL
       local tSort = asmlib.Arrange(qData, coNm, coMo, coLn); if(not tSort) then
-        LogInstance("Sort cache mismatch"); return false end
+        LogInstance("Sort cache mismatch", defTab.Nick); return false end
+      if(tSort.Size and tSort.Size > 0) then
+        asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType), defTab.Nick) end
       for iD = 1, tSort.Size do table.insert(qPieces, tSort[iD].Rec) end
-      asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType))
       return true
     end
   },
@@ -2308,19 +2312,20 @@ asmlib.NewTable("ADDITIONS",{
       if(snPK) then tCache[snPK] = nil else table.Empty(tCache) end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine)
+      local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local iID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK)); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK), defTab.Nick); return false end
       if(iID ~= (stData.Size + 1)) then
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK)); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK), defTab.Nick); return false end
       local defTab = makTab:GetDefinition(); stData[iID] = {} -- LineID has to be set properly
       for iC = 2, defTab.Size do local sC = makTab:GetColumnName(iC); if(not sC) then
-        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iC,snPK)); return false end
+        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iC,snPK), defTab.Nick); return false end
         stData[iID][sC] = makTab:Match(arLine[iC],iC); if(not asmlib.IsHere(stData[iID][sC])) then
-          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iC,arLine[iC],snPK)); return false end
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iC,arLine[iC],snPK), defTab.Nick); return false end
       end; stData.Size = stData.Size + 1; return true
     end,
     ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
@@ -2386,11 +2391,12 @@ asmlib.NewTable("PHYSPROPERTIES",{
   Cache = {
     Erase = function(makTab, tCache, snPK)
       local tProID = asmlib.HASH_PROPERTY
+      local defTab = makTab:GetDefinition()
       local pN, pT = tProID.Name, tProID.Type
       local tNames = tCache[pN]; if(not tNames) then
-        asmlib.LogInstance("Names missing "..asmlib.GetReport(snPK)); return false end
+        asmlib.LogInstance("Names missing "..asmlib.GetReport(snPK), defTab.Nick); return false end
       local tTypes = tCache[pT]; if(not tTypes) then
-        asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK)); return false end
+        asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK), defTab.Nick); return false end
       if(snPK) then  -- Remove the type from the list
         for iT = 1, tTypes.Size do if(tTypes[iT] == snPK) then
           table.remove(tTypes, iT); tTypes.Size = (tTypes.Size - 1); break
@@ -2401,20 +2407,21 @@ asmlib.NewTable("PHYSPROPERTIES",{
     end,
     Record = function(makTab, tCache, snPK, arLine)
       local tProID = asmlib.HASH_PROPERTY
+      local defTab = makTab:GetDefinition()
       local pN, pT = tProID.Name, tProID.Type
       local tTypes = tCache[pT]; if(not tTypes) then
         tCache[pT] = {}; tTypes = tCache[pT]; tTypes.Size = 0 end
       local tNames = tCache[pN]; if(not tNames) then
         tCache[pN] = {}; tNames = tCache[pN] end
       local iNameID = makTab:Match(arLine[2],2); if(not asmlib.IsHere(iNameID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport(2,arLine[2],snPK)); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(2,arLine[2],snPK), defTab.Nick); return false end
       if(not asmlib.IsHere(tNames[snPK])) then -- If a new type is inserted
         tTypes.Size = (tTypes.Size + 1)
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
         tNames[snPK].Size, tNames[snPK].Slot = 0, snPK
       end -- Data matching crashes only on numbers
       if(iNameID ~= (tNames[snPK].Size + 1)) then
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iNameID,snPK)); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iNameID,snPK), defTab.Nick); return false end
       tNames[snPK].Size = tNames[snPK].Size + 1
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
@@ -2424,13 +2431,13 @@ asmlib.NewTable("PHYSPROPERTIES",{
       local pN, pT = tProID.Name, tProID.Type
       local tTypes, tNames, tT = tCache[pT], tCache[pN], {}
       if(not (tTypes or tNames)) then
-        asmlib.LogInstance("No data found "..asmlib.GetReport(fPref)); return false end
+        asmlib.LogInstance("No data found "..asmlib.GetReport(fPref), defTab.Nick); return false end
       for iD = 1, tTypes.Size do table.insert(tT, tTypes[iD]) end
       local tS = asmlib.Arrange(tT); if(not tS) then
-        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref)); return false end
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref), defTab.Nick); return false end
       for iS = 1, tS.Size do local sT = tS[iS].Rec
         local tProp = tNames[sT]; if(not tProp) then
-          asmlib.LogInstance("Missing index "..asmlib.GetReport(fPref, iS, sT)); return false end
+          asmlib.LogInstance("Missing index "..asmlib.GetReport(fPref, iS, sT), defTab.Nick); return false end
         for iP = 1, tProp.Size do local sP = tProp[iP]
           oF:Write(defTab.Name); oF:Write(sDelim)
           oF:Write(makTab:Match(sT,1,true,"\"")); oF:Write(sDelim)
@@ -2439,20 +2446,21 @@ asmlib.NewTable("PHYSPROPERTIES",{
         end
       end; return true
     end,
-    ExportTypeDSV = function(makR, tContent, sType)
+    ExportTypeDSV = function(makTab, tContent, sType)
       local sType = asmlib.GetTypeNormal(sType)
       local sType, tType, nType = asmlib.ComponentType(sType)
       local sPref = asmlib.GetTypePrefix(sType)
       local tProID = asmlib.HASH_PROPERTY
       local pN, pT = tProID.Name, tProID.Type
-      local contR = tContent[makR:GetDefinition().Nick]
+      local defTab = makTab:GetDefinition()
+      local contR = tContent[defTab.Nick]
       local tN, tC = contR.C[pN], {sType, unpack(tType)}
       local tD = (tN[sType] or tN[sPref]); if(not asmlib.IsHere(tD)) then
-        asmlib.LogInstance("Content missing "..asmlib.GetReport(sType, sPref)); return true end
+        asmlib.LogInstance("Content missing "..asmlib.GetReport(sType, sPref), defTab.Nick); return true end
       if(not (tD and tD.Size and tD.Size > 0)) then
-        asmlib.LogInstance("Content mismatch "..asmlib.GetReport(sType, sPref)); return true end
+        asmlib.LogInstance("Content mismatch "..asmlib.GetReport(sType, sPref), defTab.Nick); return true end
       local tSort = asmlib.Arrange(tC); if(not tSort) then
-        asmlib.LogInstance("Sorting failed "..asmlib.GetReport(sType, sPref)) return false end
+        asmlib.LogInstance("Sorting failed "..asmlib.GetReport(sType, sPref), defTab.Nick) return false end
       for iS = 1, tSort.Size do
         local sT = tSort[iS].Rec
         local sT = asmlib.GetTypeNormal(sT)
@@ -2461,7 +2469,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
         if(tD and tD.Size and tD.Size > 0) then
           for iD = 1, tD.Size do
             local aR = {sT, iD, tD[iD]}
-            makR:ArrayMatch(aR, true,"\"")
+            makTab:ArrayMatch(aR, true,"\"")
             table.insert(contR.D, aR)
           end
         end
@@ -2475,17 +2483,18 @@ asmlib.NewTable("PHYSPROPERTIES",{
       local pN, pT = tProID.Name, tProID.Type
       local sType = asmlib.GetTypeNormal(sType)
       local sPref = asmlib.GetTypePrefix(sType)
-      local tN, qData = tCache[pN], {}
+      local tN, qData, defTab = tCache[pN], {}, makTab:GetDefinition()
       local tR = (tN[sType] or tN[sPref]); if(not asmlib.IsHere(tR)) then
-        asmlib.LogInstance("Content missing "..asmlib.GetReport(sType, sPref)); return true end
+        asmlib.LogInstance("Content missing "..asmlib.GetReport(sType, sPref), defTab.Nick); return true end
       for iR = 1, tR.Size do local qRow = {}
         qRow[coTy], qRow[coLn], qRow[coPr] = sType, iR, tR[iR]
         table.insert(qData, qRow) -- Convert the cache as query result
       end -- Must be the same format as returned from SQL
       local tSort = asmlib.Arrange(qData, coTy, coLn); if(not tSort) then
-        LogInstance("Sort cache mismatch"); return false end
+        LogInstance("Sort cache mismatch", defTab.Nick); return false end
+      if(tSort.Size and tSort.Size > 0) then
+        asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType), defTab.Nick) end
       for iD = 1, tSort.Size do table.insert(qProps, tSort[iD].Rec) end
-      asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType))
       return true
     end
   },
