@@ -3153,7 +3153,6 @@ function NewTable(sTable,defTab,bReload,bDelete)
     for iC = 1, qtDef.Size do -- Column name tables are not ordered
       local sC = self:GetColumnName(iC) -- Retrieve a valid column name
       local vV = tRow[sC]; iA = (iA + 1) -- Count the validated columns
-      print("GetRowToArray", iC, sC, vV, iA)
       tA[(bT and iA or iC)] = vV -- Use sequential in trim enable
     end; return tA -- Return pointer to the output (have holes no trim)
   end
@@ -3180,15 +3179,16 @@ function NewTable(sTable,defTab,bReload,bDelete)
   ]]
   function self:RowMatch(tRow, bQ, sQ, bRe, bNo)
     local qtDef = self:GetDefinition() -- Table definition index
-    for sC, vV in pairs(tRow) do -- Record is not ordered so either way
-      local iC = self:GetColumnID(sC) -- Retrieve a valid column ID
-      if(iC > 0) then -- Count the validated column values
+    for iC = 1, qtDef.Size do -- Record is not ordered so either way
+      local sC = self:GetColumnName(iC) -- Retrieve a valid column ID
+      local vV = tRow[sC] -- Extract the column value and match it
+      if(IsHere(vV)) then -- The value is missing so it cannot be matched
         local vM = self:Match(vV,iC,bQ,sQ,bRe,bNo) -- Matching item
         if(not IsHere(vM)) then -- In case a value is not matched print row
           LogInstance("Mismatch "..GetReport(vV, iC), qtDef.Nick)
           return false -- Matching for column has failed
         end; tRow[sC] = vM -- Assign and check the next column
-      else LogInstance("Exception "..GetReport(sC, vV), qtDef.Nick); return false end
+      end -- The value is successfully matched and replaced
     end; return true -- Matching is successful
   end
   --[[
