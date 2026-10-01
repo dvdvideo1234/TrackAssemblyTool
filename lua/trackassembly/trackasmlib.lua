@@ -4867,7 +4867,9 @@ function ExportTypeRUN(sType, bSet)
                 end
                 fE:Write(sIn:rep(1)); fE:Write(fmSQL:format("Begin"))
               end
-              local sMo = aRow[cMo]; makP:ArrayMatch(aRow, true, "\"", true)
+              local sMo = aRow[cMo]
+              if(not makP:ArrayMatch(aRow, true, "\"", true)) then
+                fS:Deny(); return false end
               if(not makP:Trigger(sFunc, aRow, bSet)) then
                 fS:Deny(); return false end
               fE:Write(sIn:rep(1)); fE:Write(sMak); fE:Write(":Record({")
@@ -4889,7 +4891,9 @@ function ExportTypeRUN(sType, bSet)
           if(not bTy) then bTy = true
             fE:Write(sIn:rep(1)); fE:Write(fmSQL:format("Begin")) end
           local aRow = makA:GetRowToArray(qAdditions[iR])
-          local sMo = aRow[cMo]; makA:ArrayMatch(aRow, true, "\"", true)
+          local sMo = aRow[cMo]
+          if(not makA:ArrayMatch(aRow, true, "\"", true)) then
+            fS:Deny(); break end
           if(not makA:Trigger("ExportDSV", aRow, bSet)) then
             fS:Deny(); break end
           if(not makA:Trigger(sFunc, aRow, bSet)) then
@@ -4939,7 +4943,9 @@ function ExportTypeRUN(sType, bSet)
           for iR = 1, #qPieces do
             local aRow = makP:GetRowToArray(qPieces[iR])
             if(aRow[cTy] == sTy) then
-              local sMo = aRow[cMo]; makP:ArrayMatch(aRow, true, "\"", true)
+              local sMo = aRow[cMo]
+              if(not makP:ArrayMatch(aRow, true, "\"", true)) then
+                fS:Deny(); return false end
               if(aRow[cLn] == 1) then
                 if(bF) then bF = false else
                   fE:Seek(fE:Tell() - 2); fE:Write("\n")
@@ -4967,7 +4973,9 @@ function ExportTypeRUN(sType, bSet)
         local cMo = makA:GetColumnID("MODELBASE")
         for iR = 1, #qAdditions do
           local aRow = makA:GetRowToArray(qAdditions[iR])
-          local sMo = aRow[cMo]; makA:ArrayMatch(aRow, true, "\"", true)
+          local sMo = aRow[cMo]
+          if(not makA:ArrayMatch(aRow, true, "\"", true)) then
+            fS:Deny(); break end
           if(aRow[cLn] == 1) then
             if(bF) then bF = false else
               fE:Seek(fE:Tell() - 2); fE:Write("\n")
@@ -5106,7 +5114,7 @@ function ExportTypeDSV(sType, sDelim)
         local nR = #qData; tCo.F:Write(tHea.Qry:format(nR, Q))
         for iR = 1, nR do
           local aR = makTab:GetRowToArray(qData[iR])
-                     makTab:ArrayMatch(aR,true,"\"",true)
+          if(not makTab:ArrayMatch(aR,true,"\"",true)) then swCleanUp(); return end
           if(not makTab:Trigger("ExportDSV", aR)) then swCleanUp(); return end
           table.insert(tCo.D, aR)
           if(bPi and aR[cLn] == 1) then
@@ -5122,7 +5130,7 @@ function ExportTypeDSV(sType, sDelim)
               local nA = #qData; tCo.F:Write(tHea.Qry:format(nA, Q))
               for iA = 1, nA do
                 local aA = makA:GetRowToArray(qData[iA])
-                           makA:ArrayMatch(aA,true,"\"",true)
+                if(not makA:ArrayMatch(aA,true,"\"",true)) then swCleanUp(); return end
                 if(not makA:Trigger("ExportDSV", aA)) then swCleanUp(); return end
                 table.insert(tCo.D, aA)
               end
