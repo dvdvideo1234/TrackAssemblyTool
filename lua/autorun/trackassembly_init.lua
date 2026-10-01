@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.798"
+asmlib.TOOL_VERSION = "10.799"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -2384,7 +2384,10 @@ asmlib.NewTable("PHYSPROPERTIES",{
     end,
     ExportTypeRUN = function(arLine, bSet)
       local sN = "gsSymOff"
-      if(bSet) then arLine[1] = sN else arLine[2] = sN end
+      if(bSet) then arLine[1] = sN else arLine[2] = sN
+        local iT = asmlib.ComponentTypeID(arLine[1])
+        arLine[1] = "myType"..iT
+      end
       return true
     end,
     Record = function(arLine)

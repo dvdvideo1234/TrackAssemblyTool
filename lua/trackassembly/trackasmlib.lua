@@ -4994,18 +4994,22 @@ function ExportTypeRUN(sType, bSet)
         if(not RunComponentType(sType, function(iTy, sTy)
           for iR = 1, #qPhysprops do
             local aRow = makR:GetRowToArray(qPhysprops[iR])
-            if(aRow[cTy] == sTy) then
-              local rTy = aRow[cTy]; makR:ArrayMatch(aRow, true, "\"", true)
+            if(aRow[cTy] == sTy) then local rTy = aRow[cTy]
+              if(not makR:ArrayMatch(aRow, true, "\"", true)) then
+                fS:Deny(); return false end
               if(aRow[cLn] == 1) then
                 if(bF) then bF = false else
                   fE:Seek(fE:Tell() - 2); fE:Write("\n")
                   fE:Write(sIn:rep(1)); fE:Write("},")
                 end
+                if(not makR:Trigger(sFunc, aRow, bSet)) then
+                  fS:Deny(); return false end
                 fE:Write("\n"); fE:Write(sIn:rep(1)); fE:Write("[")
                 fE:Write(aRow[cTy]); fE:Write("] = {\n")
+              else
+                if(not makR:Trigger(sFunc, aRow, bSet)) then
+                  fS:Deny(); return false end
               end
-              if(not makR:Trigger(sFunc, aRow, bSet)) then
-                fS:Deny(); return false end
               table.remove(aRow, cTy); fE:Write(sIn:rep(2))
               fE:Write("{"); fE:Write(table.concat(aRow, ", ")); fE:Write("},\n")
             end
