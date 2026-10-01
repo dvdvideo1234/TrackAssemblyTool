@@ -144,14 +144,14 @@ if(CLIENT) then
 
   net.Receive(gsLibName.."SendUpdateHelix" ,
     function(nLen) local tU = {}
-      oU    = net.WriteEntity(oPly)   -- Player who applied the curve change     ( User )
-      tU[1] = net.WriteVector(vOrg)   -- Current helix start location vector     ( Origin POS )
-      tU[2] = net.WriteAngle (aOrg)   -- Current helix start location angle      ( Origin ANG )
-      tU[3] = net.WriteFloat (nAng)   -- Amount of degrees calculating the curve ( End angle )
-      tU[4] = net.WriteFloat (nRad)   -- Player trace location curve data        ( Radius )
-      tU[5] = net.WriteUInt(nSmp, 16) -- Player trace angle curve data           ( Samples )
-      tU[6] = net.WriteVector(vDsp)   -- Player trace hits POA location or not   ( Displace POS )
-      tU[7] = net.WriteAngle (aDsp)   -- The index to change at when requested   ( Displace ANG )
+      oU    = net.ReadEntity(oPly)   -- Player who applied the curve change     ( User )
+      tU[1] = net.ReadVector(vOrg)   -- Current helix start location vector     ( Origin POS )
+      tU[2] = net.ReadAngle (aOrg)   -- Current helix start location angle      ( Origin ANG )
+      tU[3] = net.ReadFloat (nAng)   -- Amount of degrees calculating the curve ( End angle )
+      tU[4] = net.ReadFloat (nRad)   -- Player trace location curve data        ( Radius )
+      tU[5] = net.ReadUInt(nSmp, 16) -- Player trace angle curve data           ( Samples )
+      tU[6] = net.ReadVector(vDsp)   -- Player trace hits POA location or not   ( Displace POS )
+      tU[7] = net.ReadAngle (aDsp)   -- The index to change at when requested   ( Displace ANG )
       local bS, sR = asmlib.DoAction("UPDATE_HELIX", oU, tU); if(not bS) then
         asmlib.LogInstance("Update helix error "..asmlib.GetReport(oU, nSmp, sR)) end
     end)
@@ -692,6 +692,7 @@ function TOOL:IsFlipOver()
 end
 
 function TOOL:IsHelix()
+  local user = self:GetOwner()
   local tC  = asmlib.GetCacheCurve(user)
   if(not tC) then return false end
   if(not tC.Size) then return false end
@@ -1166,11 +1167,9 @@ function TOOL:HelixUpdate(stTrace, bPnt, bCao)
   local nextpic, nextyaw, nextrol = self:GetAngOffsets()
   local user, tU, oE  = self:GetOwner(), {}, stTrace.Entity
   local tC = asmlib.GetCacheCurve(user); if(not tC) then
-    asmlib.LogInstance("Curve missing", gtLogs); return nil end
+    asmlib.LogInstance("Curve missing", gtLogs); return false end
   tU[1], tU[2] = Vector(), Angle() -- Obtain transform from the active point
   if(bCao) then
-    local tC = GetCacheCurve(oPly); if(not tC) then
-      LogInstance("Curve missing"); return false end
     tU[1]:Set(tC.Info.Oro[1]) -- Use the already present origin
     tU[2]:Set(tC.Info.Oro[2]) -- Use the already present angle
   elseif(bPnt and oE and oE:IsValid()) then
@@ -1184,7 +1183,7 @@ function TOOL:HelixUpdate(stTrace, bPnt, bCao)
     tU[1]:Set(stTrace.HitNormal); tU[1]:Mul(elevpnt); tU[1]:Add(stTrace.HitPos)
     tU[2]:Set(asmlib.GetNormalAngle(user, stTrace, surfsnap, angsnap))
   end
-  tU[3] = 100 * nextyaw -- Yaw is unused anyway, so scale it and apply end angle
+  tU[3] = nextyaw -- Yaw is unused anyway so scale it and apply end angle
   tU[4] = self:GetActiveRadius() -- Helix circle is the active radius
   tU[5] = self:GetCurveSamples() -- Helix base nodes are the curve samples
   tU[6] = Vector(nextx  , nexty  , nextz) -- Linear displacement from the offsets
@@ -1950,7 +1949,7 @@ function TOOL:UpdateGhost(oPly)
   local workmode = self:GetWorkingMode()
   if(workmode == 3 or workmode == 5) then
     self:UpdateGhostCurve() return -- Curving does ghosting
-  else(workmode == 6 and self:IsHelix())
+  elseif(workmode == 6 and self:IsHelix()) then
     self:UpdateGhostCurve() return -- Curving does ghosting
   end -- Call curving mode return early and update
   local atGho, trRec = asmlib.ARRAY_GHOST
@@ -2351,14 +2350,18 @@ end
 
 function TOOL:DrawHelixNode(oScreen, user, stTrace)
   local tC  = asmlib.GetCacheCurve(user); if(not tC) then return end
-  local bPnt, sizeucs, nO = input.IsKeyDown(KEY_E), self:GetSizeUCS(), 1.5
+  local sizeucs = self:GetSizeUCS()
+  local angsnap = self:GetAngSnap()
+  local elevpnt = self:GetElevation()
+  local surfsnap = self:GetSurfaceSnap()
+  local bPnt, nO = input.IsKeyDown(KEY_E), 1.5
   if(self:IsHelix()) then
     local vO, aO = tC.Info.Ors[1], tC.Info.Ors[2]
     for iD = 2, tC.Size do
       local vD = tC.Node[iD]
       local vN = tC.Norm[iD]
       local vP = tC.Node[iD - 1]
-      local nD = asmlib.GetViewRadius(oPly, vD, nO)
+      local nD = asmlib.GetViewRadius(user, vD, nO)
       local xyD, xyP = vD:ToScreen(), vP:ToScreen()
       local xyN = (vD + sizeucs * vN):ToScreen()
       oScreen:DrawLine(xyP, xyD, "r", "SURF")
@@ -2373,7 +2376,7 @@ function TOOL:DrawHelixNode(oScreen, user, stTrace)
       if(not asmlib.IsHere(oRec)) then
         asmlib.LogInstance("Trace model not piece "..asmlib.GetReport(oM)); return false end
       vO:SetUnpacked(oPOA.O:Get()); vO:Rotate(oA); vO:Add(oP)
-      aO:SetUnpacked(oPOA.A:Get()); aO:Set(trEnt:LocalToWorldAngles(aO))
+      aO:SetUnpacked(oPOA.A:Get()); aO:Set(oE:LocalToWorldAngles(aO))
     else -- Obtain the origin transform from the trace surface
       vO:Set(stTrace.HitNormal); vO:Mul(elevpnt); vO:Add(stTrace.HitPos)
       aO:Set(asmlib.GetNormalAngle(user, stTrace, surfsnap, angsnap))

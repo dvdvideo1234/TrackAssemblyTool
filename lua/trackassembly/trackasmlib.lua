@@ -6697,8 +6697,8 @@ function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
     LogInstance("Radius is zero"); return nil end
   local vT = tonumber(nSmp); if(not vT) then vT = 100
     LogInstance("Samples default to [100] "..GetReport(nSmp)) end
-  local rT = math.floor(vT); if(rT < 0) then
-    LogInstance("Samples mismatch "..GetReport(vT)); return nil end
+  local rT = math.floor(vT); if(rT < 2) then
+    LogInstance("Samples mismatch "..GetReport(vT, rT)); return nil end
   local vOrg = Vector(vOrg or tC.Info.Oro[1]); tC.Info.Oro[1]:Set(vOrg)
   local aOrg = Angle (aOrg or tC.Info.Oro[2]); tC.Info.Oro[2]:Set(aOrg)
   local tH , tN, tB = tC.Node, tC.Norm, tC.Base
