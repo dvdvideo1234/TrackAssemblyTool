@@ -3147,14 +3147,50 @@ function NewTable(sTable,defTab,bReload,bDelete)
    * tO   > Data output when provided (may have holes)
    * bT   > Force trimming the holes
   ]]
-  function self:GetRowToArray(tRow, tO, bT)
+  function self:GetRowToArray(tRow, bT, tO)
+    local qtDef = self:GetDefinition() -- Table definition index
     local tA, iA = (tO or {}), 0 -- Create new or store in the output
-    for key, val in pairs(tRow) do -- Column name tables are not ordered
-      local iD = self:GetColumnID(key) -- Retrieve a valid column ID
-      if(iD > 0) then iA = (iA + 1) -- Count the validated columns
-        tA[(bT and iA or iD)] = val -- Use sequential in trim enable
-      end -- Validate and assign array contents for validated column
+    for sC, vV in pairs(tRow) do -- Column name tables are not ordered
+      local iC = self:GetColumnID(sC) -- Retrieve a valid column ID
+      if(iC > 0) then iA = (iA + 1) -- Count the validated columns
+        tA[(bT and iA or iC)] = vV -- Use sequential in trim enable
+      else LogInstance("Exception "..GetReport(sC, vV), qtDef.Nick); return false end
+      -- Validate and assign array contents for validated column
     end; return tA -- Return pointer to the output (have holes no trim)
+  end
+  --[[
+   * Returns the row with swapped indexes to column names
+   * tArr > Array being converted to record
+   * tO   > Data output when provided
+  ]]
+  function self:GetArrayToRow(tArr, tO)
+    local qtDef = self:GetDefinition() -- Table definition index
+    local tR = (tO or {}) -- Store the putout data here
+    for iC = 1, qtDef.Size do -- Record is not ordered so either way
+      local sN = self:GetColumnName(iC) -- Get column name mapping
+      if(sN) then tR[sN] = tArr[iC] end
+    end; return tR
+  end
+  --[[
+   * Data matching wrapper that works on a hash row
+   * tRow > Hash row being converted and validated
+   * bQ   > Force quote on the string being matched
+   * sQ   > Force a quote character to be used when [bQ] is enabled
+   * bRe  > Do not replace the single SQL quite with two quotes
+   * bNo  > Do not replace empty strings with NULL
+  ]]
+  function self:RowMatch(tRow, bQ, sQ, bRe, bNo)
+    local qtDef = self:GetDefinition() -- Table definition index
+    for sC, vV in pairs(tRow) do -- Record is not ordered so either way
+      local iC = self:GetColumnID(sC) -- Retrieve a valid column ID
+      if(iC > 0) then -- Count the validated column values
+        local vM = self:Match(vV,iC,bQ,sQ,bRe,bNo) -- Matching item
+        if(not IsHere(vM)) then -- In case a value is not matched print row
+          LogInstance("Mismatch "..GetReport(vV, iC), qtDef.Nick)
+          return false -- Matching for column has failed
+        end; tRow[sC] = vM -- Assign and check the next column
+      else LogInstance("Exception "..GetReport(sC, vV), qtDef.Nick); return false end
+    end; return true -- Matching is successful
   end
   --[[
    * Data matching wrapper that works on an array
@@ -3174,22 +3210,16 @@ function NewTable(sTable,defTab,bReload,bDelete)
       end; tArr[iC] = vM -- Assign and check the next column
     end; return true -- Matching is successful
   end
-  --[[
-   * Returns the row with swapped indexes to column names
-   * tArr > Array being converted to record
-   * tO   > Data output when provided
-  ]]
-  function self:GetArrayToRow(tArr, tO)
-    local tR, qtDef = (tO or {}), self:GetDefinition() -- Store it here
-    for iC = 1, qtDef.Size do -- Record is not ordered so either way
-      local sN = self:GetColumnName(iC) -- Get column name mapping
-      if(sN) then tR[sN] = tArr[iC] end
-    end; return tR
-  end
   -- Removes the object from the list
   function self:Remove(vRet)
-    local qtDef = self:GetDefinition()
-    libQTable[qtDef.Nick] = nil
+    local qtDef, iD = self:GetDefinition()
+    local sN, sF = qtDef.Nick, qtDef.Name
+    for iD = 1, #libQTable do
+      if(libQTable[iD] == sN) then
+        table.remove(libQTable, iD); break end
+    end
+    libCache[sF] = nil
+    libQTable[sN] = nil
     return vRet
   end
   -- Generates a timer settings table and keeps the defaults
@@ -4055,7 +4085,7 @@ function ExportSyncDB(sDelim)
   local sDelim = tostring(sDelim or OPSYM_DELIMIT):sub(1,1)
   local sMiss, sTable = MISS_NOAV, "PIECES"
   local tHew, tHea = PATTEM_EXDSVHED, FORM_HEADEREXP
-  local sMoDB = MODE_DATABASE -- Read database mode
+  local sMoDB, qData = MODE_DATABASE, {} -- Read database mode
   local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode"); return false end
   local sHew, sFunc = tHew.Fmt:format(sMiss, sTable, sDelim), debug.getinfo(1).name
@@ -4073,26 +4103,26 @@ function ExportSyncDB(sDelim)
     local Q = makTab:Get(qIndx, 1); if(not IsHere(Q)) then
       Q = makTab:Select(unpack(tQ.S)):Where(unpack(tQ.W)):Order(unpack(tQ.O)):Store(qIndx):Get(qIndx, 1) end
     if(not IsHere(Q)) then LogInstance("Build statement failed "..GetReport(sHew)); F:Flush(); F:Close(); return false end
-    local qData = sql.Query(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
+    qData = sql.Query(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
       LogInstance("SQL exec error "..GetReport(sHew, sql.LastError(), Q)); return false end
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance("No data found "..GetReport(sHew, Q)); return false end
     F:Write(tHea.Qry:format(#qData, Q))
-    local coTy, tD, cT = makTab:GetColumnName(2), {}, nil
-    for iD = 1, #qData do local qRow = qData[iD]
-      if(not cT or cT ~= qRow[coTy]) then cT = qRow[coTy]
-        local sW = tostring(WorkshopID(cT) or sMiss)
-        F:Write(tHea.Cax:format(cT, sW))
-      end
-      for iD = 1, #tQ.S do local iC = tQ.S[iD]
-        tD[iD] = makTab:Match(qRow[makTab:GetColumnName(iC)],iC,true,"\"",true)
-      end; F:Write(table.concat(tD, sDelim)); F:Write("\n")
-    end
   elseif(sMoDB == "LUA") then
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then
       LogInstance("Cache missing "..GetReport(sHew)); F:Flush(); F:Close(); return false end
-    if(not makTab:Operator(sFunc, F, makTab, tCache, sDelim)) then F:Flush(); F:Close()
+    if(not makTab:Operator(sFunc, makTab, tCache, qData, sDelim)) then F:Flush(); F:Close()
       LogInstance("Cache manager error "..GetReport(sHew,sR)); return false end
+  end
+  local coTy, cT = makTab:GetColumnName(2)
+  for iD = 1, #qData do local qRow = qData[iD]
+    if(not cT or cT ~= qRow[coTy]) then cT = qRow[coTy]
+      local sW = tostring(WorkshopID(cT) or sMiss)
+      F:Write(tHea.Cax:format(cT, sW))
+    end
+    if(not makTab:RowMatch(qRow, true, "\"", true)) then return false end
+    local aRow = makTab:GetRowToArray(qRow, true)
+    F:Write(table.concat(aRow, sDelim)); F:Write("\n")
   end; F:Flush(); F:Close(); LogInstance("Success "..GetReport(sHew)); return true
 end
 
@@ -4227,7 +4257,7 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
     LogInstance("Missing table builder "..GetReport(sHew), sTable); return false end
   local defTab = makTab:GetDefinition(); if(not IsHere(defTab)) then
     LogInstance("Missing table definition "..GetReport(sHew), sTable); return false end
-  local sSors = (bExp and DIRPATH_EXP or DIRPATH_DSV)
+  local sSors, qData = (bExp and DIRPATH_EXP or DIRPATH_DSV), {}
   local fName = GetLibraryPath(sSors, fPref, defTab.Name)
   local F = file.Open(fName, "wb", "DATA"); if(not F) then
     LogInstance("Open fail "..GetReport(sHew, fName), sTable); return false end
@@ -4239,22 +4269,23 @@ function ExportDSV(sTable, sPref, sDelim, bExp)
       Q = makTab:Select():Order(unpack(tQ.O)):Store(qIndx):Get(qIndx) end
     if(not IsHere(Q)) then F:Flush(); F:Close()
       LogInstance("Build statement failed "..GetReport(sHew, fName, qIndx), sTable); return false end
-    local qData = sql.Query(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
+    qData = sql.Query(Q); if(not qData and isbool(qData)) then F:Flush(); F:Close()
       LogInstance("SQL exec error "..GetReport(sHew, fName, sql.LastError(), Q), sTable); return false end
     if(not IsHere(qData) or IsEmpty(qData)) then F:Flush(); F:Close()
       LogInstance("No data found "..GetReport(sHew, fName, Q), sTable); return false end
     F:Write(tHea.Qry:format(#qData, Q))
-    for iR = 1, #qData do local aRow = makTab:GetRowToArray(qData[iR])
-      if(not makTab:ArrayMatch(aRow, true, "\"", true)) then F:Flush(); F:Close(); return false end
-      if(not makTab:Trigger("ExportDSV", aRow)) then F:Flush(); F:Close(); return false end
-      F:Write(defTab.Name); F:Write(sDelim); F:Write(table.concat(aRow, sDelim)); F:Write("\n")
-    end -- Matching will not crash as it is matched during insertion
   elseif(sMoDB == "LUA") then
     local tCache = libCache[defTab.Name]; if(not IsHere(tCache)) then F:Flush(); F:Close()
       LogInstance("Cache missing "..GetReport(sHew, fName), sTable); return false end
-    if(not makTab:Operator(sFunc, F, makTab, tCache, fPref, sDelim)) then F:Flush(); F:Close()
+    if(not makTab:Operator(sFunc, makTab, tCache, qData, fPref, sDelim)) then F:Flush(); F:Close()
       LogInstance("Cache manager error "..GetReport(sHew, fName, sR), sTable); return false end
-  end; F:Flush(); F:Close(); LogInstance("Success "..GetReport(sHew, fName), sTable); return true
+  end
+  for iR = 1, #qData do local aRow = makTab:GetRowToArray(qData[iR])
+    if(not makTab:ArrayMatch(aRow, true, "\"", true)) then F:Flush(); F:Close(); return false end
+    if(not makTab:Trigger("ExportDSV", aRow)) then F:Flush(); F:Close(); return false end
+    F:Write(defTab.Name); F:Write(sDelim); F:Write(table.concat(aRow, sDelim)); F:Write("\n")
+  end -- Matching will not crash as it is matched during insertion
+  F:Flush(); F:Close(); LogInstance("Success "..GetReport(sHew, fName), sTable); return true
 end
 
 --[[

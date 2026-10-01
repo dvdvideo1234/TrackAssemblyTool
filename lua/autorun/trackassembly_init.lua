@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.797"
+asmlib.TOOL_VERSION = "10.798"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -2134,47 +2134,44 @@ asmlib.NewTable("PIECES",{
         asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK), defTab.Nick); return false end
       stData.Size = stData.Size + 1; return true
     end,
-    ExportSyncDB = function(oF, makTab, tCache, sDelim)
+    ExportSyncDB = function(makTab, tCache, qData, sDelim)
       local defTab = makTab:GetDefinition()
       local tSort, cT = asmlib.Arrange(tCache, "Type", "Name", "Slot"), nil
       if(not tSort) then asmlib.LogInstance("Cannot sort cache data", defTab.Nick); return false end
+      local coMo = makTab:GetColumnName(1)
+      local coTy = makTab:GetColumnName(2)
+      local coNm = makTab:GetColumnName(3)
       for iS = 1, tSort.Size do local stRec = tSort[iS]
         local sKey, vRec = stRec.Key, stRec.Rec
-        if(not cT or cT ~= vRec.Type) then cT = vRec.Type
-          local sW = tostring(asmlib.WorkshopID(cT) or sMiss)
-          oF:Write("# Categorize("); oF:Write(cT)
-          oF:Write("): "); oF:Write(sW); oF:Write("\n")
-        end
-        oF:Write(makTab:Match(vRec.Slot,1,true,"\"")..sDelim)
-        oF:Write(makTab:Match(vRec.Type,2,true,"\"")..sDelim)
-        oF:Write(makTab:Match(vRec.Name,3,true,"\"")); oF:Write("\n")
+        local sM, sT, sN = vRec.Slot, vRec.Type, vRec.Name
+        table.insert(qData, {[coMo] = sM, [coTy] = sT, [coNm] = sN})
       end; return true
     end,
-    ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
+    ExportDSV = function(makTab, tCache, qData, fPref, sDelim)
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
         asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref), defTab.Nick); return false end
       local sClass = asmlib.ENTITY_DEFCLASS
+      local coMo, coTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
+      local coNm, coLn = makTab:GetColumnName(3), makTab:GetColumnName(4)
+      local coP , coO  = makTab:GetColumnName(5), makTab:GetColumnName(6)
+      local coA , coC  = makTab:GetColumnName(7), makTab:GetColumnName(8)
       for iR = 1, tSort.Size do
-        local stRec = tSort[iR]
-        local tData = tCache[stRec.Key]
-        local tOffs = tData.Offs
-        local sData = asmlib.GetConcat(defTab.Name, sDelim,
-          makTab:Match(stRec.Key ,1,true, "\""), sDelim,
-          makTab:Match(tData.Type,2,true, "\""), sDelim,
-          makTab:Match(tData.Name,3,true, "\""))
-        -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
+        local stRec = tSort[iR] -- Index one sorted value
+        local tRec  = stRec.Rec -- work with the temporary table instead
+        local tOffs = tRec.Offs -- Localize ;offsets configuration
         for iD = 1, #tOffs do
-          local stPnt = tOffs[iD] -- Read current offsets from the model
-          local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
-          local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or gsNoSQL)
+          local qRow = {}; rPOA = tOffs[iD]
+          local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
+          local sC = (asmlib.IsHere(tRec.Unit) and tostring(tRec.Unit) or gsNoSQL)
                 sC = ((sC == sClass) and gsNoSQL or sC) -- Export default class
-          oF:Write(sData); oF:Write(sDelim)
-          oF:Write(makTab:Match(iD,4,true,"\"")); oF:Write(sDelim)
-          oF:Write("\""); oF:Write(sP); oF:Write("\""); oF:Write(sDelim)
-          oF:Write("\""); oF:Write(sO); oF:Write("\""); oF:Write(sDelim)
-          oF:Write("\""); oF:Write(sA); oF:Write("\""); oF:Write(sDelim)
-          oF:Write("\""); oF:Write(sC); oF:Write("\"\n")
+          qRow[coMo] = tRec.Slot
+          qRow[coTy] = tRec.Type
+          qRow[coNm] = tRec.Name
+          qRow[coLn] = iD -- Matching crashes only for numbers
+          qRow[coP ] = sP; qRow[coO ] = sO
+          qRow[coA ] = sA; qRow[coC ] = sC
+          table.insert(qData, qRow)
         end
       end; return true
     end,
@@ -2328,18 +2325,27 @@ asmlib.NewTable("ADDITIONS",{
           asmlib.LogInstance("Cannot match "..asmlib.GetReport(iC,arLine[iC],snPK), defTab.Nick); return false end
       end; stData.Size = stData.Size + 1; return true
     end,
-    ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
+    ExportDSV = function(makTab, tCache, qData, fPref, sDelim)
       local tSort = asmlib.Arrange(tCache, "Slot")
       local defTab = makTab:GetDefinition()
+      local coMB, coMA = makTab:GetColumnName(1), makTab:GetColumnName(2)
+      local coEN, coLI = makTab:GetColumnName(3), makTab:GetColumnName(4)
+      local coPO, coAN = makTab:GetColumnName(5), makTab:GetColumnName(6)
+      local coMO, coPI = makTab:GetColumnName(7), makTab:GetColumnName(8)
+      local coDR, coPM = makTab:GetColumnName(9), makTab:GetColumnName(10)
+      local coPS, coSE = makTab:GetColumnName(11), makTab:GetColumnName(12)
       for iRow = 1, tSort.Size do
         local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
-        for iRec = 1, #tRec do
-          local aRow = makTab:GetRowToArray(tRec[iRec]); aRow[1] = sKey
-          for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
-          if(not makTab:Trigger("ExportDSV", aRow)) then return false end
-          oF:Write(defTab.Name); oF:Write(sDelim)
-          oF:Write(table.concat(aRow, sDelim)); oF:Write("\n")
+        for iR = 1, #tRec do
+          local vRec, qRow = tRec[iR], {}
+          qRow[coMB], qRow[coMA] = sKey      , vRec[coMA]
+          qRow[coEN], qRow[coLI] = vRec[coEN], vRec[coLI]
+          qRow[coPO], qRow[coAN] = vRec[coPO], vRec[coAN]
+          qRow[coMO], qRow[coPI] = vRec[coMO], vRec[coPI]
+          qRow[coDR], qRow[coPM] = vRec[coDR], vRec[coPM]
+          qRow[coPS], qRow[coSE] = vRec[coPS], vRec[coSE]
+          table.insert(qData, qRow)
         end
       end; return true
     end
@@ -2425,10 +2431,13 @@ asmlib.NewTable("PHYSPROPERTIES",{
       tNames[snPK].Size = tNames[snPK].Size + 1
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
-    ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
+    ExportDSV = function(makTab, tCache, qData, fPref, sDelim)
       local defTab = makTab:GetDefinition()
       local tProID = asmlib.HASH_PROPERTY
       local pN, pT = tProID.Name, tProID.Type
+      local coTY = makTab:GetColumnName(1)
+      local coLI = makTab:GetColumnName(2)
+      local coPR = makTab:GetColumnName(3)
       local tTypes, tNames, tT = tCache[pT], tCache[pN], {}
       if(not (tTypes or tNames)) then
         asmlib.LogInstance("No data found "..asmlib.GetReport(fPref), defTab.Nick); return false end
@@ -2439,10 +2448,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
         local tProp = tNames[sT]; if(not tProp) then
           asmlib.LogInstance("Missing index "..asmlib.GetReport(fPref, iS, sT), defTab.Nick); return false end
         for iP = 1, tProp.Size do local sP = tProp[iP]
-          oF:Write(defTab.Name); oF:Write(sDelim)
-          oF:Write(makTab:Match(sT,1,true,"\"")); oF:Write(sDelim)
-          oF:Write(makTab:Match(iP,2,true,"\"")); oF:Write(sDelim)
-          oF:Write(makTab:Match(sP,3,true,"\"")); oF:Write("\n")
+          table.insert(qData, {[coTY] = sT, [coLI] = iP, [coPR] = sP})
         end
       end; return true
     end,
@@ -2467,9 +2473,8 @@ asmlib.NewTable("PHYSPROPERTIES",{
         local sP = asmlib.GetTypePrefix(sT)
         local tD = (tN[sT] or tN[sP])
         if(tD and tD.Size and tD.Size > 0) then
-          for iD = 1, tD.Size do
-            local aR = {sT, iD, tD[iD]}
-            makTab:ArrayMatch(aR, true,"\"")
+          for iD = 1, tD.Size do local aR = {sT, iD, tD[iD]}
+            if(not makTab:ArrayMatch(aR, true, "\"", true)) then return false end
             table.insert(contR.D, aR)
           end
         end
