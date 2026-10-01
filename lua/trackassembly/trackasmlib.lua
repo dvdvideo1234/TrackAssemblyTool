@@ -3150,12 +3150,11 @@ function NewTable(sTable,defTab,bReload,bDelete)
   function self:GetRowToArray(tRow, bT, tO)
     local qtDef = self:GetDefinition() -- Table definition index
     local tA, iA = (tO or {}), 0 -- Create new or store in the output
-    for sC, vV in pairs(tRow) do -- Column name tables are not ordered
-      local iC = self:GetColumnID(sC) -- Retrieve a valid column ID
-      if(iC > 0) then iA = (iA + 1) -- Count the validated columns
-        tA[(bT and iA or iC)] = vV -- Use sequential in trim enable
-      else LogInstance("Exception "..GetReport(sC, vV), qtDef.Nick); return false end
-      -- Validate and assign array contents for validated column
+    for iC = 1, qtDef.Size do -- Column name tables are not ordered
+      local sC = self:GetColumnName(iC) -- Retrieve a valid column name
+      local vV = tRow[sC]; iA = (iA + 1) -- Count the validated columns
+      print("GetRowToArray", iC, sC, vV, iA)
+      tA[(bT and iA or iC)] = vV -- Use sequential in trim enable
     end; return tA -- Return pointer to the output (have holes no trim)
   end
   --[[
@@ -3167,8 +3166,8 @@ function NewTable(sTable,defTab,bReload,bDelete)
     local qtDef = self:GetDefinition() -- Table definition index
     local tR = (tO or {}) -- Store the putout data here
     for iC = 1, qtDef.Size do -- Record is not ordered so either way
-      local sN = self:GetColumnName(iC) -- Get column name mapping
-      if(sN) then tR[sN] = tArr[iC] end
+      local sC = self:GetColumnName(iC) -- Get column name mapping
+      if(sC) then tR[sC] = tArr[iC] end
     end; return tR
   end
   --[[
