@@ -153,7 +153,7 @@ if(CLIENT) then
       tU[6] = net.ReadVector() -- Player trace hits POA location or not   ( Displace POS )
       tU[7] = net.ReadAngle()  -- The index to change at when requested   ( Displace ANG )
       local bS, sR = asmlib.DoAction("UPDATE_HELIX", oU, tU); if(not bS) then
-        asmlib.LogInstance("Update helix error "..asmlib.GetReport(oU, nSmp, sR)) end
+        asmlib.LogInstance("Update helix error "..asmlib.GetReport(oU, sR)) end
     end)
 
   net.Receive(gsLibName.."SendClearHelix" ,
@@ -1093,7 +1093,7 @@ function TOOL:CurveUpdate(stTrace, bPnt, bMute)
       local vO = Vector(); vO:Set(vD); vO:Sub(vB)
       local nextx, nexty, nextz = vO:Unpack()
       asmlib.SetAsmConvar(user,"nextx", nextx)
-      asmlib.SetAsmConvar(user,"nexty", nextx)
+      asmlib.SetAsmConvar(user,"nexty", nexty)
       asmlib.SetAsmConvar(user,"nextz", nextz - elevpnt)
       if(not (tN[mD-1] and tN[mD+1])) then vF = tR[2]:Forward() else
         vF = Vector(tN[mD+1]); vF:Sub(tN[mD-1]); vF:Normalize() end
