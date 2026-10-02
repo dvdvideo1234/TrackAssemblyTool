@@ -2107,6 +2107,8 @@ function WorkshopAttachToMenu(pnMenu, sType)
 end
 
 function OpenNodeMenu(pnBase)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return end
   local pMenu = DermaMenu(false, pnBase)
@@ -2146,6 +2148,8 @@ function OpenNodeMenu(pnBase)
 end
 
 function SetNodeExpand(pnBase)
+  if(SERVER) then
+    LogInstance("Base panel server"); return nil end
   if(not IsValid(pnBase)) then
     LogInstance("Base panel invalid"); return nil end
   local bEx = pnBase:GetExpanded()
@@ -2157,7 +2161,9 @@ function SetNodeExpand(pnBase)
 end
 
 function SetNodeDirectory(pnBase, vName)
-  if(not IsValid(pnBase)) then LogInstance("Base invalid "
+  if(SERVER) then LogInstance("Base panel server "
+    ..GetReport(pnBase, sName)); return nil end
+  if(not IsValid(pnBase)) then LogInstance("Base panel invalid "
     ..GetReport(pnBase, sName)); return nil end
   local sName = tostring(vName or "")
         sName = (IsBlank(sName) and "Other" or sName)
@@ -2178,7 +2184,9 @@ function SetNodeDirectory(pnBase, vName)
 end
 
 function SetNodeContent(pnBase, sName, sModel)
-  if(not IsValid(pnBase)) then LogInstance("Base invalid "
+  if(SERVER) then LogInstance("Base panel server "
+    ..GetReport(pnBase, sName, sModel)); return nil end
+  if(not IsValid(pnBase)) then LogInstance("Base panel invalid "
     ..GetReport(pnBase, sName, sModel)); return nil end
   local pNode = pnBase:AddNode(sName)
   if(not IsValid(pNode)) then LogInstance("Node invalid "
@@ -2235,6 +2243,10 @@ function GetFrequentPieces(vCnt)
 end
 
 function SetListViewRowClipboard(pnListView)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
+  if(not IsValid(pnListView)) then
+    LogInstance("Base panel invalid"); return end
   local nID, pnRow = pnListView:GetSelectedLine()
   if(not (nID and nID > 0 and pnRow)) then return "" end
   local sD = (OPSYM_VERTDIV or "|")
@@ -2247,6 +2259,10 @@ function SetListViewRowClipboard(pnListView)
 end
 
 function SetListViewBoxClipboard(pnListView, nX, nY)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
+  if(not IsValid(pnListView)) then
+    LogInstance("Base panel invalid"); return end
   local nID, pnRow = pnListView:GetSelectedLine()
   if(not (nID and nID > 0 and pnRow)) then return "" end
   local cC, mX, mY = 0, input.GetCursorPos()
@@ -2258,6 +2274,10 @@ function SetListViewBoxClipboard(pnListView, nX, nY)
 end
 
 function SetComboBoxClipboard(pnCombo)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
+  if(not IsValid(pnCombo)) then
+    LogInstance("Base panel invalid"); return end
   local sV = pnCombo:GetValue()
   local iD = pnCombo:GetSelectedID()
   local sT = pnCombo:GetOptionText(iD)
@@ -2266,6 +2286,10 @@ function SetComboBoxClipboard(pnCombo)
 end
 
 function SetComboBoxList(cPanel, sVar)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
+  if(not IsValid(cPanel)) then
+    LogInstance("Base panel invalid"); return end
   local tSet = GMOD["ARRAY_"..sVar:upper()]
   if(IsHere(tSet)) then
     local tSkin, sTool = cPanel:GetSkin(), TOOLNAME_NL
@@ -2292,6 +2316,10 @@ function SetComboBoxList(cPanel, sVar)
 end
 
 function SetButton(cPanel, sVar)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
+  if(not IsValid(cPanel)) then
+    LogInstance("Base panel invalid"); return end
   local tConv, sTool = STORE_CONVARS, TOOLNAME_NL
   local sKey, sNam, bExa = GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
@@ -2301,6 +2329,10 @@ function SetButton(cPanel, sVar)
 end
 
 function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
+  if(not IsValid(cPanel)) then
+    LogInstance("Base panel invalid"); return end
   local nMin, nMax, nDev = tonumber(vMin), tonumber(vMax), tonumber(vDev)
   local sTool, tConv = TOOLNAME_NL, STORE_CONVARS
   local sKey, sNam, bExa, nDum = GetNameExp(sVar)
@@ -2339,6 +2371,10 @@ function SetNumSlider(cPanel, sVar, vDig, vMin, vMax, vDev)
 end
 
 function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
+  if(not IsValid(cPanel)) then
+    LogInstance("Base panel invalid"); return end
   local tSkin = cPanel:GetSkin()
   local tConv, sTool = STORE_CONVARS, TOOLNAME_NL
   local syDis, syRev = OPSYM_DISABLE, OPSYM_REVISION
@@ -2418,6 +2454,10 @@ function SetButtonSlider(cPanel, sVar, nMin, nMax, nDec, tBtn)
 end
 
 function SetCheckBox(cPanel, sVar)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
+  if(not IsValid(cPanel)) then
+    LogInstance("Base panel invalid"); return end
   local sTool, sKey, sNam, bExa = TOOLNAME_NL, GetNameExp(sVar)
   local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
   local sMenu, sTtip = language.GetPhrase(sBase.."_con"), language.GetPhrase(sBase)
@@ -2425,7 +2465,33 @@ function SetCheckBox(cPanel, sVar)
   pItem:SetTooltip(sTtip); return pItem
 end
 
--- Set the ENT's Angles first!
+--[[
+ * Adds a get/set custom function to a given object
+ * cPanel > Any valid panel that has a data table
+]]
+function SetCustomAccessors(cPanel)
+  if(SERVER) then
+    LogInstance("Base panel server"); return end
+  if(not IsValid(cPanel)) then
+    LogInstance("Base panel invalid"); return end
+  function cPanel:SetCustom(sK, sV)
+    if(not asmlib.IsHere(sK)) then return end
+    local tD = self[NAME_LIBRARY] -- Custom storage
+    if(not tD) then tD = {}; self[NAME_LIBRARY] = tD end
+    tD[sK] = sV -- Set the value to whatever
+  end
+  function cPanel:GetCustom(sK)
+    if(not asmlib.IsHere(sK)) then return nil end
+    local tD = self[NAME_LIBRARY] -- Index the panel
+    if(not asmlib.IsHere(tD)) then return nil end
+    return tD[sK]
+  end
+end
+
+--[[
+ * Moves the entity so that the hit position is not mass center
+ * Set the oEnt's angles first so it can be placed correctly
+]]
 function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
   if(not (oEnt and oEnt:IsValid())) then
     LogInstance("Entity Invalid"); return Vector(0,0,0) end
@@ -2440,7 +2506,7 @@ function SetCenter(oEnt, vPos, aAng, nX, nY, nZ)
 end
 
 --[[
- * Flips an entity actoss a world coordinate system
+ * Flips an entity across a world coordinate system
  * oEnt  > Base entity being flipped
  * wOvr > Coordinate system world origin
  * aOvr > Coordinate system world orientation

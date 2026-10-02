@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.801"
+asmlib.TOOL_VERSION = "10.802"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -179,6 +179,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
       conEditorDB:Push({
         Name = "Wiremod by WireTeam", -- Addon name and the button label
         ID = "160250458", -- Dedicated WSID when present in steam works
+        DEV = "https://github.com/wiremod/wire" -- Development link
         Code = function() return WireLib end, -- The global library being used for configuration
         Here = function() return asmlib.IsHere(WireLib) end, -- Checks if the correct version is installed
         Open = function(tCon, sPre, sNam)
@@ -212,9 +213,10 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
       conEditorDB:Push({
         Name = "Luapad by Wrefgtzweve", -- Addon name and the button label
         ID = nil, -- Dedicated WSID when present in steam-works
+        URL = "https://github.com/wrefgtzweve/luapad/tree/main",
+        DEV = "https://github.com/wrefgtzweve/luapad",
         Code = function() return luapad end, -- The global library being uses for configuration
         Here = function() return asmlib.IsHere(luapad and luapad.ToggleSettingsMenu or nil) end,
-        URL = "https://github.com/wrefgtzweve/luapad",
         Remove = function(tCon, sPre, sNam)
           if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           local bS, oC = pcall(tCon.Code); if(not bS) then
@@ -237,11 +239,9 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
               local pP = cT:GetPanel()
               local sN = tostring(pP.name):lower()
               if(sN and sN:find(sS)) then
-                 if(nI > 1) then -- More tabs
+                if(nI > 1) then -- More tabs
                   pS:CloseTab(cT, true)
-                else -- Only one tab is open
-                  pS:Clear()
-                end; break
+                end; break -- Nothing open bad
               end
             end; pS:InvalidateLayout()
           end
@@ -280,9 +280,10 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
       conEditorDB:Push({
         Name = "Luapad by Sparkz", -- Addon name and the button label
         ID = "107905654", -- Dedicated WSID when present in steam-works
+        URL = "https://github.com/dvdvideo1234/garrysmod-luapad/tree/optimize",
+        DEV = "https://github.com/dvdvideo1234/garrysmod-luapad",
         Code = function() return luapad end, -- The global library being uses for configuration
         Here = function() return asmlib.IsHere(luapad and luapad.ShowConfirmDialog or nil) end,
-        URL = "https://github.com/dvdvideo1234/garrysmod-luapad/tree/optimize",
         Open = function(tCon, sPre, sNam)
           if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           local bS, oC = pcall(tCon.Code); if(not bS) then
@@ -1313,7 +1314,7 @@ if(CLIENT) then
                         pnIns:SetPos(nX, nY); pnIns:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
                         local pnBtn =  vgui.Create("DButton", pnLay); if(not IsValid(pnBtn)) then
                           asmlib.LogInstance("Button invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
-                        pnBtn:SetPos(nX, nY); pnBtn:SetSize(xB, xC); nX, nY = xyDsz.x, (nY + xC + xyDsz.y)
+                        pnBtn:SetPos(nX, nY); pnBtn:SetSize(xB, xC); asmlib.SetCustomAccessors(pnBtn); nX, nY = xyDsz.x, (nY + xC + xyDsz.y)
                         local bS, vF = pcall(tCon.Here); if(not bS) then
                           asmlib.LogInstance("Status error "..asmlib.GetReport(iE,cE,vF), sLog..".ListView"); pnLink:Close(); return end
                         pnIns:SetEnabled(false); pnIns:SetChecked(tobool(vF)) -- Configure marker if the addon is present/installed
@@ -1321,7 +1322,25 @@ if(CLIENT) then
                         pnAct:SetTooltip(pnAct:GetChecked() and language.GetPhrase(sT.."stedx_av") or language.GetPhrase(sT.."stedx_ax"))
                         pnIns:SetTooltip(pnIns:GetChecked() and language.GetPhrase(sT.."stedx_iv") or language.GetPhrase(sT.."stedx_ix"))
                         pnBtn:SetTooltip(language.GetPhrase(sT.."stedx_bt")); table.insert(tA, pnAct); pnAct:SetName(sN); pnBtn:SetText(sN)
-                        pnBtn:SetTooltip(asmlib.IsHere(tCon.URL) and tostring(tCon.URL) or sUR:format(asmlib.WorkshopID(sN)))
+                        function pnBtn:GetCustomURL()
+                          local bS = input.IsKeyDown(KEY_LSHIFT)
+                          if(bS) then -- Return the development URL
+                            return tostring(self:GetCustom("DEV") or "") end
+                          local sU = tostring(self:GetCustom("URL") or "")
+                          if(asmlib.IsBlank(sU)) then -- Workshop
+                            local sW = tostring(self:GetCustom("ID"))
+                            if(asmlib.IsBlank(sW)) then return sW end
+                            return sUR:format(asmlib.WorkshopID(sW))
+                          end; return sU -- Editor addon home page
+                        end
+                        function pnBtn:DoClick()
+                          local sU = self:GetCustomURL()
+                          if(asmlib.IsBlank(sU)) then return end
+                          gui.OpenURL(sU) -- The URL is found
+                        end
+                        function pnBtn:DoRightClick()
+                          SetClipboardText(self:GetCustomURL())
+                        end
                         function pnAct:OnChange(bA) -- Uncheck all other check boxes
                           if(bA) then -- In case we are checking uncheck others and apply this
                             for iA = 1, #tA do local cA = tA[iA] -- Uncheck everything else
@@ -1344,8 +1363,7 @@ if(CLIENT) then
                             end; asmlib.SetAsmConvar(oPly, "texteditid", 0)
                           end -- Return early if one check box is enabled
                         end -- Change from true to false remove the active editor
-                        function pnBtn:DoClick() gui.OpenURL(self:GetTooltip()) end
-                        function pnBtn:DoRightClick() SetClipboardText(self:GetTooltip()) end
+                        pnBtn:SetCustom("URL", tCon.URL); pnBtn:SetCustom("ID", tCon.ID)
                       end; conElements:Push({pnLink, "Close"})
                     end -- Luapad is not installed and missing. Open the addon homepage
                   end):SetImage(asmlib.ToIcon(sI.."sted"))
