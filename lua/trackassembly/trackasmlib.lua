@@ -6706,8 +6706,7 @@ function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
   local vF, vR = aOrg:Forward(), aOrg:Right()
   local vU, dA = aOrg:Up(), -(nAng / (rT - 1))
   if(nRad < 0) then nRad = math.abs(nRad); dA = -dA; vR:Negate() end
-  local nL = nRad * math.rad(math.abs(dA)) -- Ark length
-  local nN = 2 * math.ceil(nL) -- Amount of inner points
+  local nN = math.ceil(nRad * math.rad(math.abs(dA))) -- Ark length
   local nS, nD = rT + (rT - 1) * nN, (nN + 1) -- Total points
   tC.Size = rT; tC.CSize = nS; tC.MSize = nN
   local vx, vy, vz = vDsp:Unpack(); dA = dA / nD
@@ -6715,14 +6714,16 @@ function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
   vx, vy, vz = vx / nD, vy / nD, vz / nD
   ap, ay, ar = ap / nD, ay / nD, ar / nD
   local vS = (vF * vx) + (vR * vy) + (vU * vz)
+  local vP = Vector(vR) vP:Mul(nRad)
+  table.Empty(tcH); table.Empty(tcN)
+  local oO = Vector(vOrg); oO:Add(vP)
+  local oB = Vector(oO); vP:Negate()
+  local oA = vR:AngleEx(vU); ay = dA - ay
+  local vA, vT = Vector(), Vector()
   local aF, aR, aU = Vector(), Vector(), Vector()
-  vR:Mul(nRad); table.Empty(tcH); table.Empty(tcN)
-  local oO = Vector(vOrg); oO:Add(vR); ay = dA - ay
-  local oB = Vector(oO); vR:Negate()
-  local oA = vR:AngleEx(vU)
-  local oH = BasisVector(Vector(vR), oA)
-  table.insert(tcH, Vector(oO)); tcH[1]:Add(vR)
-  table.insert(tH , Vector(oO)); tH [1]:Add(vR)
+  local oH = BasisVector(Vector(vP), oA)
+  table.insert(tcH, Vector(oO)); tcH[1]:Add(vP)
+  table.insert(tH , Vector(oO)); tH [1]:Add(vP)
   table.insert(tcN, vU); table.insert(tN, vU)
   tC.Info.Ors[1]:Set(oO)
   tC.Info.Ors[2]:Set(oA)
@@ -6737,15 +6738,15 @@ function CalculateHelixCurve(oPly, vOrg, aOrg, nAng, nRad, nSmp, vDsp, aDsp)
       aU:Set(oA:Up())      aU:Mul(oH.z)
       vV:Add(aF); vV:Add(aR); vV:Add(aU)
       local iP = ((iC-2) * nN + iN)
-      local vA = Vector(vV); vA:Sub(tcH[iP])
-      local vT = Vector(oO); vT:Sub(vV)
+      vA:Set(vV); vA:Sub(tcH[iP])
+      vT:Set(oO); vT:Sub(vV)
       local vN = vT:Cross(vA); vN:Normalize()
       table.insert(tcH, vV)
       table.insert(tcN, vN)
       if(iN == nD) then
-        table.insert(tB, Vector(vV))
-        table.insert(tH, Vector(vV))
-        table.insert(tN, Vector(vN))
+        table.insert(tB, oO)
+        table.insert(tH, vV)
+        table.insert(tN, vN)
       end
     end
   end
