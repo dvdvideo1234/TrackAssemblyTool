@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.802"
+asmlib.TOOL_VERSION = "10.803"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1315,6 +1315,7 @@ if(CLIENT) then
                         local pnBtn =  vgui.Create("DButton", pnLay); if(not IsValid(pnBtn)) then
                           asmlib.LogInstance("Button invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
                         pnBtn:SetPos(nX, nY); pnBtn:SetSize(xB, xC); asmlib.SetCustomAccessors(pnBtn); nX, nY = xyDsz.x, (nY + xC + xyDsz.y)
+                        pnBtn:SetCustom("URL", tCon.URL); pnBtn:SetCustom("DEV", tCon.DEV); pnBtn:SetCustom("ID", tCon.ID)
                         local bS, vF = pcall(tCon.Here); if(not bS) then
                           asmlib.LogInstance("Status error "..asmlib.GetReport(iE,cE,vF), sLog..".ListView"); pnLink:Close(); return end
                         pnIns:SetEnabled(false); pnIns:SetChecked(tobool(vF)) -- Configure marker if the addon is present/installed
@@ -1329,8 +1330,10 @@ if(CLIENT) then
                           local sU = tostring(self:GetCustom("URL") or "")
                           if(asmlib.IsBlank(sU)) then -- Workshop
                             local sW = tostring(self:GetCustom("ID"))
+                            if(asmlib.IsBlank(sW)) then
+                              sW = asmlib.WorkshopID(self:GetText()) end
                             if(asmlib.IsBlank(sW)) then return sW end
-                            return sUR:format(asmlib.WorkshopID(sW))
+                            return sUR:format(sW) -- Format workshop ID
                           end; return sU -- Editor addon home page
                         end
                         function pnBtn:DoClick()
@@ -1363,7 +1366,6 @@ if(CLIENT) then
                             end; asmlib.SetAsmConvar(oPly, "texteditid", 0)
                           end -- Return early if one check box is enabled
                         end -- Change from true to false remove the active editor
-                        pnBtn:SetCustom("URL", tCon.URL); pnBtn:SetCustom("ID", tCon.ID)
                       end; conElements:Push({pnLink, "Close"})
                     end -- Luapad is not installed and missing. Open the addon homepage
                   end):SetImage(asmlib.ToIcon(sI.."sted"))

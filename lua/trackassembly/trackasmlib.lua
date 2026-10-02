@@ -2160,12 +2160,12 @@ function SetNodeExpand(pnBase)
   end
 end
 
-function SetNodeDirectory(pnBase, vName)
+function SetNodeDirectory(pnBase, sName)
   if(SERVER) then LogInstance("Base panel server "
     ..GetReport(pnBase, sName)); return nil end
   if(not IsValid(pnBase)) then LogInstance("Base panel invalid "
     ..GetReport(pnBase, sName)); return nil end
-  local sName = tostring(vName or "")
+  local sName = tostring(sName or "")
         sName = (IsBlank(sName) and "Other" or sName)
   local pNode = pnBase:AddNode(sName)
   if(not IsValid(pNode)) then LogInstance("Node invalid "
@@ -2475,15 +2475,15 @@ function SetCustomAccessors(cPanel)
   if(not IsValid(cPanel)) then
     LogInstance("Base panel invalid"); return end
   function cPanel:SetCustom(sK, sV)
-    if(not asmlib.IsHere(sK)) then return end
+    if(not IsHere(sK)) then return end
     local tD = self[NAME_LIBRARY] -- Custom storage
     if(not tD) then tD = {}; self[NAME_LIBRARY] = tD end
     tD[sK] = sV -- Set the value to whatever
   end
   function cPanel:GetCustom(sK)
-    if(not asmlib.IsHere(sK)) then return nil end
+    if(not IsHere(sK)) then return nil end
     local tD = self[NAME_LIBRARY] -- Index the panel
-    if(not asmlib.IsHere(tD)) then return nil end
+    if(not IsHere(tD)) then return nil end
     return tD[sK]
   end
 end
