@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.803"
+asmlib.TOOL_VERSION = "10.804"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -179,7 +179,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
       conEditorDB:Push({
         Name = "Wiremod by WireTeam", -- Addon name and the button label
         ID = "160250458", -- Dedicated WSID when present in steam works
-        DEV = "https://github.com/wiremod/wire" -- Development link
+        DEV = "https://github.com/wiremod/wire", -- Development link
         Code = function() return WireLib end, -- The global library being used for configuration
         Here = function() return asmlib.IsHere(WireLib) end, -- Checks if the correct version is installed
         Open = function(tCon, sPre, sNam)
@@ -1329,7 +1329,7 @@ if(CLIENT) then
                             return tostring(self:GetCustom("DEV") or "") end
                           local sU = tostring(self:GetCustom("URL") or "")
                           if(asmlib.IsBlank(sU)) then -- Workshop
-                            local sW = tostring(self:GetCustom("ID"))
+                            local sW = tostring(self:GetCustom("ID") or "")
                             if(asmlib.IsBlank(sW)) then
                               sW = asmlib.WorkshopID(self:GetText()) end
                             if(asmlib.IsBlank(sW)) then return sW end
