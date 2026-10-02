@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.785"
+asmlib.TOOL_VERSION = "10.804"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -173,12 +173,15 @@ local conWorkMode = asmlib.GetContainer("WORK_MODE")
       conWorkMode:Push("CURVE") -- Catmull-Rom spline interpolation fitting
       conWorkMode:Push("OVER" ) -- Trace normal ray location piece flip-snap
       conWorkMode:Push("TURN" ) -- Produces smoother turns with Bezier curve
+      conWorkMode:Push("HELIX") -- Produces spiral arks with given offset
+
 local conEditorDB = asmlib.GetContainer("FILE_EDIT")
       conEditorDB:Push({
         Name = "Wiremod by WireTeam", -- Addon name and the button label
-        ID = "160250458", -- Dedicated WSID when present in steamworks
-        Code = function() return WireLib end, -- The global library being uses for configuration
-        Here = function() return asmlib.IsHere(WireLib) end, -- Checks if the forrect version is installed
+        ID = "160250458", -- Dedicated WSID when present in steam works
+        DEV = "https://github.com/wiremod/wire", -- Development link
+        Code = function() return WireLib end, -- The global library being used for configuration
+        Here = function() return asmlib.IsHere(WireLib) end, -- Checks if the correct version is installed
         Open = function(tCon, sPre, sNam)
           if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           local bS, oC = pcall(tCon.Code); if(not bS) then
@@ -209,10 +212,11 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
         end})
       conEditorDB:Push({
         Name = "Luapad by Wrefgtzweve", -- Addon name and the button label
-        ID = nil, -- Dedicated WSID when present in steamworks
+        ID = nil, -- Dedicated WSID when present in steam-works
+        URL = "https://github.com/wrefgtzweve/luapad/tree/main",
+        DEV = "https://github.com/wrefgtzweve/luapad",
         Code = function() return luapad end, -- The global library being uses for configuration
         Here = function() return asmlib.IsHere(luapad and luapad.ToggleSettingsMenu or nil) end,
-        URL = "https://github.com/wrefgtzweve/luapad",
         Remove = function(tCon, sPre, sNam)
           if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           local bS, oC = pcall(tCon.Code); if(not bS) then
@@ -235,11 +239,9 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
               local pP = cT:GetPanel()
               local sN = tostring(pP.name):lower()
               if(sN and sN:find(sS)) then
-                 if(nI > 1) then -- More tabs
+                if(nI > 1) then -- More tabs
                   pS:CloseTab(cT, true)
-                else -- Only one tab is open
-                  pS:Clear()
-                end; break
+                end; break -- Nothing open bad
               end
             end; pS:InvalidateLayout()
           end
@@ -277,10 +279,11 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
         end})
       conEditorDB:Push({
         Name = "Luapad by Sparkz", -- Addon name and the button label
-        ID = "107905654", -- Dedicated WSID when present in steamworks
+        ID = "107905654", -- Dedicated WSID when present in steam-works
+        URL = "https://github.com/dvdvideo1234/garrysmod-luapad/tree/optimize",
+        DEV = "https://github.com/dvdvideo1234/garrysmod-luapad",
         Code = function() return luapad end, -- The global library being uses for configuration
         Here = function() return asmlib.IsHere(luapad and luapad.ShowConfirmDialog or nil) end,
-        URL = "https://github.com/dvdvideo1234/garrysmod-luapad/tree/optimize",
         Open = function(tCon, sPre, sNam)
           if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           local bS, oC = pcall(tCon.Code); if(not bS) then
@@ -578,6 +581,58 @@ asmlib.SetAction("CLEAR_CURVE_NODE",
     return true
   end)
 
+asmlib.SetAction("UPDATE_HELIX",
+  function(tData, oPly, aNew, bMute) local sLog = "*"..tData.Slot
+    local tC   = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
+    local vOrg = aNew[1] -- Current helix start location vector     ( Origin POS )
+    local aOrg = aNew[2] -- Current helix start location angle      ( Origin ANG )
+    local nAng = aNew[3] -- Amount of degrees calculating the curve ( End angle )
+    local nRad = aNew[4] -- Player trace location curve data        ( Radius )
+    local nSmp = aNew[5] -- Player trace angle curve data           ( Samples )
+    local vDsp = aNew[6] -- Player trace hits POA location or not   ( Displace POS )
+    local aDsp = aNew[7] -- The index to change at when requested   ( Displace ANG )
+    local tC = asmlib.CalculateHelixCurve(oPly, vOrg, aOrg, 100 * nAng, nRad, nSmp, vDsp, aDsp); if(not tC) then
+      asmlib.LogInstance("Curve mismatch "..asmlib.GetReport(oPly, nAng, nRad, nSmp), sLog); return false end
+    if(SERVER and not bMute) then
+      asmlib.Notify(oPly, "CLEANUP", "Helix updated: %s !", tC.Size)
+      net.Start(gsLibName.."SendUpdateHelix")
+        net.WriteEntity(oPly)
+        net.WriteVector(vOrg)
+        net.WriteAngle (aOrg)
+        net.WriteFloat (nAng)
+        net.WriteFloat (nRad)
+        net.WriteUInt(nSmp, 16)
+        net.WriteVector(vDsp)
+        net.WriteAngle (aDsp)
+      net.Send(oPly)
+      oPly:SetNWBool(gsToolPrefL.."engcurve", true)
+    end; return true
+  end)
+
+asmlib.SetAction("CLEAR_HELIX",
+  function(tData, oPly, bMute) local sLog = "*"..tData.Slot
+    local tC = asmlib.GetCacheCurve(oPly); if(not tC) then
+      asmlib.LogInstance("Curve missing "..asmlib.GetReport(oPly), sLog); return false end
+    if(SERVER and not bMute) then
+      if(tC.Size > 0) then
+        asmlib.Notify(oPly, "CLEANUP", "Helix cleared: %s !", tC.Size)
+      else
+        asmlib.Notify(oPly, "CLEANUP", "Helix cleared !", tC.Size)
+      end
+      net.Start(gsLibName.."SendClearHelix")
+      net.WriteEntity(oPly); net.Send(oPly)
+      oPly:SetNWBool(gsToolPrefL.."engcurve", false)
+    end
+    table.Empty(tC.Snap) -- The size of all snaps
+    tC.SSize, tC.SKept, tC.MSize = 0, 0, 0 -- Amount of snapped points
+    table.Empty(tC.Node) -- Reset the curve and snapping
+    table.Empty(tC.Norm); tC.Size = 0 -- And normals
+    table.Empty(tC.CNode) -- Reset the curve and snapping
+    table.Empty(tC.CNorm); tC.CSize = 0 -- And normals
+    return true
+  end)
+
 if(SERVER) then
 
   util.AddNetworkString(gsLibName.."SendRefreshDSV")
@@ -589,6 +644,8 @@ if(SERVER) then
   util.AddNetworkString(gsLibName.."SendRemoveCurveNode")
   util.AddNetworkString(gsLibName.."SendInsertCurveNode")
   util.AddNetworkString(gsLibName.."SendClearCurveNode")
+  util.AddNetworkString(gsLibName.."SendUpdateHelix")
+  util.AddNetworkString(gsLibName.."SendClearHelix")
 
   asmlib.SetAction("DUPE_PHYS_SETTINGS", -- Duplicator wrapper
     function(oPly,oEnt,tData) local sLog = "*DUPE_PHYS_SETTINGS"
@@ -761,6 +818,7 @@ if(CLIENT) then
   asmlib.ToIcon("workmode_curve"   , "vector"            ) -- Catmull-Rom curve line segment fitting
   asmlib.ToIcon("workmode_over"    , "shape_move_back"   ) -- Trace normal ray location piece flip-spawn
   asmlib.ToIcon("workmode_turn"    , "arrow_turn_right"  ) -- Produces smoother turns with Bezier curve
+  asmlib.ToIcon("workmode_helix"   , "circlecross"       ) -- Produces spiral arks with given offset
   asmlib.ToIcon("property_type"    , "package_green"     )
   asmlib.ToIcon("property_name"    , "note"              )
   asmlib.ToIcon("modedb_lua"       , "database_lightning")
@@ -862,13 +920,12 @@ if(CLIENT) then
       local scrW, scrH = surface.ScreenWidth(), surface.ScreenHeight()
       local actMonitor = asmlib.GetScreen(0,0,scrW,scrH,conPalette,"GAME")
       if(not actMonitor) then return end -- Monitor object not present
-      local nDr = asmlib.DEG_RAD -- Degrees to radians conversion
-      local nBr = (acTo:GetRadialAngle() * nDr) -- Convert radial angle
+      local nBr = math.rad(acTo:GetRadialAngle()) -- Convert radial angle
       local nK, nN = acTo:GetRadialSegm(), conWorkMode:GetSize()
       local nR  = (math.min(scrW, scrH) / (2 * gnRatio))
       local mXY = asmlib.NewXY(gui.MouseX(), gui.MouseY())
       local vCn = asmlib.NewXY(math.floor(scrW/2), math.floor(scrH/2))
-      local nMr, vTx, nD = (gnMaxRot * nDr), asmlib.NewXY(), (nR / gnRatio) -- Max angle [2pi]
+      local nMr, vTx, nD = math.rad(gnMaxRot), asmlib.NewXY(), (nR / gnRatio) -- Max angle [2pi]
       local vA, vB = asmlib.NewXY(), asmlib.NewXY()
       local tP = {asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY(), asmlib.NewXY()}
       local vF, vN = asmlib.NewXY(nR, 0), asmlib.NewXY(math.Clamp(nR - nD, 0, nR), 0)
@@ -941,7 +998,7 @@ if(CLIENT) then
       pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
       function pnFrame:OnClose()
-        local iK = conElements:Find(self) -- Find panel key index
+        local iK = conElements:Find(self, 1) -- Find panel key index
         if(IsValid(self)) then self:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
@@ -1206,9 +1263,9 @@ if(CLIENT) then
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
                     local iE = asmlib.GetAsmConvar("texteditid", "INT") -- Current editor
-                    local tCon, vH, oC = conEditorDB:Select(iE) -- Read editor configuration
+                    local tCon, vH, oC = conEditorDB:Select(iE), nil, nil -- Read configuration
                     if(tCon) then local bS -- Update the success flag scope no return
-                      bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Fefault flag
+                      bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Default flag
                         asmlib.LogInstance("Locator error: "..vH, sLog..".ListView") end
                       bS, oC = pcall(tCon.Code); if(not bS) then oC = nil -- Default library
                         asmlib.LogInstance("Library error: "..oC, sLog..".ListView") end
@@ -1227,7 +1284,7 @@ if(CLIENT) then
                       pnLink:ShowCloseButton(true)
                       pnLink:SetDeleteOnClose(false)
                       function pnLink:OnClose()
-                        local iK = conElements:Find(self) -- Find panel key index
+                        local iK = conElements:Find(self, 1) -- Find panel key index
                         if(IsValid(self)) then self:Remove() end -- Delete the valid panel
                         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
                       end
@@ -1257,7 +1314,8 @@ if(CLIENT) then
                         pnIns:SetPos(nX, nY); pnIns:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
                         local pnBtn =  vgui.Create("DButton", pnLay); if(not IsValid(pnBtn)) then
                           asmlib.LogInstance("Button invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
-                        pnBtn:SetPos(nX, nY); pnBtn:SetSize(xB, xC); nX, nY = xyDsz.x, (nY + xC + xyDsz.y)
+                        pnBtn:SetPos(nX, nY); pnBtn:SetSize(xB, xC); asmlib.SetCustomAccessors(pnBtn); nX, nY = xyDsz.x, (nY + xC + xyDsz.y)
+                        pnBtn:SetCustom("URL", tCon.URL); pnBtn:SetCustom("DEV", tCon.DEV); pnBtn:SetCustom("ID", tCon.ID)
                         local bS, vF = pcall(tCon.Here); if(not bS) then
                           asmlib.LogInstance("Status error "..asmlib.GetReport(iE,cE,vF), sLog..".ListView"); pnLink:Close(); return end
                         pnIns:SetEnabled(false); pnIns:SetChecked(tobool(vF)) -- Configure marker if the addon is present/installed
@@ -1265,8 +1323,28 @@ if(CLIENT) then
                         pnAct:SetTooltip(pnAct:GetChecked() and language.GetPhrase(sT.."stedx_av") or language.GetPhrase(sT.."stedx_ax"))
                         pnIns:SetTooltip(pnIns:GetChecked() and language.GetPhrase(sT.."stedx_iv") or language.GetPhrase(sT.."stedx_ix"))
                         pnBtn:SetTooltip(language.GetPhrase(sT.."stedx_bt")); table.insert(tA, pnAct); pnAct:SetName(sN); pnBtn:SetText(sN)
-                        pnBtn:SetTooltip(asmlib.IsHere(tCon.URL) and tostring(tCon.URL) or sUR:format(asmlib.WorkshopID(sN)))
-                        function pnAct:OnChange(bA) -- Uncheck all other checkboxes
+                        function pnBtn:GetCustomURL()
+                          local bS = input.IsKeyDown(KEY_LSHIFT)
+                          if(bS) then -- Return the development URL
+                            return tostring(self:GetCustom("DEV") or "") end
+                          local sU = tostring(self:GetCustom("URL") or "")
+                          if(asmlib.IsBlank(sU)) then -- Workshop
+                            local sW = tostring(self:GetCustom("ID") or "")
+                            if(asmlib.IsBlank(sW)) then
+                              sW = asmlib.WorkshopID(self:GetText()) end
+                            if(asmlib.IsBlank(sW)) then return sW end
+                            return sUR:format(sW) -- Format workshop ID
+                          end; return sU -- Editor addon home page
+                        end
+                        function pnBtn:DoClick()
+                          local sU = self:GetCustomURL()
+                          if(asmlib.IsBlank(sU)) then return end
+                          gui.OpenURL(sU) -- The URL is found
+                        end
+                        function pnBtn:DoRightClick()
+                          SetClipboardText(self:GetCustomURL())
+                        end
+                        function pnAct:OnChange(bA) -- Uncheck all other check boxes
                           if(bA) then -- In case we are checking uncheck others and apply this
                             for iA = 1, #tA do local cA = tA[iA] -- Uncheck everything else
                               if(IsValid(cA)) then
@@ -1280,16 +1358,14 @@ if(CLIENT) then
                                 end
                               end -- Text editor is chosen only when current is equal to self
                             end -- Only enabling a checkbox will trigger uncheck
-                          else -- Called with false.If all are falce reset the convar
+                          else -- Called with false.If all are false reset the convar
                             self:SetChecked(false) -- Set this check box to false
                             self:SetTooltip(language.GetPhrase(sT.."stedx_ax"))
-                            for iA = 1, #tA do local cA = tA[iA] -- Ceck status
+                            for iA = 1, #tA do local cA = tA[iA] -- Check status
                               if(IsValid(cA) and cA:GetChecked()) then return end
                             end; asmlib.SetAsmConvar(oPly, "texteditid", 0)
-                          end -- Reaturn early if one check box is enabled
+                          end -- Return early if one check box is enabled
                         end -- Change from true to false remove the active editor
-                        function pnBtn:DoClick() gui.OpenURL(self:GetTooltip()) end
-                        function pnBtn:DoRightClick() SetClipboardText(self:GetTooltip()) end
                       end; conElements:Push({pnLink, "Close"})
                     end -- Luapad is not installed and missing. Open the addon homepage
                   end):SetImage(asmlib.ToIcon(sI.."sted"))
@@ -1340,7 +1416,7 @@ if(CLIENT) then
       pnFrame:SetScreenLock(false)
       pnFrame:SetDeleteOnClose(false)
       function pnFrame:OnClose()
-        local iK = conElements:Find(self) -- Find panel key index
+        local iK = conElements:Find(self, 1) -- Find panel key index
         if(IsValid(self)) then self:Remove() end -- Delete the valid panel
         if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
       end
@@ -2029,11 +2105,10 @@ asmlib.NewTable("PIECES",{
       return true
     end,
     ExportTypeRUN = function(arLine, bSet)
-      local sM, sN, sC  = "gsMissDB", "gsSymOff", "myType"
-      if(bSet) then arLine[2] = sN else arLine[4] = sN
-        if(not asmlib.RunComponentType(arLine[1], function(iTy, sTy)
-          if(sTy == arLine[1]) then arLine[1] = sC..iTy end; return true
-        end)) then return false end
+      local sM, sN = "gsMissDB", "gsSymOff"
+      if(bSet) then arLine[2] = sN else
+        local iT = asmlib.ComponentTypeID(arLine[2])
+        arLine[2], arLine[4] = "myType"..iT, sN
       end
       for iC = 1, #arLine do
         local bSQL = (asmlib.GetStrip(arLine[iC]) == gsNoSQL)
@@ -2060,6 +2135,7 @@ asmlib.NewTable("PIECES",{
       if(snPK) then tCache[snPK] = nil else table.Empty(tCache) end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine)
+      local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
@@ -2070,91 +2146,86 @@ asmlib.NewTable("PIECES",{
       if(not asmlib.IsHere(stData.Name)) then stData.Name = arLine[3] end
       if(not asmlib.IsHere(stData.Unit)) then stData.Unit = arLine[8] end
       local nOffsID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(nOffsID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK)); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK), defTab.Nick); return false end
       if(nOffsID ~= (stData.Size + 1)) then
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID,snPK)); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(nOffsID,snPK), defTab.Nick); return false end
       local stPOA = asmlib.RegisterPOA(stData,nOffsID,arLine[5],arLine[6],arLine[7])
       if(not asmlib.IsHere(stPOA)) then
-        asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK)); return false end
+        asmlib.LogInstance("Cannot process "..asmlib.GetReport(nOffsID, snPK), defTab.Nick); return false end
       stData.Size = stData.Size + 1; return true
     end,
-    ExportSyncDB = function(oF, makTab, tCache, sDelim)
+    ExportSyncDB = function(makTab, tCache, qData, sDelim)
+      local defTab = makTab:GetDefinition()
       local tSort, cT = asmlib.Arrange(tCache, "Type", "Name", "Slot"), nil
-      if(not tSort) then asmlib.LogInstance("Cannot sort cache data"); return false end
+      if(not tSort) then asmlib.LogInstance("Cannot sort cache data", defTab.Nick); return false end
+      local coMo = makTab:GetColumnName(1)
+      local coTy = makTab:GetColumnName(2)
+      local coNm = makTab:GetColumnName(3)
       for iS = 1, tSort.Size do local stRec = tSort[iS]
         local sKey, vRec = stRec.Key, stRec.Rec
-        if(not cT or cT ~= vRec.Type) then cT = vRec.Type
-          local sW = tostring(asmlib.WorkshopID(cT) or sMiss)
-          oF:Write("# Categorize("); oF:Write(cT)
-          oF:Write("): "); oF:Write(sW); oF:Write("\n")
-        end
-        oF:Write(makTab:Match(vRec.Slot,1,true,"\"")..sDelim)
-        oF:Write(makTab:Match(vRec.Type,2,true,"\"")..sDelim)
-        oF:Write(makTab:Match(vRec.Name,3,true,"\"")); oF:Write("\n")
+        local sM, sT, sN = vRec.Slot, vRec.Type, vRec.Name
+        table.insert(qData, {[coMo] = sM, [coTy] = sT, [coNm] = sN})
       end; return true
     end,
-    ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
+    ExportDSV = function(makTab, tCache, qData, fPref, sDelim)
       local defTab = makTab:GetDefinition()
       local tSort = asmlib.Arrange(tCache, "Type", "Name", "Slot"); if(not tSort) then
-        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref)); return false end
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref), defTab.Nick); return false end
       local sClass = asmlib.ENTITY_DEFCLASS
+      local coMo, coTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
+      local coNm, coLn = makTab:GetColumnName(3), makTab:GetColumnName(4)
+      local coP , coO  = makTab:GetColumnName(5), makTab:GetColumnName(6)
+      local coA , coC  = makTab:GetColumnName(7), makTab:GetColumnName(8)
       for iR = 1, tSort.Size do
-        local stRec = tSort[iR]
-        local tData = tCache[stRec.Key]
-        local tOffs = tData.Offs
-        local sData = asmlib.GetConcat(defTab.Name, sDelim,
-          makTab:Match(stRec.Key ,1,true, "\""), sDelim,
-          makTab:Match(tData.Type,2,true, "\""), sDelim,
-          makTab:Match(tData.Name,3,true, "\""))
-        -- Matching crashes only for numbers. The number is already inserted, so there will be no crash
+        local stRec = tSort[iR] -- Index one sorted value
+        local tRec  = stRec.Rec -- work with the temporary table instead
+        local tOffs = tRec.Offs -- Localize ;offsets configuration
         for iD = 1, #tOffs do
-          local stPnt = tOffs[iD] -- Read current offsets from the model
-          local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
-          local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or gsNoSQL)
+          local qRow = {}; rPOA = tOffs[iD]
+          local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
+          local sC = (asmlib.IsHere(tRec.Unit) and tostring(tRec.Unit) or gsNoSQL)
                 sC = ((sC == sClass) and gsNoSQL or sC) -- Export default class
-          oF:Write(sData); oF:Write(sDelim)
-          oF:Write(makTab:Match(iD,4,true,"\"")); oF:Write(sDelim)
-          oF:Write("\""); oF:Write(sP); oF:Write("\""); oF:Write(sDelim)
-          oF:Write("\""); oF:Write(sO); oF:Write("\""); oF:Write(sDelim)
-          oF:Write("\""); oF:Write(sA); oF:Write("\""); oF:Write(sDelim)
-          oF:Write("\""); oF:Write(sC); oF:Write("\"\n")
+          qRow[coMo] = tRec.Slot
+          qRow[coTy] = tRec.Type
+          qRow[coNm] = tRec.Name
+          qRow[coLn] = iD -- Matching crashes only for numbers
+          qRow[coP ] = sP; qRow[coO ] = sO
+          qRow[coA ] = sA; qRow[coC ] = sC
+          table.insert(qData, qRow)
         end
       end; return true
     end,
-    ExportTypeDSV = function(fP, makP, PCache, fA, makA, ACache, sType, sDelim)
-      local tSort = asmlib.Arrange(PCache, "Type", "Name", "Slot"); if(not tSort) then
-        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType)); return false end
-      local sType, tType, nType = asmlib.ComponentType(sType) -- Normalize type
-      local defP, defA = makP:GetDefinition(), makA:GetDefinition()
-      local sClass = asmlib.ENTITY_DEFCLASS
-      for iP = 1, tSort.Size do
-        local stRec = tSort[iP] -- Sorted sequential key
-        local tData = PCache[stRec.Key] -- Index data
+    ExportTypeDSV = function(makP, tContent, sType)
+      local defP = makP:GetDefinition() -- Normalize type
+      local sType, tType, nType = asmlib.ComponentType(sType)
+      local sClass, makA = asmlib.ENTITY_DEFCLASS, asmlib.GetBuilderNick("ADDITIONS")
+      local contP, contA = tContent[defP.Nick], tContent[makA:GetDefinition().Nick]
+      local tSort = asmlib.Arrange(contP.C, "Type", "Name", "Slot"); if(not tSort) then
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(sType), defP.Nick); return false end
+      for iP = 1, tSort.Size do -- For all the sorter cache keys
+        local stRec = tSort[iP] -- Extract sorted sequential index
+        local tData = stRec.Rec -- Index the requested data reference
         local rType, tOffs = tData.Type, tData.Offs -- Extract record type
         if(rType == sType or (tType[rType] and tType[rType] > 0)) then
-          local sData = asmlib.GetConcat(defP.Name, sDelim,
-            makP:Match(stRec.Key ,1, true, "\""), sDelim,
-            makP:Match(tData.Type,2, true, "\""), sDelim,
-            makP:Match(tData.Name,3, true, "\"")) -- Matching crashes only for numbers.
-          for iD = 1, #tOffs do -- The number is already inserted, so there will be no crash
+          for iD = 1, #tOffs do -- The number is already inserted
             local stPnt = tOffs[iD] -- Read current offsets from the model
             local sP, sO, sA = stPnt.P:Export(stPnt.O), stPnt.O:Export(), stPnt.A:Export()
             local sC = (asmlib.IsHere(tData.Unit) and tostring(tData.Unit) or gsNoSQL)
                   sC = ((sC == sClass) and gsNoSQL or sC) -- Export default class
-            fP:Write(sData); fP:Write(sDelim);
-            fP:Write(makP:Match(iD,4,true,"\"")); fP:Write(sDelim)
-            fP:Write("\""); fP:Write(sP); fP:Write("\""); fP:Write(sDelim)
-            fP:Write("\""); fP:Write(sO); fP:Write("\""); fP:Write(sDelim)
-            fP:Write("\""); fP:Write(sA); fP:Write("\""); fP:Write(sDelim)
-            fP:Write("\""); fP:Write(sC); fP:Write("\"\n")
-            if(iD == 1) then local tA = ACache[stRec.Key]
-              if(tA and tA.Size and tA.Size > 0) then
-                local sH = asmlib.GetConcat(defA.Name, sDelim)
-                for iA = 1, tA.Size do fA:Write(sH)
-                  local aRow = makA:GetRowToArray(tA[iA]); aRow[1] = stRec.Key
-                  for iC = 1, #aRow do aRow[iC] = makA:Match(aRow[iC],iC,true,"\"") end
-                  if(not makA:Trigger("ExportDSV", aRow)) then return false end
-                  fA:Write(table.concat(aRow, sDelim)); fA:Write("\n")
+            table.insert(contP.D, {
+              makP:Match(stRec.Key , 1, true, "\""),
+              makP:Match(tData.Type, 2, true, "\""),
+              makP:Match(tData.Name, 3, true, "\""),
+              makP:Match(iD, 4, true, "\""), sP, sO, sA, sC
+            })
+            if(iD == 1) then
+              for sM, tData in pairs(contA.C) do
+                if(sM == stRec.Key and tData and tData.Size and tData.Size > 0) then
+                  for iA = 1, tData.Size do
+                    local aRow = makA:GetRowToArray(tData[iA])
+                    aRow[1] = makA:Match(stRec.Key, 1, true, "\"")
+                    table.insert(contA.D, aRow)
+                  end
                 end
               end
             end
@@ -2162,19 +2233,20 @@ asmlib.NewTable("PIECES",{
         end
       end; return true
     end,
-    ExportTypeRUN = function(sType, makP, PCache, qPieces)
-      local coMo, coTy = makP:GetColumnName(1), makP:GetColumnName(2)
-      local coNm, coLn = makP:GetColumnName(3), makP:GetColumnName(4)
-      local coP , coO  = makP:GetColumnName(5), makP:GetColumnName(6)
-      local coA , coC  = makP:GetColumnName(7), makP:GetColumnName(8)
-      local sClass, qData = asmlib.ENTITY_DEFCLASS, {}
+    ExportTypeRUN = function(sType, makTab, PCache, qPieces)
+      local defTab = makTab:GetDefinition()
       local sType = asmlib.GetTypeNormal(sType)
       local sPref = asmlib.GetTypePrefix(sType)
+      local sClass, qData = asmlib.ENTITY_DEFCLASS, {}
+      local coMo, coTy = makTab:GetColumnName(1), makTab:GetColumnName(2)
+      local coNm, coLn = makTab:GetColumnName(3), makTab:GetColumnName(4)
+      local coP , coO  = makTab:GetColumnName(5), makTab:GetColumnName(6)
+      local coA , coC  = makTab:GetColumnName(7), makTab:GetColumnName(8)
       for mod, rec in pairs(PCache) do
         if(rec.Type == sType or rec.Pref == sPref) then
           local iID, tOffs = 1, rec.Offs -- Start from the first point
           local rPOA = tOffs[iID]; if(not asmlib.IsHere(rPOA)) then
-            asmlib.LogInstance("Missing point ID "..asmlib.GetReport(iID, rec.Slot)) return false end
+            asmlib.LogInstance("Missing point ID "..asmlib.GetReport(iID, rec.Slot), defTab.Nick) return false end
           for iID = 1, rec.Size do  -- Allocate row memory
             local qRow = {}; rPOA = tOffs[iID]
             local sP, sO, sA = rPOA.P:Export(rPOA.O), rPOA.O:Export(), rPOA.A:Export()
@@ -2191,20 +2263,21 @@ asmlib.NewTable("PIECES",{
         end
       end -- Must be the same format as returned from SQL
       local tSort = asmlib.Arrange(qData, coNm, coMo, coLn); if(not tSort) then
-        LogInstance("Sort cache mismatch"); return false end
+        LogInstance("Sort cache mismatch", defTab.Nick); return false end
+      if(tSort.Size and tSort.Size > 0) then
+        asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType), defTab.Nick) end
       for iD = 1, tSort.Size do table.insert(qPieces, tSort[iD].Rec) end
-      asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType))
       return true
     end
   },
-  [1] = {"MODEL" , "TEXT"   , "LOW", "QMK"},
-  [2] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
-  [3] = {"NAME"  , "TEXT"   ,  nil , "QMK"},
-  [4] = {"LINEID", "INTEGER", "FLR",  nil },
-  [5] = {"POINT" , "TEXT"   ,  nil ,  nil },
-  [6] = {"ORIGIN", "TEXT"   ,  nil ,  nil },
-  [7] = {"ANGLE" , "TEXT"   ,  nil ,  nil },
-  [8] = {"CLASS" , "TEXT"   ,  nil ,  nil }
+  [1] = {"MODEL" , "TEXT"   , {"LOW", "QMK"}},
+  [2] = {"TYPE"  , "TEXT"   , "QMK"},
+  [3] = {"NAME"  , "TEXT"   , "QMK"},
+  [4] = {"LINEID", "INTEGER", "FLR"},
+  [5] = {"POINT" , "TEXT"   ,      },
+  [6] = {"ORIGIN", "TEXT"   ,      },
+  [7] = {"ANGLE" , "TEXT"   ,      },
+  [8] = {"CLASS" , "TEXT"   ,      }
 },true,true)
 
 asmlib.NewTable("ADDITIONS",{
@@ -2256,49 +2329,59 @@ asmlib.NewTable("ADDITIONS",{
       if(snPK) then tCache[snPK] = nil else table.Empty(tCache) end; return true
     end,
     Record = function(makTab, tCache, snPK, arLine)
+      local defTab = makTab:GetDefinition()
       local stData = tCache[snPK]; if(not stData) then
         tCache[snPK] = {}; stData = tCache[snPK] end
       if(not asmlib.IsHere(stData.Size)) then stData.Size = 0 end
       if(not asmlib.IsHere(stData.Slot)) then stData.Slot = snPK end
       local iID = makTab:Match(arLine[4],4); if(not asmlib.IsHere(iID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK)); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(4,arLine[4],snPK), defTab.Nick); return false end
       if(iID ~= (stData.Size + 1)) then
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK)); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iID,snPK), defTab.Nick); return false end
       local defTab = makTab:GetDefinition(); stData[iID] = {} -- LineID has to be set properly
       for iC = 2, defTab.Size do local sC = makTab:GetColumnName(iC); if(not sC) then
-        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iC,snPK)); return false end
+        asmlib.LogInstance("Cannot index "..asmlib.GetReport(iC,snPK), defTab.Nick); return false end
         stData[iID][sC] = makTab:Match(arLine[iC],iC); if(not asmlib.IsHere(stData[iID][sC])) then
-          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iC,arLine[iC],snPK)); return false end
+          asmlib.LogInstance("Cannot match "..asmlib.GetReport(iC,arLine[iC],snPK), defTab.Nick); return false end
       end; stData.Size = stData.Size + 1; return true
     end,
-    ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
+    ExportDSV = function(makTab, tCache, qData, fPref, sDelim)
       local tSort = asmlib.Arrange(tCache, "Slot")
       local defTab = makTab:GetDefinition()
+      local coMB, coMA = makTab:GetColumnName(1), makTab:GetColumnName(2)
+      local coEN, coLI = makTab:GetColumnName(3), makTab:GetColumnName(4)
+      local coPO, coAN = makTab:GetColumnName(5), makTab:GetColumnName(6)
+      local coMO, coPI = makTab:GetColumnName(7), makTab:GetColumnName(8)
+      local coDR, coPM = makTab:GetColumnName(9), makTab:GetColumnName(10)
+      local coPS, coSE = makTab:GetColumnName(11), makTab:GetColumnName(12)
       for iRow = 1, tSort.Size do
         local tRow = tSort[iRow]
         local sKey, tRec = tRow.Key, tRow.Rec
-        for iRec = 1, #tRec do
-          local aRow = makTab:GetRowToArray(tRec[iRec]); aRow[1] = sKey
-          for iC = 1, #aRow do aRow[iC] = makTab:Match(aRow[iC],iC,true,"\"",true) end
-          if(not makTab:Trigger("ExportDSV", aRow)) then return false end
-          oF:Write(defTab.Name); oF:Write(sDelim)
-          oF:Write(table.concat(aRow, sDelim)); oF:Write("\n")
+        for iR = 1, #tRec do
+          local vRec, qRow = tRec[iR], {}
+          qRow[coMB], qRow[coMA] = sKey      , vRec[coMA]
+          qRow[coEN], qRow[coLI] = vRec[coEN], vRec[coLI]
+          qRow[coPO], qRow[coAN] = vRec[coPO], vRec[coAN]
+          qRow[coMO], qRow[coPI] = vRec[coMO], vRec[coPI]
+          qRow[coDR], qRow[coPM] = vRec[coDR], vRec[coPM]
+          qRow[coPS], qRow[coSE] = vRec[coPS], vRec[coSE]
+          table.insert(qData, qRow)
         end
       end; return true
     end
   },
-  [1]  = {"MODELBASE", "TEXT"   , "LOW", "QMK"},
-  [2]  = {"MODELADD" , "TEXT"   , "LOW", "QMK"},
-  [3]  = {"ENTCLASS" , "TEXT"   ,  nil ,  nil },
-  [4]  = {"LINEID"   , "INTEGER", "FLR",  nil },
-  [5]  = {"POSOFF"   , "TEXT"   ,  nil ,  nil },
-  [6]  = {"ANGOFF"   , "TEXT"   ,  nil ,  nil },
-  [7]  = {"MOVETYPE" , "INTEGER", "FLR",  nil },
-  [8]  = {"PHYSINIT" , "INTEGER", "FLR",  nil },
-  [9]  = {"DRSHADOW" , "INTEGER", "FLR",  nil },
-  [10] = {"PHMOTION" , "INTEGER", "FLR",  nil },
-  [11] = {"PHYACTIV" , "INTEGER", "FLR",  nil },
-  [12] = {"SETSOLID" , "INTEGER", "FLR",  nil },
+  [1]  = {"MODELBASE", "TEXT"   , {"LOW", "QMK"}},
+  [2]  = {"MODELADD" , "TEXT"   , {"LOW", "QMK"}},
+  [3]  = {"ENTCLASS" , "TEXT"          },
+  [4]  = {"LINEID"   , "INTEGER", "FLR"},
+  [5]  = {"POSOFF"   , "TEXT"          },
+  [6]  = {"ANGOFF"   , "TEXT"          },
+  [7]  = {"MOVETYPE" , "INTEGER", "FLR"},
+  [8]  = {"PHYSINIT" , "INTEGER", "FLR"},
+  [9]  = {"DRSHADOW" , "INTEGER", "FLR"},
+  [10] = {"PHMOTION" , "INTEGER", "FLR"},
+  [11] = {"PHYACTIV" , "INTEGER", "FLR"},
+  [12] = {"SETSOLID" , "INTEGER", "FLR"},
 },true,true)
 
 asmlib.NewTable("PHYSPROPERTIES",{
@@ -2308,6 +2391,7 @@ asmlib.NewTable("PHYSPROPERTIES",{
     Erase     = {W = {{1,"%s"}}},
     Record    = {V = {"%s","%d","%s"}},
     ExportDSV = {O = {1,2}},
+    ExportTypeRUN = {W = {{1,"%s"}}, O = {1, 2}},
     CacheQueryProperty = {
       N = {S = {2, 3}, W = {{1,"%s"}}, O = {2}},
       T = {S = {1}   , W = {{2,"%s"}}, O = {1}},
@@ -2318,8 +2402,13 @@ asmlib.NewTable("PHYSPROPERTIES",{
       for iC = 1, #arLine do arLine[iC] = asmlib.GetStrip(arLine[iC]) end
       return true
     end,
-    ExportTypeRUN = function(arLine)
-      arLine[2] = "gsSymOff"; return true
+    ExportTypeRUN = function(arLine, bSet)
+      local sN = "gsSymOff"
+      if(bSet) then arLine[1] = sN else arLine[2] = sN
+        local iT = asmlib.ComponentTypeID(arLine[1])
+        arLine[1] = "myType"..iT
+      end
+      return true
     end,
     Record = function(arLine)
       local noTY = asmlib.MISS_NOTP
@@ -2331,11 +2420,12 @@ asmlib.NewTable("PHYSPROPERTIES",{
   Cache = {
     Erase = function(makTab, tCache, snPK)
       local tProID = asmlib.HASH_PROPERTY
+      local defTab = makTab:GetDefinition()
       local pN, pT = tProID.Name, tProID.Type
       local tNames = tCache[pN]; if(not tNames) then
-        asmlib.LogInstance("Names missing "..asmlib.GetReport(snPK)); return false end
+        asmlib.LogInstance("Names missing "..asmlib.GetReport(snPK), defTab.Nick); return false end
       local tTypes = tCache[pT]; if(not tTypes) then
-        asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK)); return false end
+        asmlib.LogInstance("Types missing "..asmlib.GetReport(snPK), defTab.Nick); return false end
       if(snPK) then  -- Remove the type from the list
         for iT = 1, tTypes.Size do if(tTypes[iT] == snPK) then
           table.remove(tTypes, iT); tTypes.Size = (tTypes.Size - 1); break
@@ -2346,48 +2436,99 @@ asmlib.NewTable("PHYSPROPERTIES",{
     end,
     Record = function(makTab, tCache, snPK, arLine)
       local tProID = asmlib.HASH_PROPERTY
+      local defTab = makTab:GetDefinition()
       local pN, pT = tProID.Name, tProID.Type
       local tTypes = tCache[pT]; if(not tTypes) then
         tCache[pT] = {}; tTypes = tCache[pT]; tTypes.Size = 0 end
       local tNames = tCache[pN]; if(not tNames) then
         tCache[pN] = {}; tNames = tCache[pN] end
       local iNameID = makTab:Match(arLine[2],2); if(not asmlib.IsHere(iNameID)) then
-        asmlib.LogInstance("Cannot match "..asmlib.GetReport(2,arLine[2],snPK)); return false end
+        asmlib.LogInstance("Cannot match "..asmlib.GetReport(2,arLine[2],snPK), defTab.Nick); return false end
       if(not asmlib.IsHere(tNames[snPK])) then -- If a new type is inserted
         tTypes.Size = (tTypes.Size + 1)
         tTypes[tTypes.Size] = snPK; tNames[snPK] = {}
         tNames[snPK].Size, tNames[snPK].Slot = 0, snPK
       end -- Data matching crashes only on numbers
       if(iNameID ~= (tNames[snPK].Size + 1)) then
-        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iNameID,snPK)); return false end
+        asmlib.LogInstance("Sequential mismatch "..asmlib.GetReport(iNameID,snPK), defTab.Nick); return false end
       tNames[snPK].Size = tNames[snPK].Size + 1
       tNames[snPK][iNameID] = makTab:Match(arLine[3],3); return true
     end,
-    ExportDSV = function(oF, makTab, tCache, fPref, sDelim)
+    ExportDSV = function(makTab, tCache, qData, fPref, sDelim)
       local defTab = makTab:GetDefinition()
       local tProID = asmlib.HASH_PROPERTY
       local pN, pT = tProID.Name, tProID.Type
+      local coTY = makTab:GetColumnName(1)
+      local coLI = makTab:GetColumnName(2)
+      local coPR = makTab:GetColumnName(3)
       local tTypes, tNames, tT = tCache[pT], tCache[pN], {}
       if(not (tTypes or tNames)) then
-        asmlib.LogInstance("No data found "..asmlib.GetReport(fPref)); return false end
+        asmlib.LogInstance("No data found "..asmlib.GetReport(fPref), defTab.Nick); return false end
       for iD = 1, tTypes.Size do table.insert(tT, tTypes[iD]) end
       local tS = asmlib.Arrange(tT); if(not tS) then
-        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref)); return false end
+        asmlib.LogInstance("Cannot sort cache data "..asmlib.GetReport(fPref), defTab.Nick); return false end
       for iS = 1, tS.Size do local sT = tS[iS].Rec
         local tProp = tNames[sT]; if(not tProp) then
-          asmlib.LogInstance("Missing index "..asmlib.GetReport(fPref, iS, sT)); return false end
+          asmlib.LogInstance("Missing index "..asmlib.GetReport(fPref, iS, sT), defTab.Nick); return false end
         for iP = 1, tProp.Size do local sP = tProp[iP]
-          oF:Write(defTab.Name); oF:Write(sDelim)
-          oF:Write(makTab:Match(sT,1,true,"\"")); oF:Write(sDelim)
-          oF:Write(makTab:Match(iP,2,true,"\"")); oF:Write(sDelim)
-          oF:Write(makTab:Match(sP,3,true,"\"")); oF:Write("\n")
+          table.insert(qData, {[coTY] = sT, [coLI] = iP, [coPR] = sP})
         end
       end; return true
+    end,
+    ExportTypeDSV = function(makTab, tContent, sType)
+      local sType = asmlib.GetTypeNormal(sType)
+      local sType, tType, nType = asmlib.ComponentType(sType)
+      local sPref = asmlib.GetTypePrefix(sType)
+      local tProID = asmlib.HASH_PROPERTY
+      local pN, pT = tProID.Name, tProID.Type
+      local defTab = makTab:GetDefinition()
+      local contR = tContent[defTab.Nick]
+      local tN, tC = contR.C[pN], {sType, unpack(tType)}
+      local tD = (tN[sType] or tN[sPref]); if(not asmlib.IsHere(tD)) then
+        asmlib.LogInstance("Content missing "..asmlib.GetReport(sType, sPref), defTab.Nick); return true end
+      if(not (tD and tD.Size and tD.Size > 0)) then
+        asmlib.LogInstance("Content mismatch "..asmlib.GetReport(sType, sPref), defTab.Nick); return true end
+      local tSort = asmlib.Arrange(tC); if(not tSort) then
+        asmlib.LogInstance("Sorting failed "..asmlib.GetReport(sType, sPref), defTab.Nick) return false end
+      for iS = 1, tSort.Size do
+        local sT = tSort[iS].Rec
+        local sT = asmlib.GetTypeNormal(sT)
+        local sP = asmlib.GetTypePrefix(sT)
+        local tD = (tN[sT] or tN[sP])
+        if(tD and tD.Size and tD.Size > 0) then
+          for iD = 1, tD.Size do local aR = {sT, iD, tD[iD]}
+            if(not makTab:ArrayMatch(aR, true, "\"", true)) then return false end
+            table.insert(contR.D, aR)
+          end
+        end
+      end; return true
+    end,
+    ExportTypeRUN = function(sType, makTab, tCache, qProps)
+      local coTy = makTab:GetColumnName(1)
+      local coLn = makTab:GetColumnName(2)
+      local coPr = makTab:GetColumnName(3)
+      local tProID = asmlib.HASH_PROPERTY
+      local pN, pT = tProID.Name, tProID.Type
+      local sType = asmlib.GetTypeNormal(sType)
+      local sPref = asmlib.GetTypePrefix(sType)
+      local tN, qData, defTab = tCache[pN], {}, makTab:GetDefinition()
+      local tR = (tN[sType] or tN[sPref]); if(not asmlib.IsHere(tR)) then
+        asmlib.LogInstance("Content missing "..asmlib.GetReport(sType, sPref), defTab.Nick); return true end
+      for iR = 1, tR.Size do local qRow = {}
+        qRow[coTy], qRow[coLn], qRow[coPr] = sType, iR, tR[iR]
+        table.insert(qData, qRow) -- Convert the cache as query result
+      end -- Must be the same format as returned from SQL
+      local tSort = asmlib.Arrange(qData, coTy, coLn); if(not tSort) then
+        LogInstance("Sort cache mismatch", defTab.Nick); return false end
+      if(tSort.Size and tSort.Size > 0) then
+        asmlib.LogInstance("Sorted rows count "..asmlib.GetReport(tSort.Size, sType), defTab.Nick) end
+      for iD = 1, tSort.Size do table.insert(qProps, tSort[iD].Rec) end
+      return true
     end
   },
-  [1] = {"TYPE"  , "TEXT"   ,  nil , "QMK"},
-  [2] = {"LINEID", "INTEGER", "FLR",  nil },
-  [3] = {"NAME"  , "TEXT"   ,  nil ,  nil }
+  [1] = {"TYPE"  , "TEXT"   , "QMK"},
+  [2] = {"LINEID", "INTEGER", "FLR"},
+  [3] = {"NAME"  , "TEXT"          }
 },true,true)
 
 ------------ POPULATE DB ------------
