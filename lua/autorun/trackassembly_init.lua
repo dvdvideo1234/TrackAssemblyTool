@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.804"
+asmlib.TOOL_VERSION = "10.805"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1262,112 +1262,109 @@ if(CLIENT) then
                   function() SetClipboardText(tostring(file.Size(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
-                    local iE = asmlib.GetAsmConvar("texteditid", "INT") -- Current editor
-                    local tCon, vH, oC = conEditorDB:Select(iE), nil, nil -- Read configuration
+                    local tCon = conEditorDB:Select(asmlib.GetAsmConvar("texteditid", "INT"))
                     if(tCon) then local bS -- Update the success flag scope no return
-                      bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Default flag
+                      local bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Default flag
                         asmlib.LogInstance("Locator error: "..vH, sLog..".ListView") end
-                      bS, oC = pcall(tCon.Code); if(not bS) then oC = nil -- Default library
+                      local bS, oC = pcall(tCon.Code); if(not bS) then oC = nil -- Default library
                         asmlib.LogInstance("Library error: "..oC, sLog..".ListView") end
-                    end -- Installed addon and library located are present then open the editor
-                    if(tCon and vH and asmlib.IsHere(oC) and not input.IsKeyDown(KEY_LSHIFT)) then
-                      local bS, sE = pcall(tCon.Open, tCon, sP, defTab.Nick)
-                      if(not bS) then asmlib.LogInstance("Editor error: "..sE, sLog..".ListView") end
-                    else -- Editor is not installed or available. Open the frame to install it
-                      local pnLink = vgui.Create("DFrame"); if(not IsValid(pnLink)) then
-                        asmlib.LogInstance("Frame invalid", sLog..".ListView"); return end
-                      -- Create a Frame to contain everything
-                      pnLink:SetPos(0, 0)
-                      pnLink:SetSize(scrW / 3, scrH / 6)
-                      pnLink:SetDraggable(true)
-                      pnLink:SetScreenLock(false)
-                      pnLink:ShowCloseButton(true)
-                      pnLink:SetDeleteOnClose(false)
-                      function pnLink:OnClose()
-                        local iK = conElements:Find(self, 1) -- Find panel key index
-                        if(IsValid(self)) then self:Remove() end -- Delete the valid panel
-                        if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
+                      if(vH and asmlib.IsHere(oC) and not input.IsKeyDown(KEY_LSHIFT)) then
+                        local bS, sE = pcall(tCon.Open, tCon, sP, defTab.Nick) -- Call the open method
+                        if(not bS) then asmlib.LogInstance("Editor error: "..sE, sLog..".ListView") end
+                        return -- Execute the open tab successfully and do early return
+                      end -- Installed addon and library located are present then open the editor
+                    end -- Editor is not installed or available. Open the frame to install it
+                    local pnLink = vgui.Create("DFrame"); if(not IsValid(pnLink)) then
+                      asmlib.LogInstance("Frame invalid", sLog..".ListView"); return end
+                    pnLink:SetPos(0, 0) -- Create a Frame to contain everything
+                    pnLink:SetSize(scrW / 3, scrH / 6)
+                    pnLink:SetDraggable(true)
+                    pnLink:SetScreenLock(false)
+                    pnLink:ShowCloseButton(true)
+                    pnLink:SetDeleteOnClose(false)
+                    function pnLink:OnClose()
+                      local iK = conElements:Find(self, 1) -- Find panel key index
+                      if(IsValid(self)) then self:Remove() end -- Delete the valid panel
+                      if(asmlib.IsHere(iK)) then conElements:Pull(iK) end -- Pull the key out
+                    end
+                    pnLink:SetIcon(asmlib.ToIcon(sI.."stedx"))
+                    pnLink:SetTitle(language.GetPhrase(sT.."stedx").." "..oPly:Nick())
+                    pnLink:Center(); pnLink:MakePopup()
+                    local pnLay = vgui.Create("DPanel", pnLink); if(not IsValid(pnLay)) then
+                      asmlib.LogInstance("Layout invalid", sLog..".ListView"); pnLink:Close(); return end
+                    pnLay:Dock(FILL); pnLay:InvalidateParent(true) -- Update panel dimensions and size
+                    local cE = asmlib.GetAsmConvar("texteditid", "INT") -- Current default editor
+                    local sUR, iF = asmlib.FORM_URLADDON, asmlib.FORM_INTEGER -- Data formats
+                    local nX, nY, nE, tA, nC = xyDsz.x, xyDsz.y, conEditorDB:GetSize(), {}, 3
+                    local xC = (pnLay:GetTall() - (nE + 1) * xyDsz.y) / nE
+                    local xB = (pnLay:GetWide() - (2 * xC) - ((nC + 1) * xyDsz.x))
+                    for iE = 1, nE do -- Layout for every text editor
+                      local tCon = conEditorDB:Select(iE); if(not tCon) then
+                        asmlib.LogInstance("Config invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
+                      local bE, sN = asmlib.GetEmpty(tCon.Name); if(bE) then
+                        asmlib.LogInstance("Name missing at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
+                      local pnAct = vgui.Create("DCheckBox", pnLay); if(not IsValid(pnAct)) then
+                        asmlib.LogInstance("Active invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
+                      pnAct:SetPos(nX, nY); pnAct:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
+                      local pnIns = vgui.Create("DCheckBox", pnLay); if(not IsValid(pnIns)) then
+                        asmlib.LogInstance("Install invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
+                      pnIns:SetPos(nX, nY); pnIns:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
+                      local pnBtn =  vgui.Create("DButton", pnLay); if(not IsValid(pnBtn)) then
+                        asmlib.LogInstance("Button invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
+                      pnBtn:SetPos(nX, nY); pnBtn:SetSize(xB, xC); asmlib.SetCustomAccessors(pnBtn); nX, nY = xyDsz.x, (nY + xC + xyDsz.y)
+                      pnBtn:SetCustom("URL", tCon.URL); pnBtn:SetCustom("DEV", tCon.DEV); pnBtn:SetCustom("ID", tCon.ID)
+                      local bS, vF = pcall(tCon.Here); if(not bS) then
+                        asmlib.LogInstance("Status error "..asmlib.GetReport(iE,cE,vF), sLog..".ListView"); pnLink:Close(); return end
+                      pnIns:SetEnabled(false); pnIns:SetChecked(tobool(vF)) -- Configure marker if the addon is present/installed
+                      pnAct:SetEnabled(pnIns:GetChecked()); pnAct:SetChecked(iE == cE) -- Updated the current editor selection
+                      pnAct:SetTooltip(pnAct:GetChecked() and language.GetPhrase(sT.."stedx_av") or language.GetPhrase(sT.."stedx_ax"))
+                      pnIns:SetTooltip(pnIns:GetChecked() and language.GetPhrase(sT.."stedx_iv") or language.GetPhrase(sT.."stedx_ix"))
+                      pnBtn:SetTooltip(language.GetPhrase(sT.."stedx_bt")); table.insert(tA, pnAct); pnAct:SetName(sN); pnBtn:SetText(sN)
+                      function pnBtn:GetCustomURL()
+                        local bS = input.IsKeyDown(KEY_LSHIFT)
+                        if(bS) then -- Return the development URL
+                          return tostring(self:GetCustom("DEV") or "") end
+                        local sU = tostring(self:GetCustom("URL") or "")
+                        if(asmlib.IsBlank(sU)) then -- Workshop
+                          local sW = tostring(self:GetCustom("ID") or "")
+                          if(asmlib.IsBlank(sW)) then
+                            sW = asmlib.WorkshopID(self:GetText()) end
+                          if(asmlib.IsBlank(sW)) then return sW end
+                          return sUR:format(sW) -- Format workshop ID
+                        end; return sU -- Editor addon home page
                       end
-                      pnLink:SetIcon(asmlib.ToIcon(sI.."stedx"))
-                      pnLink:SetTitle(language.GetPhrase(sT.."stedx").." "..oPly:Nick())
-                      pnLink:Center(); pnLink:MakePopup()
-                      local pnLay = vgui.Create("DPanel", pnLink); if(not IsValid(pnLay)) then
-                        asmlib.LogInstance("Layout invalid", sLog..".ListView"); pnLink:Close(); return end
-                      pnLay:Dock(FILL); pnLay:InvalidateParent(true)
-                      local iF = asmlib.FORM_INTEGER -- Int format
-                      local nE, tA, nC = conEditorDB:GetSize(), {}, 3   -- Editors list size
-                      local cE = asmlib.GetAsmConvar("texteditid", "INT")
-                      local sUR = asmlib.FORM_URLADDON -- URL format
-                      local nX, nY = xyDsz.x, xyDsz.y
-                      local xC = (pnLay:GetTall() -  (nE + 1) * xyDsz.y) / nE
-                      local xB = (pnLay:GetWide() -  (2 * xC) - ((nC + 1) * xyDsz.x))
-                      for iE = 1, nE do -- Layout for every text editor
-                        local tCon = conEditorDB:Select(iE); if(not tCon) then
-                          asmlib.LogInstance("Config invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
-                        local bE, sN = asmlib.GetEmpty(tCon.Name); if(bE) then
-                          asmlib.LogInstance("Name missing at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
-                        local pnAct = vgui.Create("DCheckBox", pnLay); if(not IsValid(pnAct)) then
-                          asmlib.LogInstance("Active invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
-                        pnAct:SetPos(nX, nY); pnAct:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
-                        local pnIns = vgui.Create("DCheckBox", pnLay); if(not IsValid(pnIns)) then
-                          asmlib.LogInstance("Install invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
-                        pnIns:SetPos(nX, nY); pnIns:SetSize(xC, xC); nX = (nX + xC + xyDsz.x)
-                        local pnBtn =  vgui.Create("DButton", pnLay); if(not IsValid(pnBtn)) then
-                          asmlib.LogInstance("Button invalid at "..asmlib.GetReport(iE,cE), sLog..".ListView"); pnLink:Close(); return end
-                        pnBtn:SetPos(nX, nY); pnBtn:SetSize(xB, xC); asmlib.SetCustomAccessors(pnBtn); nX, nY = xyDsz.x, (nY + xC + xyDsz.y)
-                        pnBtn:SetCustom("URL", tCon.URL); pnBtn:SetCustom("DEV", tCon.DEV); pnBtn:SetCustom("ID", tCon.ID)
-                        local bS, vF = pcall(tCon.Here); if(not bS) then
-                          asmlib.LogInstance("Status error "..asmlib.GetReport(iE,cE,vF), sLog..".ListView"); pnLink:Close(); return end
-                        pnIns:SetEnabled(false); pnIns:SetChecked(tobool(vF)) -- Configure marker if the addon is present/installed
-                        pnAct:SetEnabled(pnIns:GetChecked()); pnAct:SetChecked(iE == cE) -- Updated the current editor selection
-                        pnAct:SetTooltip(pnAct:GetChecked() and language.GetPhrase(sT.."stedx_av") or language.GetPhrase(sT.."stedx_ax"))
-                        pnIns:SetTooltip(pnIns:GetChecked() and language.GetPhrase(sT.."stedx_iv") or language.GetPhrase(sT.."stedx_ix"))
-                        pnBtn:SetTooltip(language.GetPhrase(sT.."stedx_bt")); table.insert(tA, pnAct); pnAct:SetName(sN); pnBtn:SetText(sN)
-                        function pnBtn:GetCustomURL()
-                          local bS = input.IsKeyDown(KEY_LSHIFT)
-                          if(bS) then -- Return the development URL
-                            return tostring(self:GetCustom("DEV") or "") end
-                          local sU = tostring(self:GetCustom("URL") or "")
-                          if(asmlib.IsBlank(sU)) then -- Workshop
-                            local sW = tostring(self:GetCustom("ID") or "")
-                            if(asmlib.IsBlank(sW)) then
-                              sW = asmlib.WorkshopID(self:GetText()) end
-                            if(asmlib.IsBlank(sW)) then return sW end
-                            return sUR:format(sW) -- Format workshop ID
-                          end; return sU -- Editor addon home page
-                        end
-                        function pnBtn:DoClick()
-                          local sU = self:GetCustomURL()
-                          if(asmlib.IsBlank(sU)) then return end
-                          gui.OpenURL(sU) -- The URL is found
-                        end
-                        function pnBtn:DoRightClick()
-                          SetClipboardText(self:GetCustomURL())
-                        end
-                        function pnAct:OnChange(bA) -- Uncheck all other check boxes
-                          if(bA) then -- In case we are checking uncheck others and apply this
-                            for iA = 1, #tA do local cA = tA[iA] -- Uncheck everything else
-                              if(IsValid(cA)) then
-                                if(cA == self) then
-                                  cA:SetChecked(true) -- Enabled
-                                  asmlib.SetAsmConvar(oPly, "texteditid", iA)
-                                  cA:SetTooltip(language.GetPhrase(sT.."stedx_av"))
-                                else -- Refresh every other check box
-                                  cA:SetChecked(false) -- Disabled
-                                  cA:SetTooltip(language.GetPhrase(sT.."stedx_ax"))
-                                end
-                              end -- Text editor is chosen only when current is equal to self
-                            end -- Only enabling a checkbox will trigger uncheck
-                          else -- Called with false.If all are false reset the convar
-                            self:SetChecked(false) -- Set this check box to false
-                            self:SetTooltip(language.GetPhrase(sT.."stedx_ax"))
-                            for iA = 1, #tA do local cA = tA[iA] -- Check status
-                              if(IsValid(cA) and cA:GetChecked()) then return end
-                            end; asmlib.SetAsmConvar(oPly, "texteditid", 0)
-                          end -- Return early if one check box is enabled
-                        end -- Change from true to false remove the active editor
-                      end; conElements:Push({pnLink, "Close"})
-                    end -- Luapad is not installed and missing. Open the addon homepage
+                      function pnBtn:DoClick()
+                        local sU = self:GetCustomURL()
+                        if(asmlib.IsBlank(sU)) then return end
+                        gui.OpenURL(sU) -- The URL is found
+                      end
+                      function pnBtn:DoRightClick()
+                        SetClipboardText(self:GetCustomURL())
+                      end
+                      function pnAct:OnChange(bA) -- Uncheck all other check boxes
+                        if(bA) then -- In case we are checking uncheck others and apply this
+                          for iA = 1, #tA do local cA = tA[iA] -- Uncheck everything else
+                            if(IsValid(cA)) then
+                              if(cA == self) then
+                                cA:SetChecked(true) -- Enabled
+                                asmlib.SetAsmConvar(oPly, "texteditid", iA)
+                                cA:SetTooltip(language.GetPhrase(sT.."stedx_av"))
+                              else -- Refresh every other check box
+                                cA:SetChecked(false) -- Disabled
+                                cA:SetTooltip(language.GetPhrase(sT.."stedx_ax"))
+                              end
+                            end -- Text editor is chosen only when current is equal to self
+                          end -- Only enabling a checkbox will trigger uncheck
+                        else -- Called with false.If all are false reset the convar
+                          self:SetChecked(false) -- Set this check box to false
+                          self:SetTooltip(language.GetPhrase(sT.."stedx_ax"))
+                          for iA = 1, #tA do local cA = tA[iA] -- Check status
+                            if(IsValid(cA) and cA:GetChecked()) then return end
+                          end; asmlib.SetAsmConvar(oPly, "texteditid", 0)
+                        end -- Return early if one check box is enabled
+                      end -- Change from true to false remove the active editor
+                    end; conElements:Push({pnLink, "Close"})
+                    -- Luapad is not installed and missing. Open the addon homepage
                   end):SetImage(asmlib.ToIcon(sI.."sted"))
                 pTb:AddOption(language.GetPhrase(sT.."stdl"),
                   function() file.Delete(sFile)

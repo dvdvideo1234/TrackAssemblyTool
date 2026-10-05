@@ -2721,17 +2721,20 @@ end
 
 function Arrange(tSrc, vPrn, ...)
   local tC = (istable(vPrn) and vPrn or {vPrn, ...})
-  local tS = {Size = 0}; tC.Size = #tC
+  local tS, fS, fN = {Size = 0}; tC.Size = #tC
   if(IsEmpty(tSrc)) then return tS end
   for key, rec in pairs(tSrc) do -- Scan the entire table
     tS.Size = tS.Size + 1 -- Allocate key/record and store
     table.insert(tS, {Key = key, Rec = rec}) -- New table
   end -- The table keys are converted to integers
   if(istable(tS[1].Rec)) then -- Data is table
-    if(tC.Size > 0) then -- Sorting column names provided
-      table.sort(tS, function(u, v) return VCOMPARE_SDAT(u, v, tC) end)
-    else table.sort(tS, VCOMPARE_SKEY) end
-  else table.sort(tS, VCOMPARE_SREC) end; return tS
+    if(tC.Size > 0) then fN = "SDAT" -- Column names provided
+      fS = function(u, v) return VCOMPARE_SDAT(u, v, tC) end
+    else fS, fN = VCOMPARE_SKEY, "SKEY" end
+  else fS, fN = VCOMPARE_SREC, "SREC" end
+  local bS, sE = pcall(table.sort, tS, fS); if(not bS) then
+    LogInstance("Error: "..GetReport(fN, sE)); return nil end
+  return tS -- Arranged successfully and return array pointer
 end
 
 ------------- VARIABLE INTERFACES --------------
