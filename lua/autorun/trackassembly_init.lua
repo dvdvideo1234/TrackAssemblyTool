@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.805"
+asmlib.TOOL_VERSION = "10.806"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -1262,8 +1262,9 @@ if(CLIENT) then
                   function() SetClipboardText(tostring(file.Size(sFile, "DATA")).."B") end):SetImage(asmlib.ToIcon(sI.."stsz"))
                 pTb:AddOption(language.GetPhrase(sT.."sted"),
                   function() -- Edit the database contents using the Luapad addon
-                    local tCon = conEditorDB:Select(asmlib.GetAsmConvar("texteditid", "INT"))
-                    if(tCon) then local bS -- Update the success flag scope no return
+                    local cE = asmlib.GetAsmConvar("texteditid", "INT") -- Current default editor
+                    local tCon = conEditorDB:Select(cE) -- Configuration for default editor
+                    if(tCon) then -- Update the success flag scope no return
                       local bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Default flag
                         asmlib.LogInstance("Locator error: "..vH, sLog..".ListView") end
                       local bS, oC = pcall(tCon.Code); if(not bS) then oC = nil -- Default library
@@ -1293,7 +1294,6 @@ if(CLIENT) then
                     local pnLay = vgui.Create("DPanel", pnLink); if(not IsValid(pnLay)) then
                       asmlib.LogInstance("Layout invalid", sLog..".ListView"); pnLink:Close(); return end
                     pnLay:Dock(FILL); pnLay:InvalidateParent(true) -- Update panel dimensions and size
-                    local cE = asmlib.GetAsmConvar("texteditid", "INT") -- Current default editor
                     local sUR, iF = asmlib.FORM_URLADDON, asmlib.FORM_INTEGER -- Data formats
                     local nX, nY, nE, tA, nC = xyDsz.x, xyDsz.y, conEditorDB:GetSize(), {}, 3
                     local xC = (pnLay:GetTall() - (nE + 1) * xyDsz.y) / nE
