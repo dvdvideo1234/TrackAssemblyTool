@@ -148,10 +148,10 @@ if(CLIENT) then
       tU[1] = net.ReadVector() -- Current helix start location vector     ( Origin POS )
       tU[2] = net.ReadAngle()  -- Current helix start location angle      ( Origin ANG )
       tU[3] = net.ReadFloat()  -- Amount of degrees calculating the curve ( End angle )
-      tU[4] = net.ReadFloat()  -- Player trace location curve data        ( Radius )
-      tU[5] = net.ReadUInt(16) -- Player trace angle curve data           ( Samples )
-      tU[6] = net.ReadVector() -- Player trace hits POA location or not   ( Displace POS )
-      tU[7] = net.ReadAngle()  -- The index to change at when requested   ( Displace ANG )
+      tU[4] = net.ReadFloat()  -- How wide is the helix spiral created    ( Radius )
+      tU[5] = net.ReadUInt(16) -- Control point count for multi sampling  ( Samples )
+      tU[6] = net.ReadVector() -- Custom step displace position offset    ( Displace POS )
+      tU[7] = net.ReadAngle()  -- Custom step displacement angle offset   ( Displace ANG )
       local bS, sR = asmlib.DoAction("UPDATE_HELIX", oU, tU); if(not bS) then
         asmlib.LogInstance("Update helix error "..asmlib.GetReport(oU, sR)) end
     end)

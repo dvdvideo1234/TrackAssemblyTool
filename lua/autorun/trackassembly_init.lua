@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.806"
+asmlib.TOOL_VERSION = "10.807"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -315,7 +315,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           oC.Frame:SetVisible(true); oC.Frame:Center()
           oC.Frame:MakePopup(); conElements:Push({oC.Frame, "SetVisible", false})
         end})
--- Automatically apply the convar limits. Zero iz considered as no editor
+-- Automatically apply the convar limits. Zero is considered as no editor
 asmlib.SetBorder(gsToolPrefL.."texteditid", 0, conEditorDB:GetSize())
 -- Workshop matching stuff
 for iD = 1, conEditorDB:GetSize() do
@@ -588,10 +588,10 @@ asmlib.SetAction("UPDATE_HELIX",
     local vOrg = aNew[1] -- Current helix start location vector     ( Origin POS )
     local aOrg = aNew[2] -- Current helix start location angle      ( Origin ANG )
     local nAng = aNew[3] -- Amount of degrees calculating the curve ( End angle )
-    local nRad = aNew[4] -- Player trace location curve data        ( Radius )
-    local nSmp = aNew[5] -- Player trace angle curve data           ( Samples )
-    local vDsp = aNew[6] -- Player trace hits POA location or not   ( Displace POS )
-    local aDsp = aNew[7] -- The index to change at when requested   ( Displace ANG )
+    local nRad = aNew[4] -- How wide is the helix spiral created    ( Radius )
+    local nSmp = aNew[5] -- Control point count for multi sampling  ( Samples )
+    local vDsp = aNew[6] -- Custom step displace position offset    ( Displace POS )
+    local aDsp = aNew[7] -- Custom step displacement angle offset   ( Displace ANG )
     local tC = asmlib.CalculateHelixCurve(oPly, vOrg, aOrg, 100 * nAng, nRad, nSmp, vDsp, aDsp); if(not tC) then
       asmlib.LogInstance("Curve mismatch "..asmlib.GetReport(oPly, nAng, nRad, nSmp), sLog); return false end
     if(SERVER and not bMute) then
