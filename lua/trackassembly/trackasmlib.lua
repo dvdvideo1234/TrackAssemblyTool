@@ -555,14 +555,14 @@ end
 
 --[[
  * Used for scaling distant circles for player perspective
- * pPly > Player the radius is scaled for
+ * oPly > Player the radius is scaled for
  * vPos > Position of the distance scale
  * nMul > Radius scale resize multiplier
 ]]
-function GetViewRadius(pPly, vPos, nMul)
+function GetViewRadius(oPly, vPos, nMul)
   local nM = 5000 * (GOLDEN_RATIO - 1)
   local nS = math.Clamp(tonumber(nMul or 1), 0, 1000)
-  local nD = pPly:GetPos():Distance(vPos)
+  local nD = oPly:GetPos():Distance(vPos)
   return nS * math.Clamp(nM / nD, 0, 5000)
 end
 
@@ -2867,13 +2867,21 @@ end
 
 ------------------------- PLAYER -----------------------------------
 
-function GetPlayerSpot(pPly)
-  if(not IsPlayer(pPly)) then
-    LogInstance("Invalid "..GetReport(pPly)); return nil end
-  local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
-    LogInstance("Cached "..GetReport(pPly:Nick()))
-    libPlayer[pPly] = {}; stSpot = libPlayer[pPly]
-  end; return stSpot
+function GetPlayerSpot(oPly, sKey)
+  if(not IsPlayer(oPly)) then
+    LogInstance("Invalid "..GetReport(oPly, sKey)); return nil end
+  if(not isstring(sKey)) then
+    LogInstance("Invalid "..GetReport(oPly, sKey)); return nil end
+  local stSpot = libPlayer[oPly]
+  if(not IsHere(stSpot)) then
+    libPlayer[oPly] = {}; stSpot = libPlayer[oPly]
+    LogInstance("Player "..GetReport(oPly, sKey))
+  end
+  local stData = stSpot[sKey]
+  if(not IsHere(stData)) then
+    stSpot[sKey] = {}; stData = stSpot[sKey]
+    LogInstance("Data "..GetReport(oPly, sKey))
+  end; return stData
 end
 
 function SetCacheSpawn(stData)
@@ -2894,91 +2902,84 @@ function SetCacheSpawn(stData)
   end; return stData
 end
 
-function GetCacheSpawn(pPly, tDat)
+function GetCacheSpawn(oPly, tDat)
   if(tDat) then -- When data spot is forced from user
     local stData = tDat; if(not istable(stData)) then
       LogInstance("Invalid "..GetReport(stData)); return nil end
     if(IsEmpty(stData)) then
       stData = SetCacheSpawn(stData)
-      LogInstance("Populate "..GetReport(pPly:Nick()))
+      LogInstance("Populate "..GetReport(oPly:Nick()))
     end; return stData
   else -- Use internal data spot
-    local stSpot = GetPlayerSpot(pPly)
-    if(not IsHere(stSpot)) then
-      LogInstance("Spot missing"); return nil end
-    local stData = stSpot["SPAWN"]
+    local stData = GetPlayerSpot(oPly, "SPAWN")
     if(not IsHere(stData)) then
-      stSpot["SPAWN"] = {}; stData = stSpot["SPAWN"]
+      LogInstance("Data missing"); return nil end
+    if(IsEmpty(stData)) then
       stData = SetCacheSpawn(stData)
-      LogInstance("Allocate "..GetReport(pPly:Nick()))
+      LogInstance("Allocate "..GetReport(oPly:Nick()))
     end; return stData
   end
 end
 
-function CacheClear(pPly, bNow)
-  if(not IsPlayer(pPly)) then
-    LogInstance("Invalid "..GetReport(pPly)); return false end
-  local stSpot = libPlayer[pPly]; if(not IsHere(stSpot)) then
+function CacheClear(oPly, bNow)
+  if(not IsPlayer(oPly)) then
+    LogInstance("Invalid "..GetReport(oPly)); return false end
+  local stSpot = libPlayer[oPly]; if(not IsHere(stSpot)) then
     LogInstance("Clean"); return true end
   if(SERVER) then
     local qT = GetQueue("THINK")
-    if(qT) then qT:GetBusy()[pPly] = nil end
+    if(qT) then qT:GetBusy()[oPly] = nil end
   end; local cT = HOVER_TRIGGER
-  if(cT and cT[pPly]) then cT[pPly] = nil end
-  libPlayer[pPly] = nil; if(bNow) then collectgarbage() end
+  if(cT and cT[oPly]) then cT[oPly] = nil end
+  libPlayer[oPly] = nil; if(bNow) then collectgarbage() end
   return true
 end
 
 --[[
  * Used for scaling hit position circle
- * pPly > Player the radius is scaled for
+ * oPly > Player the radius is scaled for
  * vHit > Hit position circle to be scaled
  * nSca > Radius multiplier value
 ]]
-function GetCacheRadius(pPly, vHit, nSca)
-  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
+function GetCacheRadius(oPly, vHit, nSca)
+  local stData = GetPlayerSpot(oPly, "RADIUS"); if(not IsHere(stData)) then
     LogInstance("Spot missing"); return nil end
-  local stData = stSpot["RADIUS"]
-  if(not IsHere(stData)) then
-    LogInstance("Allocate "..GetReport(pPly, pPly:Nick()))
-    stSpot["RADIUS"] = {}; stData = stSpot["RADIUS"]
-    stData["MAR"] =  (GOLDEN_RATIO * 1000)
-    stData["LIM"] = ((GOLDEN_RATIO - 1) * 100)
-  end
-  local nMul = (tonumber(nSca) or 1) -- Disable scaling on missing or outside
+  if(IsEmpty(stData)) then
+    LogInstance("Allocate "..GetReport(oPly, oPly:Nick()))
+    stData.MAR =  (GOLDEN_RATIO * 1000)
+    stData.LIM = ((GOLDEN_RATIO - 1) * 100)
+  end -- Disable scaling on missing or outside
+  local nMul = (tonumber(nSca) or 1)
         nMul = ((nMul <= 1 and nMul >= 0) and nMul or 1)
-  local nMar, nLim = stData["MAR"], stData["LIM"]
-  local nDst = vHit:Distance(pPly:GetPos())
-        nMul = math.Clamp((nMar / nDst) * nMul, 1, nLim)
-  local nRad = ((nDst ~= 0) and nMul or 0)
+  local nMar, nLim = stData.MAR, stData.LIM
+  local nDst = vHit:Distance(oPly:GetPos())
+  if(nDst == 0) then return 0, 0, nMar, nLim end
+  local nRad = math.Clamp((nMar / nDst) * nMul, 1, nLim)
   return nRad, nDst, nMar, nLim
 end
 
-function GetCacheTrace(pPly)
-  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
+function GetCacheTrace(oPly)
+  local stData = GetPlayerSpot(oPly, "TRACE"); if(not IsHere(stData)) then
     LogInstance("Spot missing"); return nil end
-  local stData, plyTime = stSpot["TRACE"], CurTime()
-  if(not IsHere(stData)) then -- Define trace delta margin
-    LogInstance("Allocate "..GetReport(pPly, pPly:Nick()))
-    stSpot["TRACE"] = {}; stData = stSpot["TRACE"]
-    stData["NXT"] = plyTime + TRACE_MARGIN -- Define next trace pending
-    stData["DAT"] = util.GetPlayerTrace(pPly)           -- Get output trace data
+  local nTime = CurTime()
+  if(IsEmpty(stData)) then -- Define trace delta margin
+    LogInstance("Allocate "..GetReport(oPly, oPly:Nick()))
+    stData["NXT"] = nTime + TRACE_MARGIN -- Define next trace pending
+    stData["DAT"] = util.GetPlayerTrace(oPly)           -- Get output trace data
     stData["REZ"] = util.TraceLine(stData["DAT"])       -- Make a trace
   end -- Check the trace time margin interval
-  if(plyTime >= stData["NXT"]) then
-    stData["NXT"] = plyTime + TRACE_MARGIN -- Next trace margin
-    stData["DAT"] = util.GetPlayerTrace(pPly)           -- Get output trace data
+  if(nTime >= stData["NXT"]) then
+    stData["NXT"] = nTime + TRACE_MARGIN -- Next trace margin
+    stData["DAT"] = util.GetPlayerTrace(oPly)           -- Get output trace data
     stData["REZ"] = util.TraceLine(stData["DAT"])       -- Make a trace
   end; return stData["REZ"]
 end
 
-function GetCacheCurve(pPly)
-  local stSpot = GetPlayerSpot(pPly); if(not IsHere(stSpot)) then
+function GetCacheCurve(oPly)
+  local stData = GetPlayerSpot(oPly, "CURVE"); if(not IsHere(stData)) then
     LogInstance("Spot missing"); return nil end
-  local stData = stSpot["CURVE"]
-  if(not IsHere(stData)) then -- Allocate curve data
-    LogInstance("Allocate "..GetReport(pPly, pPly:Nick()))
-    stSpot["CURVE"] = {}; stData = stSpot["CURVE"]
+  if(IsEmpty(stData)) then -- Allocate curve data
+    LogInstance("Allocate "..GetReport(oPly, oPly:Nick()))
     stData.Info  = {} -- This holds various vectors and angles and other data
     stData.Rays = {} -- Holds hashes whenever given node is an active point
     stData.Info.Pos = {Vector(), Vector()} -- Start and end positions of active points
@@ -3037,12 +3038,12 @@ function UndoAddEntity(oEnt)
   undo.AddEntity(oEnt); return true
 end
 
-function UndoFinish(pPly,vMsg)
-  if(not IsPlayer(pPly)) then
-    LogInstance("Player invalid "..GetReport(pPly)); return false end
-  pPly:EmitSound(FORM_SNAPSND:format(math.random(1, 3)))
+function UndoFinish(oPly,vMsg)
+  if(not IsPlayer(oPly)) then
+    LogInstance("Player invalid "..GetReport(oPly)); return false end
+  oPly:EmitSound(FORM_SNAPSND:format(math.random(1, 3)))
   undo.SetCustomUndoText(LABEL_UNDO..tostring(vMsg or ""))
-  undo.SetPlayer(pPly); undo.Finish(); return true
+  undo.SetPlayer(oPly); undo.Finish(); return true
 end
 
 -------------------------- BUILDSQL ------------------------------
@@ -5631,23 +5632,22 @@ end
 ]]
 function IntersectRayCreate(oPly, oEnt, vHit, sKey)
   if(not IsPlayer(oPly)) then
-    LogInstance("Player invalid "..GetReport(oPly)); return nil end
+    LogInstance("Player invalid "..GetReport(oPly, sKey)); return nil end
   if(not isvector(vHit)) then
-    LogInstance("Origin missing "..GetReport(vHit)); return nil end
+    LogInstance("Origin missing "..GetReport(oPly, sKey)); return nil end
   if(not isstring(sKey)) then
-    LogInstance("Key invalid "..GetReport(sKey)); return nil end
+    LogInstance("Key invalid "..GetReport(oPly, sKey)); return nil end
   local trID, trMin, trPOA, trRec = GetEntityHitID(oEnt, vHit); if(not trID) then
     LogInstance("Entity no hit "..GetReport(oEnt, vHit)); return nil end
-  local stSpot, iKey = GetPlayerSpot(oPly), "INTERSECT"; if(not IsHere(stSpot)) then
+  local stData = GetPlayerSpot(oPly, "INTERSECT"); if(not IsHere(stData)) then
     LogInstance("Spot missing"); return nil end -- Retrieve general player spot
-  local tRay = stSpot[iKey]; if(not tRay) then stSpot[iKey] = {}; tRay = stSpot[iKey] end
-  local stRay = tRay[sKey] -- Index the ray type. Relate or origin
+  local stRay = stData[sKey] -- Index the ray type. Relate or origin
   if(not stRay) then -- Define a ray via origin and direction
-    tRay[sKey] = {Org = Vector(), Dir = Angle(), -- Local direction and origin
+    stData[sKey] = {Org = Vector(), Dir = Angle(), -- Local direction and origin
                   Orw = Vector(), Diw = Angle(), -- World direction and origin
                    ID = trID    , Ent = oEnt   , -- Point ID and entity relation
                   Key = sKey    , Ply = oPly   , -- Key and player to be stored
-                  POA = trPOA   , Rec = trRec  , Min = trMin}; stRay = tRay[sKey]
+                  POA = trPOA   , Rec = trRec  , Min = trMin}; stRay = stData[sKey]
   else -- Update internal settings
     stRay.Key = sKey
     stRay.Ply, stRay.Ent, stRay.ID  = oPly , oEnt , trID
@@ -5660,26 +5660,26 @@ end
 
 function IntersectRayRead(oPly, sKey)
   if(not IsPlayer(oPly)) then
-    LogInstance("Player mismatch "..GetReport(oPly)); return nil end
+    LogInstance("Player mismatch "..GetReport(oPly, sKey)); return nil end
   if(not isstring(sKey)) then
-    LogInstance("Key mismatch "..GetReport(sKey)); return nil end
-  local stSpot, iKey = GetPlayerSpot(oPly), "INTERSECT"; if(not IsHere(stSpot)) then
+    LogInstance("Key mismatch "..GetReport(oPly, sKey)); return nil end
+  local stData = GetPlayerSpot(oPly, "INTERSECT"); if(not IsHere(stData)) then
     LogInstance("Spot missing"); return nil end -- Retrieve general player spot
-  local tRay = stSpot[iKey]; if(not tRay) then
-    LogInstance("No ray "..GetReport(oPly:Nick())); return nil end
-  local stRay = tRay[sKey]; if(not stRay) then
-    LogInstance("No key "..GetReport(sKey)); return nil end
+  if(IsEmpty(stData)) then
+    LogInstance("No ray "..GetReport(oPly, sKey)); return nil end
+  local stRay = stData[sKey]; if(not stRay) then
+    LogInstance("No key "..GetReport(oPly, sKey)); return nil end
   return IntersectRayUpdate(stRay) -- Obtain personal ray from the cache
 end
 
 function IntersectRayClear(oPly, sKey)
   if(not IsPlayer(oPly)) then
-    LogInstance("Player mismatch "..GetReport(oPly)); return false end
-  local stSpot, iKey = GetPlayerSpot(oPly), "INTERSECT"; if(not IsHere(stSpot)) then
+    LogInstance("Player mismatch "..GetReport(oPly, sKey)); return false end
+  local stData = GetPlayerSpot(oPly, "INTERSECT"); if(not IsHere(stData)) then
     LogInstance("Spot missing"); return nil end -- Retrieve general player spot
-  local tRay = stSpot[iKey]; if(not tRay) then LogInstance("Clean"); return true end
-  if(not IsHere(sKey)) then stSpot[iKey] = nil else tRay[sKey] = nil end
-  LogInstance("Clear "..GetReport(sKey, oPly:Nick())); return true
+  if(IsEmpty(stData)) then LogInstance("Clean"); return true end
+  if(IsHere(sKey)) then stData[sKey] = nil else table.Empty(stData) end
+  LogInstance("Clear "..GetReport(oPly, sKey)); return true
 end
 
 --[[
@@ -5910,21 +5910,21 @@ function InSpawnMargin(oPly,oRec,vPos,aAng)
   else oRec.Mpos, oRec.Mray = nil, nil end; return false
 end
 
-function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
+function NewPiece(oPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   if(CLIENT) then LogInstance("Working on client"); return nil end
-  if(not IsPlayer(pPly)) then -- If not player we cannot register limit
-    LogInstance("Player missing "..GetReport(pPly)); return nil end
+  if(not IsPlayer(oPly)) then -- If not player we cannot register limit
+    LogInstance("Player missing "..GetReport(oPly)); return nil end
   local sLimit  = CVAR_LIMITNAME -- Localize limit name
-  if(not pPly:CheckLimit(sLimit)) then -- Check internal limit
+  if(not oPly:CheckLimit(sLimit)) then -- Check internal limit
     LogInstance("Track limit reached"); return nil end
-  if(not pPly:CheckLimit("props")) then -- Check the props limit
+  if(not oPly:CheckLimit("props")) then -- Check the props limit
     LogInstance("Prop limit reached"); return nil end
   if(not IsModel(sModel, true)) then
     LogInstance("Model invalid"); return nil end
   local stData = CacheQueryPiece(sModel) if(not IsHere(stData)) then
     LogInstance("Record missing "..GetReport(sModel)); return nil end
   local aAng = Angle(aAng or ANG_ZERO)
-  if(InSpawnMargin(pPly, stData, vPos, aAng)) then
+  if(InSpawnMargin(oPly, stData, vPos, aAng)) then
     LogInstance("Spawn margin stop "..GetReport(sModel)); return nil end
   local sClass = GetEmpty(stData.Unit, nil, ENTITY_DEFCLASS)
   local ePiece = ents.Create(sClass); if(not (ePiece and ePiece:IsValid())) then
@@ -5934,10 +5934,10 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   ePiece:SetMoveType(GENV . MOVETYPE_VPHYSICS)
   ePiece:SetNotSolid(false)
   ePiece:SetModel(sModel)
-  if(not SetPosBound(ePiece,vPos,pPly,sMode)) then
-    LogInstance("Misplaced "..GetReport(pPly:Nick(), sModel)); return nil end
+  if(not SetPosBound(ePiece,vPos,oPly,sMode)) then
+    LogInstance("Misplaced "..GetReport(oPly:Nick(), sModel)); return nil end
   ePiece:SetAngles(aAng)
-  ePiece:SetCreator(pPly) -- Who spawned the sandbox track
+  ePiece:SetCreator(oPly) -- Who spawned the sandbox track
   ePiece:Spawn()
   ePiece:Activate()
   ePiece:SetRenderMode(GENV . RENDERMODE_TRANSALPHA)
@@ -5947,7 +5947,7 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
   local pPiece = ePiece:GetPhysicsObject()
   if(not (pPiece and pPiece:IsValid())) then ePiece:Remove()
     LogInstance("Entity phys object invalid"); return nil end
-  ePiece.owner, ePiece.Owner = pPly, pPly -- Some PPs actually use this value
+  ePiece.owner, ePiece.Owner = oPly, oPly -- Some PPs actually use this value
   pPiece:EnableMotion(false) -- Spawn frozen by default to reduce lag
   local nMass = math.max(0, (tonumber(nMass) or 0))
   if(nMass > 0) then pPiece:SetMass(nMass) end -- Mass equal zero use model mass
@@ -5957,8 +5957,8 @@ function NewPiece(pPly,sModel,vPos,aAng,nMass,sBgSkIDs,clColor,sMode)
     LogInstance("Failed attaching bodygroups"); return nil end
   if(not AttachAdditions(ePiece)) then ePiece:Remove()
     LogInstance("Failed attaching additions"); return nil end
-  pPly:AddCount(sLimit , ePiece); pPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
-  pPly:AddCount("props", ePiece); pPly:AddCleanup("props", ePiece) -- Deleted with clearing props
+  oPly:AddCount(sLimit , ePiece); oPly:AddCleanup(sLimit , ePiece) -- This sets the ownership
+  oPly:AddCount("props", ePiece); oPly:AddCleanup("props", ePiece) -- Deleted with clearing props
   LogInstance(GetReport(ePiece, sModel)); return ePiece
 end
 
@@ -6237,12 +6237,12 @@ function GetAsmConvar(sName, sMode)
   end; LogInstance("Missed mode "..GetReport(sName, sKey, sMode)); return nil
 end
 
-function SetAsmConvar(pPly, sName, snVal)
+function SetAsmConvar(oPly, sName, snVal)
   if(not isstring(sName)) then -- Make it like so the space will not be forgotten
     LogInstance("Name mismatch "..GetReport(sName)); return nil end
   local sFmt, sPrf = FORM_CONCMD, TOOLNAME_PL
-  local sKey = GetNameExp(sName); if(IsPlayer(pPly)) then -- Use the player when available
-    return pPly:ConCommand(sFmt:format(sKey, tostring(snVal or "")))
+  local sKey = GetNameExp(sName); if(IsPlayer(oPly)) then -- Use the player when available
+    return oPly:ConCommand(sFmt:format(sKey, tostring(snVal or "")))
   end; return RunConsoleCommand(sKey, tostring(snVal or ""))
 end
 
