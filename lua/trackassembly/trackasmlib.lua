@@ -2905,18 +2905,17 @@ end
 function GetCacheSpawn(oPly, tDat)
   if(tDat) then -- When data spot is forced from user
     local stData = tDat; if(not istable(stData)) then
-      LogInstance("Invalid "..GetReport(stData)); return nil end
+      LogInstance("Invalid "..GetReport(oPly, tDat)); return nil end
     if(IsEmpty(stData)) then
       stData = SetCacheSpawn(stData)
-      LogInstance("Populate "..GetReport(oPly:Nick()))
+      LogInstance("Populate "..GetReport(oPly, tDat))
     end; return stData
   else -- Use internal data spot
-    local stData = GetPlayerSpot(oPly, "SPAWN")
-    if(not IsHere(stData)) then
-      LogInstance("Data missing"); return nil end
+    local stData = GetPlayerSpot(oPly, "SPAWN"); if(not IsHere(stData)) then
+      LogInstance("Spot missing "..GetReport(oPly, tDat)); return nil end
     if(IsEmpty(stData)) then
       stData = SetCacheSpawn(stData)
-      LogInstance("Allocate "..GetReport(oPly:Nick()))
+      LogInstance("Allocate "..GetReport(oPly, tDat))
     end; return stData
   end
 end
@@ -2943,9 +2942,9 @@ end
 ]]
 function GetCacheRadius(oPly, vHit, nSca)
   local stData = GetPlayerSpot(oPly, "RADIUS"); if(not IsHere(stData)) then
-    LogInstance("Spot missing"); return nil end
+    LogInstance("Spot missing "..GetReport(oPly, nSca)); return nil end
   if(IsEmpty(stData)) then
-    LogInstance("Allocate "..GetReport(oPly, oPly:Nick()))
+    LogInstance("Allocate "..GetReport(oPly, nSca))
     stData.MAR =  (GOLDEN_RATIO * 1000)
     stData.LIM = ((GOLDEN_RATIO - 1) * 100)
   end -- Disable scaling on missing or outside
@@ -2959,27 +2958,27 @@ function GetCacheRadius(oPly, vHit, nSca)
 end
 
 function GetCacheTrace(oPly)
-  local stData = GetPlayerSpot(oPly, "TRACE"); if(not IsHere(stData)) then
-    LogInstance("Spot missing"); return nil end
-  local nTime = CurTime()
+  local stData, nTime = GetPlayerSpot(oPly, "TRACE"), CurTime()
+  if(not IsHere(stData)) then -- Failed to allocate spot
+    LogInstance("Spot missing "..GetReport(oPly, nTime)); return nil end
   if(IsEmpty(stData)) then -- Define trace delta margin
-    LogInstance("Allocate "..GetReport(oPly, oPly:Nick()))
-    stData["NXT"] = nTime + TRACE_MARGIN -- Define next trace pending
-    stData["DAT"] = util.GetPlayerTrace(oPly)           -- Get output trace data
-    stData["REZ"] = util.TraceLine(stData["DAT"])       -- Make a trace
+    LogInstance("Allocate "..GetReport(oPly, nTime))
+    stData.NXT = nTime + TRACE_MARGIN       -- Define next trace pending
+    stData.DAT = util.GetPlayerTrace(oPly)  -- Get output trace data
+    stData.REZ = util.TraceLine(stData.DAT) -- Make a trace
   end -- Check the trace time margin interval
-  if(nTime >= stData["NXT"]) then
-    stData["NXT"] = nTime + TRACE_MARGIN -- Next trace margin
-    stData["DAT"] = util.GetPlayerTrace(oPly)           -- Get output trace data
-    stData["REZ"] = util.TraceLine(stData["DAT"])       -- Make a trace
-  end; return stData["REZ"]
+  if(nTime >= stData.NXT) then
+    stData.NXT = nTime + TRACE_MARGIN       -- Next trace margin
+    stData.DAT = util.GetPlayerTrace(oPly)  -- Get output trace data
+    stData.REZ = util.TraceLine(stData.DAT) -- Make a trace
+  end; return stData.REZ
 end
 
 function GetCacheCurve(oPly)
   local stData = GetPlayerSpot(oPly, "CURVE"); if(not IsHere(stData)) then
-    LogInstance("Spot missing"); return nil end
+    LogInstance("Spot missing "..GetReport(oPly, CurTime())); return nil end
   if(IsEmpty(stData)) then -- Allocate curve data
-    LogInstance("Allocate "..GetReport(oPly, oPly:Nick()))
+    LogInstance("Allocate "..GetReport(oPly, CurTime()))
     stData.Info  = {} -- This holds various vectors and angles and other data
     stData.Rays = {} -- Holds hashes whenever given node is an active point
     stData.Info.Pos = {Vector(), Vector()} -- Start and end positions of active points
@@ -4446,7 +4445,7 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local tHew, sMoDB = PATTEM_EXDSVHED, MODE_DATABASE
   local tDBmo = ARRAY_MODEDB; if(not tDBmo[sMoDB]) then
     LogInstance("Unsupported mode"); return nil end
-  local sHew, sFunc = tHew.Fmt:format(fPref, sTable, sDelim), debug.getinfo(1).name
+  local sHew = tHew.Fmt:format(fPref, sTable, sDelim)
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sHew),sTable); return true end
   local tHea = FORM_HEADEREXP; if(IsGenericDB(sTable)) then
@@ -4454,7 +4453,8 @@ function SynchronizeDSV(sTable, tData, bRepl, sPref, sDelim)
   local makTab = GetBuilderNick(sTable); if(not IsHere(makTab)) then
     LogInstance("Missing table builder "..GetReport(sHew),sTable); return false end
   local defTab, iD = makTab:GetDefinition(), makTab:GetColumnID("LINEID")
-  local fName, tKeys = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name), table.GetKeys(tData)
+  local sFunc, tKeys = debug.getinfo(1).name, table.GetKeys(tData)
+  local fName = GetLibraryPath(DIRPATH_DSV, fPref, defTab.Name)
   if(file.Exists(fName, "DATA")) then
     local I = GetReader(GetConcat(sTable,".",sPref,".",sFunc))
     if(I:Open(fName):IsDeny()) then return false end
@@ -5634,13 +5634,13 @@ function IntersectRayCreate(oPly, oEnt, vHit, sKey)
   if(not IsPlayer(oPly)) then
     LogInstance("Player invalid "..GetReport(oPly, sKey)); return nil end
   if(not isvector(vHit)) then
-    LogInstance("Origin missing "..GetReport(oPly, sKey)); return nil end
+    LogInstance("Origin mismatch "..GetReport(oPly, sKey)); return nil end
   if(not isstring(sKey)) then
-    LogInstance("Key invalid "..GetReport(oPly, sKey)); return nil end
+    LogInstance("Key mismatch "..GetReport(oPly, sKey)); return nil end
   local trID, trMin, trPOA, trRec = GetEntityHitID(oEnt, vHit); if(not trID) then
-    LogInstance("Entity no hit "..GetReport(oEnt, vHit)); return nil end
+    LogInstance("Target missing "..GetReport(oEnt, vHit)); return nil end
   local stData = GetPlayerSpot(oPly, "INTERSECT"); if(not IsHere(stData)) then
-    LogInstance("Spot missing"); return nil end -- Retrieve general player spot
+    LogInstance("Spot missing "..GetReport(oPly, sKey)); return nil end
   local stRay = stData[sKey] -- Index the ray type. Relate or origin
   if(not stRay) then -- Define a ray via origin and direction
     stData[sKey] = {Org = Vector(), Dir = Angle(), -- Local direction and origin
@@ -5664,11 +5664,11 @@ function IntersectRayRead(oPly, sKey)
   if(not isstring(sKey)) then
     LogInstance("Key mismatch "..GetReport(oPly, sKey)); return nil end
   local stData = GetPlayerSpot(oPly, "INTERSECT"); if(not IsHere(stData)) then
-    LogInstance("Spot missing"); return nil end -- Retrieve general player spot
-  if(IsEmpty(stData)) then
-    LogInstance("No ray "..GetReport(oPly, sKey)); return nil end
+    LogInstance("Spot missing "..GetReport(oPly, sKey)); return nil end
+  if(IsEmpty(stData)) then -- Retrieve general player spot
+    LogInstance("Data missing "..GetReport(oPly, sKey)); return nil end
   local stRay = stData[sKey]; if(not stRay) then
-    LogInstance("No key "..GetReport(oPly, sKey)); return nil end
+    LogInstance("Ray missing "..GetReport(oPly, sKey)); return nil end
   return IntersectRayUpdate(stRay) -- Obtain personal ray from the cache
 end
 

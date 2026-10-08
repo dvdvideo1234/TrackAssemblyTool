@@ -839,8 +839,8 @@ function TOOL:SelectModel(sModel)
 end
 
 --[[
- * Uses heuristics to provide the best suitable location the
- * curve note closest location can be updated with. Three cases:
+ * Uses heuristics to provide the best suitable point the
+ * closest curve node location can be updated with
  * iD    > Curve node index to be updated
  * vPnt  > The new location to update the node with
  * bMute > Mute mode. Used to disable server status messages
