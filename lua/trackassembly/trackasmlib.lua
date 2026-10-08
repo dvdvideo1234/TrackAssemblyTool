@@ -4610,23 +4610,23 @@ end
 --[[
  * This function adds the desired database prefix to the auto-include list
  * It is used by addon creators when they want automatically include pieces
- * sProg  > The program which registered the DSV
- * sPref  > The external data prefix to be added
- * sDelim > The delimiter to be used for processing
- * bSkip  > Skip addition for the DSV prefix if exists
+ * sProg  > The program which registered the DSV (def caller script)
+ * sPref  > The external data prefix to be added (mandatory)
+ * sDelim > The delimiter to be used for processing (def tab)
+ * bSkip  > Skip addition for the DSV prefix if exists (def true)
 ]]
 function RegisterDSV(sProg, sPref, sDelim, bSkip)
-  local sProg = tostring(sProg or "")
-  if(IsBlank(sProg)) then sProg = debug.getinfo(2).source
-    LogInstance("Program empty "..GetReport(sProg, sPref)) end
+  local sProg = GetEmpty(sProg, nil, debug.getinfo(2).source); if(IsBlank(sProg)) then
+    LogInstance("Program empty "..GetReport(sProg, sPref, sDelim)) end
   local fPref = tostring(sPref or GetInstPrefix()):lower(); if(IsBlank(fPref)) then
-    LogInstance("Prefix mismatch "..GetReport(sProg, sPref, fPref), sTable); return false end
+    LogInstance("Prefix mismatch "..GetReport(sProg, sPref, fPref)); return false end
   if(CLIENT and game.SinglePlayer()) then
     LogInstance("Same machine "..GetReport(sProg, sPref)); return true end
   if(IsFlag("en_dsv_datalock")) then
     LogInstance("User disabled "..GetReport(sProg, sPref)); return true end
   local sDelim, sMiss = tostring(sDelim or OPSYM_DELIMIT):sub(1,1), MISS_NOAV
   local fName = GetLibraryPath(DIRPATH_SET, NAME_LIBRARY, "_dsv")
+  local bSkip = ((bSkip or not IsHere(bSkip)) and true or false)
   if(bSkip or IsExact(fPref)) then
     local sFunc = debug.getinfo(1).name
     if(file.Exists(fName, "DATA")) then local fPool = {}
@@ -4637,7 +4637,8 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
         if(not IsBlank(sRow)) then local isAct = true
           if(IsDisable(sRow)) then isAct, sRow = false, sRow:sub(2,-1) end
           local tab = sDelim:Explode(sRow)
-          local prf = GetTypePrefix(tab[1])
+          local nam, exa = tab[1], IsExact(tab[1])
+          local prf = GetTypePrefix(exa and nam:sub(2, -1) or nam)
           local src = tostring(tab[2] or sMiss):Trim()
           local inf = fPool[prf]; if(not inf) then
             fPool[prf] = {Size = 0}; inf = fPool[prf] end
@@ -4645,15 +4646,20 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
         end; sRow = F:GetLine()
       end
       if(F:Finish():IsDeny()) then return false end
-      if(fPool[fPref]) then local inf = fPool[fPref]
-        for iP = 1, inf.Size do local tab = inf[iP]
-          LogInstance("Status "..GetReport(sProg, fPref, tab[1], tab[2]))
-        end; LogInstance("Skip "..GetReport(sProg, fPref)); return true
-      end
-    else LogInstance("Skip miss "..GetReport(sProg, fPref, fName)) end
+      local fInf = fPool[fPref] -- Index Prefix entries list
+      if(fInf) then -- There are entries in the file for this prefix
+        for iP = 1, fInf.Size do local fTab = fInf[iP]
+          if(sProg == fTab[2]) then -- The same source has registered this prefix previously
+            LogInstance("Exists entry "..GetReport(iP, fPref, fTab[2])); return true
+          else -- The prefix requested is not matched to the current entry so check next
+            LogInstance("Prefix entry "..GetReport(iP, fPref, fTab[2]))
+          end -- Process every entry and report the match status
+        end -- The requested source for this prefix has not been found in the list
+      end -- The prefix is added anyway in this case to raise addon conflicts error
+    else LogInstance("Missing prefix "..GetReport(sProg, fPref, fName)) end
   end
   local F = file.Open(fName, "ab" ,"DATA"); if(not F) then
-    LogInstance("Update fail "..GetReport(sProg, fPref, fName)); return false end
+    LogInstance("File error "..GetReport(sProg, fPref, fName)); return false end
   F:Write(fPref); F:Write(sDelim); F:Write(tostring(sProg or sMiss)); F:Write("\n"); F:Flush(); F:Close()
   LogInstance("Register "..GetReport(sProg, fPref)); return true
 end
