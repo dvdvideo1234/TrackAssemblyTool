@@ -93,20 +93,20 @@ local libConcat = {} -- Used to store concatenation strings
 
 module("trackasmlib")
 
-local GMOD = getfenv()
+local MENV = getfenv()
 
 ---------------------------- COMPATIBILITY ----------------------------
 
 function GetOpVar(sK)
   if(not IsHere(sK)) then return end
   if(not isstring(sK)) then return end
-  return GMOD[sK:upper()]
+  return MENV[sK:upper()]
 end
 
 function SetOpVar(sK, vV)
   if(not IsHere(sK)) then return end
   if(not isstring(sK)) then return end
-  GMOD[sK:upper()] = vV
+  MENV[sK:upper()] = vV
 end
 
 ---------------------------- PRIMITIVES ----------------------------
@@ -130,15 +130,21 @@ function GetConcat(...)
 end
 
 function GetInstPrefix()
-  return (CLIENT and "cl_" or (SERVER and "sv_" or "na_"))
+  local sS = (SERVER and "sv" or "na")
+  local sP = (CLIENT and "cl" or sS)
+  return sP..OPSYM_DIVIDER
 end
 
 function GetTypePrefix(sT)
-  return tostring(sT or ""):Trim():gsub("[^%w]","_"):lower()
+  local tS = TYPEN_SUBSTR.P
+  local sT = tostring(sT or ""):Trim()
+  return sT:gsub(unpack(tS)):lower()
 end
 
 function GetTypeNormal(sT)
-  return tostring(sT or ""):Trim():gsub("%s+", " ")
+  local tS = TYPEN_SUBSTR.N
+  local sT = tostring(sT or ""):Trim()
+  return sT:gsub(unpack(tS))
 end
 
 function GetTypeConfig(sT)
@@ -433,7 +439,7 @@ function IsLogHere(sMsg, sKey)
   local sKey = tostring(sKey or "")
   if(IsBlank(sKey)) then return nil end
   local sMsg = tostring(sMsg or "")
-  local tLog = GMOD["LOG_"..sKey]
+  local tLog = MENV["LOG_"..sKey]
   if(istable(tLog) and tLog[1]) then
     for iL = 1, tLog.Size do
       local sM = tostring(tLog[iL])
@@ -677,7 +683,7 @@ function SettingsLogs(sHash)
   local sKey = tostring(sHash or ""):upper():Trim()
   if(not (sKey == "SKIP" or sKey == "ONLY")) then
     LogInstance("Invalid "..GetReport(sKey)); return false end
-  local tLogs, lbNam = GMOD["LOG_"..sKey], NAME_LIBRARY
+  local tLogs, lbNam = MENV["LOG_"..sKey], NAME_LIBRARY
   if(not tLogs) then LogInstance("Missing "..GetReport(sKey)); return false end
   table.Empty(tLogs); tLogs.Size = 0 -- Initialize the valid log type
   local fName = GetLibraryPath(DIRPATH_SET, GetConcat(lbNam, "_sl", sKey:lower()))
@@ -744,12 +750,16 @@ function InitBase(sName, sPurp)
   NAME_LIBRARY = NAME_INIT..NAME_LIBSUFX
   TOOLNAME_NL = (NAME_INIT..NAME_PERP):lower()
   TOOLNAME_NU = (NAME_INIT..NAME_PERP):upper()
-  TOOLNAME_PL = TOOLNAME_NL.."_"
-  TOOLNAME_PU = TOOLNAME_NU.."_"
+  TOOLNAME_PL = TOOLNAME_NL..OPSYM_DIVIDER
+  TOOLNAME_PU = TOOLNAME_NU..OPSYM_DIVIDER
   DIRPATH_BAS = TOOLNAME_NL..OPSYM_DIRECTORY
   DIRPATH_EXP = "exp"..OPSYM_DIRECTORY
   DIRPATH_DSV = "dsv"..OPSYM_DIRECTORY
   DIRPATH_SET = "set"..OPSYM_DIRECTORY
+  TYPEN_SUBSTR = {
+    N = {"%s+", " "},
+    P = {"[^%w]", OPSYM_DIVIDER}
+  }
   LOG_SKIP = {Size = 0}
   LOG_ONLY = {Size = 0}
   LOG_CONFIG = {
@@ -801,7 +811,7 @@ function InitBase(sName, sPurp)
   FORM_NTFGAME = "notification.AddLegacy(\"%s\", NOTIFY_%s, 6)"
   FORM_NTFPLAY = "surface.PlaySound(\"ambient/water/drip%d.wav\")"
   MODELNAM_FILE = "%.mdl"
-  DBEXP_PREFGEN = "[generic]_"
+  DBEXP_PREFGEN = "[generic]"..OPSYM_DIVIDER
   VCOMPARE_SPAN = function(u, v)
     if(u.T ~= v.T) then return u.T < v.T end
     local uC, vC = (u.C or {}), (v.C or {})
@@ -1257,7 +1267,7 @@ function GetQueue(sKey)
       local tD = mS.N; table.Empty(mS); mS = tD; return self -- Wipe entry
     end
   end -- Register the class under the key
-  LogInstance("Queue registered "..GetReport(mKey))
+  LogInstance("Registered "..GetReport(mKey))
   setmetatable(self, TYPEMT_QUEUE)
   mHash[mKey] = self; return self
 end
@@ -1403,7 +1413,7 @@ function GetContainer(sKey, sDef)
       return self:Record(nil, vV)
     end
   end -- Register the class under the key
-  LogInstance("Container registered "..GetReport(mKey))
+  LogInstance("Registered "..GetReport(mKey))
   setmetatable(self, TYPEMT_CONTAINER)
   mHash[mKey] = self; return self
 end
@@ -1670,7 +1680,7 @@ function GetScreen(sW, sH, eW, eH, conClr, sKey)
     self:DrawCircle(Pp, Rv, "r","SEGM",{35})
     self:DrawLine(Op, Pp)
   end -- Register the class under the key
-  LogInstance("Screen registered "..GetReport(mKey))
+  LogInstance("Registered "..GetReport(mKey))
   setmetatable(self, TYPEMT_SCREEN);
   mHash[mKey] = self; return self
 end
@@ -2290,12 +2300,12 @@ function SetComboBoxList(cPanel, sVar)
     LogInstance("Base panel server"); return end
   if(not IsValid(cPanel)) then
     LogInstance("Base panel invalid"); return end
-  local tSet = GMOD["ARRAY_"..sVar:upper()]
+  local tSet = MENV["ARRAY_"..sVar:upper()]
   if(IsHere(tSet)) then
     local tSkin, sTool = cPanel:GetSkin(), TOOLNAME_NL
     local sKey, sNam, bExa = GetNameExp(sVar)
     local sBase = (bExa and sNam or ("tool."..sTool.."."..sNam))
-    local sName = GetAsmConvar(sVar, "NAM")
+    local sName, sDiv = GetAsmConvar(sVar, "NAM"), OPSYM_DIVIDER
     local sMenu, sTtip = language.GetPhrase(sBase.."_con"), language.GetPhrase(sBase)
     pItem = cPanel:ComboBox(sMenu, sName)
     pItem:SetSortItems(false); pItem:Dock(GENV . TOP); pItem:SetTall(25)
@@ -2308,8 +2318,8 @@ function SetComboBoxList(cPanel, sVar)
       SetAsmConvar(nil, sVar, anyData)
     end -- Apply the setting to the specified variable
     for iD = 1, #tSet do local sI = tSet[iD]
-      local sIco = ToIcon(sNam.."_"..sI:lower())
-      local sPrv = (sBase.."_"..sI:lower())
+      local sIco = ToIcon(sNam..sDiv..sI:lower())
+      local sPrv = (sBase..sDiv..sI:lower())
       pItem:AddChoice(language.GetPhrase(sPrv), sI, false, sIco)
     end
   else LogInstance("Missing "..GetReport(sNam)) end
