@@ -811,6 +811,7 @@ if(CLIENT) then
   asmlib.ToIcon("freeze"           , "lock"              )
   asmlib.ToIcon("gravity"          , "ruby_put"          )
   asmlib.ToIcon("weld"             , "wrench"            )
+  asmlib.ToIcon("anchor"           , "anchor"            )
   asmlib.ToIcon("nocollide"        , "shape_group"       )
   asmlib.ToIcon("nocollidew"       , "world_go"          )
   asmlib.ToIcon("workmode_snap"    , "plugin"            ) -- General spawning and snapping mode
@@ -818,7 +819,7 @@ if(CLIENT) then
   asmlib.ToIcon("workmode_curve"   , "vector"            ) -- Catmull-Rom curve line segment fitting
   asmlib.ToIcon("workmode_over"    , "shape_move_back"   ) -- Trace normal ray location piece flip-spawn
   asmlib.ToIcon("workmode_turn"    , "arrow_turn_right"  ) -- Produces smoother turns with Bezier curve
-  asmlib.ToIcon("workmode_helix"   , "circlecross"       ) -- Produces spiral arks with given offset
+  asmlib.ToIcon("workmode_helix"   , "chart_pie"         ) -- Produces spiral arks with given offset
   asmlib.ToIcon("property_type"    , "package_green"     )
   asmlib.ToIcon("property_name"    , "note"              )
   asmlib.ToIcon("modedb_lua"       , "database_lightning")
