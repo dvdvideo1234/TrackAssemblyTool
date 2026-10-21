@@ -4666,7 +4666,7 @@ function RegisterDSV(sProg, sPref, sDelim, bSkip)
           end -- Process every entry and report the match status
         end -- The requested source for this prefix has not been found in the list
       end -- The prefix is added anyway in this case to raise addon conflicts error
-    else LogInstance("Missing prefix "..GetReport(sProg, fPref, fName)) end
+    else LogInstance("Missing source "..GetReport(sProg, fPref, fName)) end
   end
   local F = file.Open(fName, "ab" ,"DATA"); if(not F) then
     LogInstance("File error "..GetReport(sProg, fPref, fName)); return false end
