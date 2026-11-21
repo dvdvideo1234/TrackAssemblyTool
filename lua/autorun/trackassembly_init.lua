@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.807"
+asmlib.TOOL_VERSION = "10.808"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -292,7 +292,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           if(not IsValid(oC.Frame)) then oC.Toggle() end
           -- Configure the panel visuals and display the file
           oC.Frame:SetVisible(true); oC.Frame:Center()
-          oC.OpenTab("data/"..gsToolNameL)
+          oC.OpenScript("data/"..gsToolNameL)
           local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
           local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
           local sForm = asmlib.FORM_STRING -- File format string

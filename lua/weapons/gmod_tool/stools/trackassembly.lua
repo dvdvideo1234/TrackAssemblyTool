@@ -2403,7 +2403,7 @@ function TOOL:DrawHUD()
     if(not self:GetDeveloperMode()) then return end
     self:DrawTextSpawn(oScreen, "k","SURF",{"DebugSpawnTA"}); return
   elseif(workmode == 4 and self:IsFlipOver()) then
-    self:DrawFlipAssist(oScreen, user, stTrace); return
+    self:DrawFlipAssist(oScreen, user, stTrace)
     if(not self:GetDeveloperMode()) then return end
     self:DrawTextSpawn(oScreen, "k","SURF",{"DebugSpawnTA"}); return
   elseif(workmode == 6 and self:IsHelix()) then
