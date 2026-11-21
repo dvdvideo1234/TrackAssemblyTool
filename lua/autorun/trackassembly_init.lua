@@ -13,7 +13,7 @@ local asmlib = trackasmlib; if(not asmlib) then -- Module present
 ------------ CONFIGURE ASMLIB ------------
 
 asmlib.InitBase("track","assembly")
-asmlib.TOOL_VERSION = "10.808"
+asmlib.TOOL_VERSION = "10.809"
 
 ------------ CONFIGURE GLOBAL INIT OPVARS ------------
 
@@ -211,50 +211,58 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           wire_expression2_editor:MakePopup(); conElements:Push({wire_expression2_editor, "Close"})
         end})
       conEditorDB:Push({
-        Name = "Luapad by Wrefgtzweve", -- Addon name and the button label
+        Name = "Luapad by Wrefgtzweve (In-place save is not supported)", -- Addon name and the button label
         ID = nil, -- Dedicated WSID when present in steam-works
         URL = "https://github.com/wrefgtzweve/luapad/tree/main",
         DEV = "https://github.com/wrefgtzweve/luapad",
         Code = function() return luapad end, -- The global library being uses for configuration
         Here = function() return asmlib.IsHere(luapad and luapad.ToggleSettingsMenu or nil) end,
-        Remove = function(tCon, sPre, sNam)
-          if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
-          local bS, oC = pcall(tCon.Code); if(not bS) then
-            asmlib.LogInstance("Library error "..asmlib.GetReport(sPre, sNam, tCon.Name, oC)); return end
-          if(not oC) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
-          local pS = oC.PropertySheet
-          if(not IsValid(pS)) then return end
-          -- Check the property sheet tab
-          local tI = pS:GetItems()
-          local nI = #tI
-          if(nI == 0) then return end
-          -- At least one tab
-          if(sPre == "" or sNam == "") then return end
-          local sS = sPre:lower()..".*"..sNam:lower()
-          -- The context menu option is available
-          for iD = 1, #tI do
-            local tP = tI[iD]
-            local cT = tP.Tab
-            if(IsValid(cT)) then
-              local pP = cT:GetPanel()
-              local sN = tostring(pP.name):lower()
-              if(sN and sN:find(sS)) then
-                if(nI > 1) then -- More tabs
-                  pS:CloseTab(cT, true)
-                end; break -- Nothing open bad
-              end
-            end; pS:InvalidateLayout()
-          end
-        end,
         Open = function(tCon, sPre, sNam)
           if(SERVER) then asmlib.LogInstance("Work on server "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           local bS, oC = pcall(tCon.Code); if(not bS) then
             asmlib.LogInstance("Library error "..asmlib.GetReport(sPre, sNam, tCon.Name, oC)); return end
           if(not oC) then asmlib.LogInstance("Not installed "..asmlib.GetReport(sPre, sNam, tCon.Name)); return end
           if(not IsValid(oC.Frame)) then oC.Toggle() end
+          -- Declare cloture for finding tab index
+          local function getTabIndex(sheet, name)
+            local name = tostring(name or "")
+            if(name == "") then return end -- Empty string
+            local tI = sheet:GetItems() -- Loop the tab items
+            local iE = #tI; if(iE == 1) then return nil end
+            for iT = 1, iE do -- Try to match some info string
+              local tP = tI[iT] -- Try to index the item
+              local vP = tP.Panel -- Try to index the tab
+              if(IsValid(vP)) then -- Only check valid tabs
+                local sO = vP.path .. vP.name -- Generate file origin
+                local sN, vT = vP.name, vP.dtab  -- Extract term and name
+                if(IsValid(vT)) then -- The asociateed tab is validated
+                  print("getTabIndex", name, sN, sO)
+                  if(sO and sO:find(name, 1, true)) then return iT, vT end
+                  if(sN and sN:find(name, 1, true)) then return iT, vT end
+                end
+              end -- This tab did not match the provided string
+            end
+          end
+          -- Declare cloture for closing a tab
+          local function closeTab(name)
+            if(SERVER) then return end
+            local pS = luapad.PropertySheet
+            if(not IsValid(pS)) then return end
+            -- Check the property sheet tab
+            local tI = pS:GetItems()
+            local nI = #tI
+            if(nI <= 1) then -- Is there anything to close
+              return -- There is nothing to close currently
+            else -- At least one tab is available check its info
+              local sT = tostring(name or "")
+              local iT, pT = getTabIndex(pS, name)
+              if(not iT) then return end -- No such tab do nothing
+              pS:CloseTab(pT, true)
+              pS:InvalidateLayout()
+            end
+          end
           -- Configure the panel visuals and display the file
           oC.Frame:SetVisible(true); oC.Frame:Center()
-          oC.OpenTab("data/"..gsToolNameL)
           local uDSV = asmlib.GetConcat("%s", gsToolPrefL, "%s.txt"):lower()
           local fDSV = asmlib.GetConcat(gsDrcDSV, uDSV):lower()
           local sForm = asmlib.FORM_STRING -- File format string
@@ -263,7 +271,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
             local oF = sForm:format(sPre)..sNam -- String displayed on the luapad tab
             local fF = fDSV:format(sPre, sNam):lower() -- Full path to the file relative to /data
             local uF = uDSV:format(sPre, sNam):lower() -- The actual file name being opened
-            if(file.Exists(fF,"DATA")) then oC.CloseTabName(oF, true)
+            if(file.Exists(fF,"DATA")) then closeTab("data/"..gsDrcDSV..uF)
               oC.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "chart_organisation")
             else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, fF)) end
           end -- Luapad is designed not to be closed so we need to make it invisible
@@ -271,7 +279,7 @@ local conEditorDB = asmlib.GetContainer("FILE_EDIT")
           local oF = sForm:format(sPre)..sNam -- String displayed on the luapad tab
           local fF = fDSV:format(sPre, sNam):lower() -- Full path to the file relative to /data
           local uF = uDSV:format(sPre, sNam):lower() -- The actual file name being opened
-          if(file.Exists(fF,"DATA")) then oC.CloseTabName(oF, true)
+          if(file.Exists(fF,"DATA")) then closeTab("data/"..gsDrcDSV..uF)
             oC.AddTab(uF, file.Read(fF, "DATA"), "data/"..gsDrcDSV, oF, "database_connect")
           else asmlib.LogInstance("File missing: "..asmlib.GetReport(sPre, sNam, tCon.Name, fF)) end
           oC.Frame:SetVisible(true); oC.Frame:Center()
@@ -1265,10 +1273,10 @@ if(CLIENT) then
                   function() -- Edit the database contents using the Luapad addon
                     local cE = asmlib.GetAsmConvar("texteditid", "INT") -- Current default editor
                     local tCon = conEditorDB:Select(cE) -- Configuration for default editor
-                    if(tCon) then -- Update the success flag scope no return
-                      local bS, vH = pcall(tCon.Here); if(not bS) then vH = false -- Default flag
+                    if(tCon) then local bH = true-- Update the success flag scope no return
+                      local bS, vH = pcall(tCon.Here); if(not bS) then bH = false -- Default flag
                         asmlib.LogInstance("Locator error: "..vH, sLog..".ListView") end
-                      local bS, oC = pcall(tCon.Code); if(not bS) then oC = nil -- Default library
+                      local bS, oC = pcall(tCon.Code); if(not bS) then bH = false -- Default library
                         asmlib.LogInstance("Library error: "..oC, sLog..".ListView") end
                       if(vH and asmlib.IsHere(oC) and not input.IsKeyDown(KEY_LSHIFT)) then
                         local bS, sE = pcall(tCon.Open, tCon, sP, defTab.Nick) -- Call the open method
