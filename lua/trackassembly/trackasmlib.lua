@@ -3744,7 +3744,7 @@ function NewTable(sTable,defTab,bReload,bDelete)
       else -- Clear the entire table by utilizing standard delete generation
         Q = self:Delete():Get() -- Update the query reference with the delete
       end
-      local qData = sql.Query(Q); if(not qData and isbool(qData)) then
+      local qRez = sql.Query(Q); if(not qRez and isbool(qRez)) then
         LogInstance("SQL exec error "..GetReport(sql.LastError(), Q),qtDef.Nick); return false end
     end -- Clear the entry from the table cache too
     local tCache = libCache[qtDef.Name]; if(not IsHere(tCache)) then
@@ -4769,6 +4769,8 @@ function SetAdditionsRUN(sModel, qList)
     if(not IsHere(Q)) then LogInstance("Build statement failed "..GetReport(qIndx,qModel)); return false end
     qData = sql.Query(Q); if(not qData and isbool(qData)) then
       LogInstance("SQL exec error "..GetReport(sql.LastError(), Q)); return false end
+    if(not IsHere(qData) or IsEmpty(qData)) then
+      LogInstance("No data found "..GetReport(Q)); return true end
   elseif(sMoDB == "LUA") then
     local iCnt = 0; qData = {}
     local tCache = libCache[defTab.Name]
@@ -4841,6 +4843,8 @@ function ExportTypeRUN(sType, bSet)
           LogInstance("Build statement failed "..GetReport(qIndx,qTy),defTab.Nick); return false end
         local qData = sql.Query(Q); if(not qData and isbool(qData)) then
           LogInstance("SQL exec error "..GetReport(sql.LastError(), Q),defTab.Nick); return false end
+        if(not IsHere(qData) or IsEmpty(qData)) then
+          LogInstance("No data found "..GetReport(Q)); return true end
         for iR = 1, #qData do table.insert(qContents[defTab.Nick], qData[iR]) end; return true
       end)) then LogInstance("Pieces component error", defTab.Nick); return end; return true
     end)
@@ -5196,6 +5200,8 @@ function ExportTypeDSV(sType, sDelim)
           LogInstance("Build statement failed "..GetReport(iTy,sTy),defTab.Nick); return false end
         local qData = sql.Query(Q); if(not qData and isbool(qData)) then
           LogInstance("SQL exec error "..GetReport(iTy,sTy,sql.LastError(),Q), defTab.Nick); return false end
+        if(not IsHere(qData) or IsEmpty(qData)) then
+          LogInstance("No data found "..GetReport(Q)); return true end
         local nR = #qData; tCo.F:Write(tHea.Qry:format(nR, Q))
         for iR = 1, nR do
           local aR = makTab:GetRowToArray(qData[iR])
@@ -5211,6 +5217,8 @@ function ExportTypeDSV(sType, sDelim)
               LogInstance("Build statement failed "..GetReport(iTy,sTy),defA.Nick); return end
             local qData = sql.Query(Q); if(not qData and isbool(qData)) then swCleanUp()
               LogInstance("SQL exec error "..GetReport(iTy,sTy, sql.LastError(), Q), defA.Nick); return end
+            if(not IsHere(qData) or IsEmpty(qData)) then
+              LogInstance("No data found "..GetReport(Q)); return true end
             if(IsHere(qA) and not IsEmpty(qA)) then
               local nA = #qData; tCo.F:Write(tHea.Qry:format(nA, Q))
               for iA = 1, nA do
