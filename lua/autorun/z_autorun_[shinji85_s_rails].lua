@@ -215,8 +215,8 @@ if(not bS) then ThrowError("Category error: "..vO) end
  * NAME   > This is the name of your track piece. Put /#/ here to be auto-generated from
  *          the model ( from the last slash to the file extension ).
  * LINEID > This is the ID of the point that can be selected for building. They must be
- *          sequential and mandatory. If provided, the ID must the same as the row index under
- *          a given model key. Disabling this, makes it use the index of the current line.
+ *          sequential and mandatory. If provided, the ID must the same as the row index
+ *          for a given model key. Disabling this, makes it use the index of the current line.
  *          Use that to swap the active points around by only moving the desired row up or down.
  *          For the example table definition below, the line ID in the database will be the same.
  * POINT  > This is the location vector that TA searches and selects the related ORIGIN for.
@@ -354,9 +354,9 @@ if(not bS) then ThrowError("PIECES error: "..vO) end
  *             When used in /DSV/ mode ( like seen below ) it is used as a hash index.
  * MODELADD  > This is the /*.mdl/ path of the addition entity. It is mandatory and cannot be disabled.
  * ENTCLASS  > This is the class of the addition entity. When disabled or missing it defaults to a normal prop.
- * LINEID    > This is the ID of the point that can be selected for building. They must be
- *             sequential and mandatory. If provided, the ID must the same as the row index under
- *             a given model key. Disabling this, makes it use the index of the current line.
+ * LINEID    > This is the ID of the addition that can be selected for building. They must be
+ *             sequential and mandatory. If provided, the ID must the same as the row index
+ *             for a given model key. Disabling this, makes it use the index of the current line.
  *             Use that to swap the active points around by only moving the desired row up or down.
  *             For the example table definition below, the line ID in the database will be the same.
  * POSOFF    > This is the local position vector offset that TA uses to place the addition relative to MODELBASE.
@@ -402,9 +402,9 @@ if(not bS) then ThrowError("ADDITIONS error: "..vO) end
  * TYPE   > This is the category under your physical properties are stored internally.
  *          It is mandatory and taken in pairs with LINEID, it forms the unique identifier of every record.
  *          When used in /DSV/ mode ( like seen below ) it is used as a hash index.
- * LINEID > This is the ID of the point that can be selected for building. They must be
- *          sequential and mandatory. If provided, the ID must the same as the row index under
- *          a given model key. Disabling this, makes it use the index of the current line.
+ * LINEID > This is the ID of the property that can be selected for building. They must be
+ *          sequential and mandatory. If provided, the ID must the same as the row index
+ *          for a given model key. Disabling this, makes it use the index of the current line.
  *          Use that to swap the active points around by only moving the desired row up or down.
  *          For the example table definition below, the line ID in the database will be the same.
  * NAME   > This stores the name of the physical property. It must an actual physical property.
